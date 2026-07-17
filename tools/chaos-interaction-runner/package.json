@@ -1,0 +1,23 @@
+{
+  "name": "@chaos/interaction-runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local live auto-resume runner for the CHAOS Interaction Runtime (Iteration 5). Executes a CHAOS command through a configured agent adapter, pauses on material decisions, and auto-resumes the same live session while a runner lease is alive.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "bin": {
+    "chaos-interaction-runner": "./src/cli/chaos-interaction-runner.ts"
+  },
+  "scripts": {
+    "start": "node src/cli/chaos-interaction-runner.ts",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "$comment": [
+    "Example Claude Code / MCP client configuration for the CHAOS Interaction MCP server.",
+    "This is an EXAMPLE ONLY. Iteration 2 deliberately does not ship an active repo-root .mcp.json,",
+    "so the server is not auto-wired while the Decision Center (Iteration 3) and resume flow",
+    "(Iteration 4) are not yet usable. To dogfood locally, copy this file to the repo root as",
+    ".mcp.json (or merge the mcpServers entry into your Claude settings), then reload the MCP client.",
+    "Paths are repo-root-relative placeholders; adjust if your client resolves from a different cwd.",
+    "Running the .ts source directly works on Node >= 22.6 (built-in TypeScript type-stripping).",
+    "After 'npm run build' you may instead point at the compiled entry:",
+    "tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js"
+  ],
+  "mcpServers": {
+    "chaos-interaction": {
+      "command": "node",
+      "args": [
+        "tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts",
+        "--root",
+        ".chaos/interactions",
+        "--schema-dir",
+        ".chaos/interactions/schema",
+        "--log-level",
+        "info"
+      ]
+    }
+  }
+}

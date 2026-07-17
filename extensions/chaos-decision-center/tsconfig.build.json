@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "rewriteRelativeImportExtensions": true,
+    "noEmit": false,
+    "rootDir": "../..",
+    "outDir": "dist",
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "../../tools/chaos-interaction-runtime/src/**/*.ts"
+  ],
+  "exclude": ["test/**/*.ts", "**/*.test.ts"]
+}

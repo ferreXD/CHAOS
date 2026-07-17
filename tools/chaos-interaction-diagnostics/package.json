@@ -1,0 +1,23 @@
+{
+  "name": "@chaos/interaction-diagnostics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only health, doctor/status diagnostics, stale-state detection, and advisory hook enforcement for the CHAOS Interaction Runtime (Iteration 7).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "bin": {
+    "chaos-interaction-diagnostics": "./src/cli/chaos-interaction-diagnostics.ts"
+  },
+  "scripts": {
+    "start": "node src/cli/chaos-interaction-diagnostics.ts",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.7.2"
+  }
+}

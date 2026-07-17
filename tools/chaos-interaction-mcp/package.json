@@ -1,0 +1,27 @@
+{
+  "name": "@chaos/interaction-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local MCP server exposing CHAOS Interaction Runtime decision/session tools (Iteration 2).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "bin": {
+    "chaos-interaction-mcp": "./src/cli/chaos-interaction-mcp.ts"
+  },
+  "scripts": {
+    "start": "node src/cli/chaos-interaction-mcp.ts",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-interaction-index.schema.json",
+  "title": "CHAOS Interaction Index",
+  "description": "Workspace index of sessions, decisions, and locks.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "commandRunId": {
+            "$ref": "#/$defs/id"
+          },
+          "path": {
+            "$ref": "#/$defs/path"
+          },
+          "state": {
+            "type": "string"
+          },
+          "changeId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceCommand": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "commandRunId",
+          "path",
+          "state",
+          "sourceCommand"
+        ]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decisionId": {
+            "$ref": "#/$defs/id"
+          },
+          "path": {
+            "$ref": "#/$defs/path"
+          },
+          "state": {
+            "type": "string"
+          },
+          "commandRunId": {
+            "$ref": "#/$defs/id"
+          },
+          "changeId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "decisionId",
+          "path",
+          "state",
+          "commandRunId"
+        ]
+      }
+    },
+    "locksPath": {
+      "$ref": "#/$defs/path"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/isoDateTime"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "sessions",
+    "decisions",
+    "locksPath",
+    "updatedAt"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

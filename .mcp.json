@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "chaos-interaction": {
+      "command": "node",
+      "args": [
+        "tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js",
+        "--repo-root",
+        ".",
+        "--root",
+        ".chaos/interactions",
+        "--schema-dir",
+        ".chaos/interactions/schema",
+        "--log-level",
+        "error"
+      ]
+    }
+  }
+}

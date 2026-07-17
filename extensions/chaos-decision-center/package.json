@@ -1,0 +1,91 @@
+{
+  "name": "chaos-decision-center",
+  "displayName": "CHAOS Decision Center",
+  "description": "Human-facing VS Code UI for the CHAOS Interaction Runtime: inspect pending decisions and write validated responses to the file-backed runtime.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "chaos",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=22.6.0"
+  },
+  "categories": ["Other"],
+  "main": "./dist/extensions/chaos-decision-center/src/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "contributes": {
+    "commands": [
+      { "command": "chaosDecisionCenter.open", "title": "Open Decision Center", "category": "CHAOS" },
+      { "command": "chaosDecisionCenter.refresh", "title": "Refresh Decision Center", "category": "CHAOS" },
+      { "command": "chaosDecisionCenter.answerDecision", "title": "Answer Active Decision", "category": "CHAOS" },
+      { "command": "chaosDecisionCenter.cancelDecision", "title": "Cancel Command Session for Decision", "category": "CHAOS" },
+      { "command": "chaosDecisionCenter.copyResumeInstruction", "title": "Copy Resume Instruction", "category": "CHAOS" }
+    ],
+    "configuration": {
+      "title": "CHAOS Decision Center",
+      "properties": {
+        "chaosDecisionCenter.interactionsRoot": {
+          "type": "string",
+          "default": ".chaos/interactions",
+          "description": "Runtime storage root, relative to the workspace folder (or absolute)."
+        },
+        "chaosDecisionCenter.schemaDir": {
+          "type": "string",
+          "default": ".chaos/interactions/schema",
+          "description": "Schema directory, relative to the workspace folder (or absolute)."
+        },
+        "chaosDecisionCenter.openOnPendingDecision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Decision Center when a pending decision appears."
+        },
+        "chaosDecisionCenter.focusOnPendingDecision": {
+          "type": "boolean",
+          "default": false,
+          "description": "Steal editor focus when a pending decision appears (off by default to avoid disruption)."
+        },
+        "chaosDecisionCenter.showNotificationOnPendingDecision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show an information notification when a pending decision appears."
+        },
+        "chaosDecisionCenter.afterSubmit": {
+          "type": "string",
+          "enum": ["switchToDashboard", "keepDecisionOpen", "closePanel"],
+          "default": "switchToDashboard",
+          "description": "What the panel does after a decision is answered."
+        },
+        "chaosDecisionCenter.validateResponses": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate responses against the runtime schemas on write."
+        },
+        "chaosDecisionCenter.pollingFallbackMs": {
+          "type": "number",
+          "default": 2000,
+          "description": "Polling fallback interval (ms) in case file watching misses events. 0 disables polling."
+        },
+        "chaosDecisionCenter.maxHistoryItems": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of history items to show."
+        },
+        "chaosDecisionCenter.userName": {
+          "type": "string",
+          "default": "vscode-user",
+          "description": "Name recorded as selectedBy on responses. Avoid using an email address."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.7.2"
+  }
+}

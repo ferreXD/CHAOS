@@ -1,0 +1,61 @@
+{
+  "$comment": "Example hook wiring for CHAOS artifact provenance metadata (see ../README.md and reference/artifact-metadata-config.md). This file is illustrative only and is not read directly by Claude Code. Copy the \"hooks\" object from whichever profile you want into your own .claude/settings.json or .claude/settings.local.json. Neither profile stamps files automatically -- both are report-only with respect to writes; only --check-only is wired here. Add --stamp yourself (with --dry-run first) if you want a hook to also insert/repair metadata, and understand that this then writes to disk during a turn.",
+  "profiles": {
+    "contributorSafe": {
+      "description": "Recommended default. Warns on missing/invalid chaosMetadata but never blocks a turn and never writes files automatically.",
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write|MultiEdit",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event post-tool-use --check-only",
+                "timeout": 30
+              }
+            ]
+          }
+        ],
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event stop --check-only",
+                "timeout": 60
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "strict": {
+      "description": "Blocking enforcement. Exits 2 (blocking, per Claude Code hook conventions) when a CHAOS-managed Markdown file is missing or has invalid chaosMetadata, per policies.artifactMetadata.failOnMissingMetadataInStrictHooks.",
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write|MultiEdit",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event post-tool-use --check-only --strict",
+                "timeout": 30
+              }
+            ]
+          }
+        ],
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event stop --check-only --strict",
+                "timeout": 60
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
