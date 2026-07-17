@@ -1,0 +1,25 @@
+{
+  "$comment": "Copy to a local runner.config.json and pass with --config. Paths are relative to the repository root. Never commit machine-specific absolute agent paths; use agentCommand + PATH.",
+  "interactionsRoot": ".chaos/interactions",
+  "schemaDir": ".chaos/interactions/schema",
+  "validate": true,
+
+  "agentCommand": "claude",
+  "agentArgs": [],
+  "workingDirectory": ".",
+
+  "maxAutoResumeCycles": 3,
+  "decisionPollMs": 1000,
+  "sessionLeaseTtlMs": 300000,
+
+  "requireExplicitResumeForDeadSessions": true,
+  "allowAutoResumeWhenRunnerActive": true,
+  "allowAutoResumeAcrossDeadSessions": false,
+  "stopOnNewMaterialDecision": false,
+  "stopOnUnsafeWriteRisk": true,
+  "stopOnValidationFailure": true,
+  "writeRunnerAudit": true,
+
+  "allowProcessResume": false,
+  "logLevel": "info"
+}

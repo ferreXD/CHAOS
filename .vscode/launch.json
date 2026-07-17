@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run CHAOS Decision Center (Extension)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "${workspaceFolder}",
+                "--extensionDevelopmentPath=${workspaceFolder}/extensions/chaos-decision-center"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/extensions/chaos-decision-center/dist/**/*.js"
+            ],
+            "preLaunchTask": "chaos-decision-center: build"
+        }
+    ]
+}

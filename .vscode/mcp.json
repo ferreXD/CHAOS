@@ -1,0 +1,27 @@
+{
+  "servers": {
+    // Opt-in: remote Azure DevOps MCP server. Disabled by default (GitHub is the
+    // default provider). To enable, uncomment the block below and replace
+    // <your-azure-devops-org> with your organization. See
+    // .github/skills/chaos-shared/reference/azure-devops-mcp-integration.md.
+    // "ado-remote-mcp": {
+    //   "url": "https://mcp.dev.azure.com/<your-azure-devops-org>",
+    //   "type": "http"
+    // },
+    "chaos-interaction": {
+      "command": "node",
+      "args": [
+        "tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts",
+        "--repo-root",
+        ".",
+        "--root",
+        ".chaos/interactions",
+        "--schema-dir",
+        ".chaos/interactions/schema",
+        "--log-level",
+        "info"
+      ]
+    }
+  },
+  "inputs": []
+}

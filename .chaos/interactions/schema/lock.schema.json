@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-change-lock.schema.json",
+  "title": "CHAOS Change Lock",
+  "description": "A change-scoped lock caused by a pending/resumable command session.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "lockId": {
+      "$ref": "#/$defs/id"
+    },
+    "changeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "lockedByCommandRunId": {
+      "$ref": "#/$defs/id"
+    },
+    "lockedByCommand": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "waiting-for-user-decision",
+        "ready-to-resume",
+        "command-running",
+        "manual-hold",
+        "unknown"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "released",
+        "expired",
+        "stale"
+      ]
+    },
+    "blockingDecisionIds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "compatibleCommands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "createdAt": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "releasedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "lockId",
+    "changeId",
+    "lockedByCommandRunId",
+    "lockedByCommand",
+    "reason",
+    "state",
+    "blockingDecisionIds",
+    "compatibleCommands",
+    "createdAt"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

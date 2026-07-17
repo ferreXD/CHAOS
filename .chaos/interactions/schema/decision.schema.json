@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-decision.schema.json",
+  "title": "CHAOS Decision",
+  "description": "A material human decision created by a CHAOS command.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "decisionId": {
+      "$ref": "#/$defs/id"
+    },
+    "commandRunId": {
+      "$ref": "#/$defs/id"
+    },
+    "changeId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "sourceCommand": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interactionType": {
+      "type": "string",
+      "enum": [
+        "single-choice-decision",
+        "multi-choice-decision",
+        "confirmation",
+        "freeform-input"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "created",
+        "waiting",
+        "answered",
+        "consumed",
+        "cancelled",
+        "expired",
+        "superseded"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "context": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 6000
+    },
+    "recommendation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000
+    },
+    "recommendedOptionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    },
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "consequence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "risk": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000
+          },
+          "recommended": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ]
+      }
+    },
+    "requiresRationale": {
+      "type": "boolean",
+      "default": false
+    },
+    "independent": {
+      "type": "boolean",
+      "default": false
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "unlocksOn": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "createdAt": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "createdBy": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "commandRunId",
+    "sourceCommand",
+    "interactionType",
+    "state",
+    "title",
+    "context",
+    "options",
+    "createdAt"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

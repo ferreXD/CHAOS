@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-interaction-audit-event.schema.json",
+  "title": "CHAOS Interaction Audit Event",
+  "description": "Append-only audit event for interaction runtime transitions.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "eventId": {
+      "$ref": "#/$defs/id"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "session-created",
+        "command-started",
+        "decision-created",
+        "decision-answered",
+        "decision-cancelled",
+        "decision-expired",
+        "decision-consumed",
+        "capsule-created",
+        "lock-acquired",
+        "lock-released",
+        "command-completed",
+        "command-cancelled",
+        "command-failed",
+        "auto-resume-started",
+        "auto-resume-stopped",
+        "runtime-warning"
+      ]
+    },
+    "commandRunId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "decisionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "changeId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "timestamp": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "actor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "mcp",
+        "vscode-decision-center",
+        "chaos-command",
+        "hook",
+        "manual",
+        "unknown"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "eventType",
+    "timestamp",
+    "source",
+    "message"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

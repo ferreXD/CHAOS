@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-resume-capsule.schema.json",
+  "title": "CHAOS Resume Capsule",
+  "description": "Minimal structured context required to resume a paused CHAOS command.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "commandRunId": {
+      "$ref": "#/$defs/id"
+    },
+    "sourceCommand": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changeId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 160
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "waiting-for-decision",
+        "ready-to-resume",
+        "resumed",
+        "completed",
+        "cancelled",
+        "expired",
+        "failed"
+      ]
+    },
+    "lastCompletedStep": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 240
+    },
+    "nextStep": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "answeredDecisionIds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "consumedDecisionIds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "requiredArtifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    },
+    "contextCapsule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "approvedScope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "selectedPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 240
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "openRisks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "confidenceCaps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "forbiddenActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "required": [
+        "intent",
+        "approvedScope",
+        "constraints",
+        "openRisks"
+      ]
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "knowledgeType": {
+      "$ref": "#/$defs/knowledgeType"
+    },
+    "createdAt": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "commandRunId",
+    "sourceCommand",
+    "state",
+    "nextStep",
+    "answeredDecisionIds",
+    "consumedDecisionIds",
+    "requiredArtifacts",
+    "contextCapsule",
+    "confidence",
+    "knowledgeType",
+    "createdAt",
+    "updatedAt"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

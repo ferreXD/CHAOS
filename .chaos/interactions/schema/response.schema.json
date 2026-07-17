@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/interaction-runtime/1/chaos-decision-response.schema.json",
+  "title": "CHAOS Decision Response",
+  "description": "A human response to a CHAOS decision.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "decisionId": {
+      "$ref": "#/$defs/id"
+    },
+    "commandRunId": {
+      "$ref": "#/$defs/id"
+    },
+    "selectedOptionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    },
+    "selectedOptionIds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "freeformValue": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 6000
+    },
+    "rationale": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000
+    },
+    "selectedBy": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "selectedAt": {
+      "$ref": "#/$defs/isoDateTime"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "vscode-decision-center",
+        "prompt-fallback",
+        "mcp-tool",
+        "manual-file",
+        "unknown"
+      ]
+    },
+    "validatesAgainstDecisionHash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[a-fA-F0-9]{64}$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "commandRunId",
+    "selectedBy",
+    "selectedAt",
+    "source"
+  ],
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledgeType": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN",
+        "CONFLICT"
+      ]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

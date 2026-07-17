@@ -1,0 +1,26 @@
+{
+  "name": "@chaos/interaction-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "File-backed CHAOS Interaction Runtime store (Iteration 1). Deterministic state layer for command sessions, material decisions, responses, change locks, resume capsules, and audit events.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "chaos-interaction-runtime": "./src/cli/chaos-interaction-runtime.ts"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "cli": "node src/cli/chaos-interaction-runtime.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.7.2"
+  }
+}
