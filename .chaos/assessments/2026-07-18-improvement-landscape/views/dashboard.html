@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOS improvement landscape — 2026-07-18</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane: #f9f9f7; --surface: #fcfcfb;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --bar-fill: #2a78d6; --bar-track: #cde2fb;
+    --bar2-fill: #008300;
+    --accent-wash: rgba(42,120,214,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane: #0d0d0d; --surface: #1a1a19;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --bar-fill: #3987e5; --bar-track: #0d366b;
+      --bar2-fill: #008300;
+      --accent-wash: rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0d0d0d; --surface: #1a1a19;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --bar-fill: #3987e5; --bar-track: #0d366b;
+    --bar2-fill: #008300;
+    --accent-wash: rgba(57,135,229,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--plane); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px 16px 48px; }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+  .prov { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .t-label { font-size: 12px; color: var(--ink-2); }
+  .tile .t-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .t-note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .bar-row { display: grid; grid-template-columns: 210px 1fr 30px; align-items: center; gap: 8px; padding: 3px 0; border-radius: 4px; }
+  .bar-row:hover { background: var(--accent-wash); }
+  .bar-row .b-label { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-row .b-val { font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar-track { height: 11px; border-left: 1px solid var(--baseline); }
+  .bar-track i { display: block; height: 100%; background: var(--bar-fill); border-radius: 0 4px 4px 0; }
+  .bar-track.alt i { background: var(--bar2-fill); }
+  ol.top { padding-left: 22px; display: grid; gap: 4px; font-size: 12.5px; }
+  ol.top b { font-weight: 600; }
+  ol.top .id { color: var(--muted); font-size: 11.5px; }
+  .klist { list-style: none; display: grid; gap: 6px; font-size: 12.5px; padding: 0; }
+  .klist b { font-weight: 600; }
+  .klist span { color: var(--ink-2); }
+  .idx { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .idx a { display: block; text-decoration: none; color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); }
+  .idx a:hover { background: var(--accent-wash); }
+  .idx .i-num { font-size: 11px; color: var(--muted); }
+  .idx .i-title { font-weight: 600; font-size: 13px; }
+  .idx .i-desc { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+  footer { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="card">
+    <h1>CHAOS — improvement landscape &amp; greenfield foundation</h1>
+    <div class="prov">Companion to the public-alpha external assessment · commit 6421feb · 2026-07-18. Two exercises: (A) systematic improvement landscape, (B) Greenfield Foundation Discovery for chaos:init. Source of truth: the markdown sections; this dashboard is a generated view.</div>
+  </header>
+
+  <section class="tiles" aria-label="Key figures">
+    <div class="tile"><div class="t-label">Improvement areas</div><div class="t-value">9</div><div class="t-note">team/enterprise distributed, not an area</div></div>
+    <div class="tile"><div class="t-label">Improvement topics</div><div class="t-value">75</div><div class="t-note">≈45 new · 19 carried from EA-*</div></div>
+    <div class="tile"><div class="t-label">Command portfolio target</div><div class="t-value">17 → 12</div><div class="t-note">standard tier; merge &amp; demote, not delete</div></div>
+    <div class="tile"><div class="t-label">New commands proposed</div><div class="t-value">0–1</div><div class="t-note">only chaos:run survives the 7-question test</div></div>
+    <div class="tile"><div class="t-label">Foundation catalog</div><div class="t-value">19</div><div class="t-note">options · 4+1 areas · 3 presets + overlay</div></div>
+    <div class="tile"><div class="t-label">Greenfield init stops</div><div class="t-value">≤6</div><div class="t-note">3 with a preset</div></div>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-label="Topics per area">
+      <h2>Topics per area</h2>
+      <div class="bar-row" title="Workflow &amp; command model"><span class="b-label">WF · Workflow &amp; commands</span><div class="bar-track"><i style="width:90%"></i></div><span class="b-val">9</span></div>
+      <div class="bar-row" title="Decision quality &amp; human interaction"><span class="b-label">DQ · Decision quality</span><div class="bar-track"><i style="width:100%"></i></div><span class="b-val">10</span></div>
+      <div class="bar-row" title="Evidence, traceability, accountability"><span class="b-label">TR · Traceability</span><div class="bar-track"><i style="width:90%"></i></div><span class="b-val">9</span></div>
+      <div class="bar-row" title="Runtime reliability, recovery, security"><span class="b-label">RT · Runtime &amp; security</span><div class="bar-track"><i style="width:90%"></i></div><span class="b-val">9</span></div>
+      <div class="bar-row" title="Performance &amp; token efficiency"><span class="b-label">PF · Performance &amp; tokens</span><div class="bar-track"><i style="width:100%"></i></div><span class="b-val">10</span></div>
+      <div class="bar-row" title="Architecture guidance &amp; governance artifacts"><span class="b-label">AG · Architecture guidance</span><div class="bar-track"><i style="width:60%"></i></div><span class="b-val">6</span></div>
+      <div class="bar-row" title="Developer experience &amp; onboarding"><span class="b-label">DX · Developer experience</span><div class="bar-track"><i style="width:80%"></i></div><span class="b-val">8</span></div>
+      <div class="bar-row" title="Extensibility, portability, ecosystem"><span class="b-label">EX · Ecosystem</span><div class="bar-track"><i style="width:70%"></i></div><span class="b-val">7</span></div>
+      <div class="bar-row" title="Productization, adoption, OSS maturity"><span class="b-label">PA · Productization</span><div class="bar-track"><i style="width:70%"></i></div><span class="b-val">7</span></div>
+
+      <h2 style="margin-top:16px">Recommendation mix (75 topics)</h2>
+      <div class="bar-row"><span class="b-label">must do</span><div class="bar-track alt"><i style="width:26%"></i></div><span class="b-val">12</span></div>
+      <div class="bar-row"><span class="b-label">should do</span><div class="bar-track alt"><i style="width:100%"></i></div><span class="b-val">46</span></div>
+      <div class="bar-row"><span class="b-label">explore</span><div class="bar-track alt"><i style="width:33%"></i></div><span class="b-val">15</span></div>
+      <div class="bar-row"><span class="b-label">defer</span><div class="bar-track alt"><i style="width:4%"></i></div><span class="b-val">2</span></div>
+      <div class="prov" style="margin-top:8px">Rejections (≈8: new adapters now, chaos:gate, chaos:foundation command, telemetry, …) are listed in 11 §11.4, not counted as topics.</div>
+    </section>
+
+    <section class="card" aria-label="Top opportunities">
+      <h2>Top 20 opportunities (deduplicated, ranked)</h2>
+      <ol class="top">
+        <li><b>Showcase trail</b> <span class="id">EA-V1 · decided</span></li>
+        <li><b>Materiality doctrine + stop budgets</b> <span class="id">IL-DQ2</span></li>
+        <li><b>risk × execution-profile model</b> <span class="id">IL-WF1/EA-B1</span></li>
+        <li><b>Stabilization bundle</b> <span class="id">EA-S1–S4 + hooks</span></li>
+        <li><b>Token accounting in CI</b> <span class="id">IL-PF10</span></li>
+        <li><b>Decision→files→tests provenance</b> <span class="id">IL-TR1</span></li>
+        <li><b>Lockfile + MCP hardening</b> <span class="id">IL-RT1/RT2</span></li>
+        <li><b>Lazy references + report budgets</b> <span class="id">IL-PF2/PF9</span></li>
+        <li><b>Evidence index + deterministic validators</b> <span class="id">IL-PF3/PF4</span></li>
+        <li><b>Decision Center v2</b> <span class="id">IL-DX4/EA-B5</span></li>
+        <li><b>Greenfield Foundation MVP</b> <span class="id">IL-AG1/EA-B6</span></li>
+        <li><b>Decision schema v2 + expiry</b> <span class="id">IL-DQ1/DQ10</span></li>
+        <li><b>Capsule integrity + quality gate</b> <span class="id">IL-RT3</span></li>
+        <li><b>One-command plugin install</b> <span class="id">IL-DX1/EA-B4</span></li>
+        <li><b>Single-sourcing → generated adapters</b> <span class="id">IL-PF1→EX1</span></li>
+        <li><b>Rules/gates as structured data</b> <span class="id">IL-AG4</span></li>
+        <li><b>Governed break-glass path</b> <span class="id">IL-WF5</span></li>
+        <li><b>Outcome tracking + calibration</b> <span class="id">IL-DQ6/TR5</span></li>
+        <li><b>Runtime extraction + ledger format</b> <span class="id">IL-EX2/EX6</span></li>
+        <li><b>Observed-posture brownfield mirror</b> <span class="id">IL-AG5</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card" aria-label="Foundation summary">
+      <h2>Greenfield foundation — the shape</h2>
+      <ul class="klist">
+        <li><b>Areas (4 + 1 conditional)</b> — <span>FA-1 topology · FA-2 internal structure · FA-3 data &amp; consistency · FA-4 delivery posture · FA-C communication (asked only when distributed, else auto in-process)</span></li>
+        <li><b>Options</b> — <span>19 total, technology-agnostic, each with constraints, poor-fit warnings, evolution path, compatibility rules</span></li>
+        <li><b>Presets</b> — <span>pragmatic-product · structured-enterprise · distributed-platform, + regulated overlay; review-and-override mandatory</span></li>
+        <li><b>Artifacts</b> — <span>foundation.yaml (authoritative) · foundation.md (generated) · selection-evidence.md; ≤8 derived governance files</span></li>
+        <li><b>Detection</b> — <span>deterministic signals; substantial source ⇒ brownfield; never silent; ambiguity asks</span></li>
+        <li><b>Revision</b> — <span>governed via propose template + ADR; never silent; catalog pinned by version</span></li>
+        <li><b>New commands</b> — <span>zero (init phase + propose template + doctor probes + DC view)</span></li>
+      </ul>
+    </section>
+
+    <section class="card" aria-label="Portfolio and analyses">
+      <h2>Command portfolio verdicts</h2>
+      <ul class="klist">
+        <li><b>Merge</b> — <span>status→doctor · change-scoped sync→archive · code-review+verify at compact</span></li>
+        <li><b>Slim</b> — <span>todo (deterministic curation) · retro (periodic + triggers)</span></li>
+        <li><b>Never build</b> — <span>chaos:gate (gates become data) · chaos:foundation (init/propose/doctor cover it)</span></li>
+        <li><b>Explore</b> — <span>chaos:run as the compact-profile front door</span></li>
+        <li><b>Portfolios</b> — <span>minimal 7 · standard 12 · full 14–15</span></li>
+      </ul>
+      <h2 style="margin-top:16px">Dedicated analyses</h2>
+      <ul class="klist">
+        <li><b>Decisions</b> — <span>fewer, better-classified stops first; no evidence → no recommendation; calibration as the long-term differentiator</span></li>
+        <li><b>Traceability</b> — <span>8/14 questions unanswerable today; 5 mechanisms close them with zero added human ceremony</span></li>
+        <li><b>Performance</b> — <span>measure first; target ~196k → 60–80k standard (Hypothesis until IL-PF10 measures)</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="card" aria-label="Section index">
+    <h2>Sections</h2>
+    <div class="idx">
+      <a href="../01-improvement-taxonomy.md"><div class="i-num">01</div><div class="i-title">Improvement taxonomy</div><div class="i-desc">9 areas and why each matters</div></a>
+      <a href="../02-topics-workflow-decisions-traceability.md"><div class="i-num">02</div><div class="i-title">Topics: WF · DQ · TR</div><div class="i-desc">28 topics with full fields</div></a>
+      <a href="../03-topics-runtime-performance.md"><div class="i-num">03</div><div class="i-title">Topics: RT · PF</div><div class="i-desc">19 topics with full fields</div></a>
+      <a href="../04-topics-guidance-dx-ecosystem-product.md"><div class="i-num">04</div><div class="i-title">Topics: AG · DX · EX · PA</div><div class="i-desc">28 topics with full fields</div></a>
+      <a href="../05-command-portfolio.md"><div class="i-num">05</div><div class="i-title">Command portfolio</div><div class="i-desc">Verdicts, 7-question test, target tiers</div></a>
+      <a href="../06-decision-quality-analysis.md"><div class="i-num">06</div><div class="i-title">Decision quality</div><div class="i-desc">Quality model + guardrails</div></a>
+      <a href="../07-traceability-accountability-analysis.md"><div class="i-num">07</div><div class="i-title">Traceability</div><div class="i-desc">14-question answerability matrix</div></a>
+      <a href="../08-performance-token-analysis.md"><div class="i-num">08</div><div class="i-title">Performance &amp; tokens</div><div class="i-desc">Economics, invalidation, benchmarks</div></a>
+      <a href="../09-greenfield-foundation-design.md"><div class="i-num">09</div><div class="i-title">Foundation design</div><div class="i-desc">Flow, detection, artifacts, worked example</div></a>
+      <a href="../10-greenfield-foundation-catalog.md"><div class="i-num">10</div><div class="i-title">Foundation catalog</div><div class="i-desc">19 complete option definitions</div></a>
+      <a href="../11-final-prioritization.md"><div class="i-num">11</div><div class="i-title">Final prioritization</div><div class="i-desc">Top 20 · horizons · roadmap delta</div></a>
+    </div>
+  </section>
+
+  <footer class="card">
+    Labels: Observed · Reported (author) · Inferred · Hypothesis · Recommendation · Unknown. Self-contained generated view (inline CSS, no external assets, light/dark via system preference). Companion: ../2026-07-18-public-alpha-assessment/views/dashboard.html.
+  </footer>
+
+</div>
+</body>
+</html>

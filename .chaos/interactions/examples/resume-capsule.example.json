@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "commandRunId": "RUN-2026-07-18-chaos-propose-add-execution-profiles-9b1e2f",
+  "sourceCommand": "chaos:propose",
+  "changeId": "add-execution-profiles",
+  "state": "waiting-for-decision",
+  "lastCompletedStep": "draft-proposal-and-delta-specs",
+  "nextStep": "incorporate-execution-profile-and-finalize-proposal",
+  "answeredDecisionIds": [],
+  "consumedDecisionIds": [],
+  "requiredArtifacts": [
+    "openspec/changes/add-execution-profiles/proposal.md",
+    "openspec/changes/add-execution-profiles/tasks.md",
+    "openspec/changes/add-execution-profiles/specs/execution-profiles/spec.md"
+  ],
+  "contextCapsule": {
+    "intent": "Add a risk x execution-profile model so small strict-risk changes stop paying full ceremony, without weakening the gate set.",
+    "approvedScope": [
+      "Prompt and skill layer for propose/apply/verify",
+      "New execution-profile decision in the propose flow"
+    ],
+    "selectedPath": null,
+    "constraints": [
+      "No runtime code changes in this change",
+      "Full gate set is retained for the standard risk level"
+    ],
+    "assumptions": [
+      "The execution-profile choice is a single-choice decision surfaced at propose time"
+    ],
+    "openRisks": [
+      "Mode-matrix complexity if defaults are not inferred well",
+      "User confusion between risk level and execution profile"
+    ],
+    "confidenceCaps": [
+      "MEDIUM until the profile decision is answered and the delta specs are reviewed"
+    ],
+    "forbiddenActions": [
+      "Do not modify tools/chaos-interaction-runtime source",
+      "Do not archive the change before verify passes"
+    ]
+  },
+  "confidence": "MEDIUM",
+  "knowledgeType": "INFERENCE",
+  "createdAt": "2026-07-18T10:15:31+02:00",
+  "updatedAt": "2026-07-18T10:15:31+02:00"
+}

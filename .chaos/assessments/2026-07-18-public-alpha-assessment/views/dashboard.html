@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOS assessment dashboard — 2026-07-18</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --score-fill: #2a78d6;
+    --score-track: #cde2fb;
+    --token-fill: #008300;
+    --status-critical: #d03b3b;
+    --status-serious: #ec835a;
+    --status-warning: #fab219;
+    --status-good: #0ca30c;
+    --accent-wash: rgba(42,120,214,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --score-fill: #3987e5;
+      --score-track: #0d366b;
+      --token-fill: #008300;
+      --accent-wash: rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --score-fill: #3987e5;
+    --score-track: #0d366b;
+    --token-fill: #008300;
+    --accent-wash: rgba(57,135,229,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--plane);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+  .prov { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .verdict {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; margin-top: 12px;
+    padding: 12px 14px; background: var(--accent-wash); border-radius: 8px;
+  }
+  .verdict .v-label { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .verdict .v-text { font-size: 22px; font-weight: 650; }
+  .amend { margin-top: 10px; font-size: 12.5px; color: var(--ink-2); border-left: 3px solid var(--baseline); padding-left: 10px; }
+  .amend strong { color: var(--ink); }
+
+  /* stat tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .t-label { font-size: 12px; color: var(--ink-2); }
+  .tile .t-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .t-note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* two-column zone */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+  /* score meters */
+  .meter-row { display: grid; grid-template-columns: 132px 1fr 26px; align-items: center; gap: 8px; padding: 3px 0; border-radius: 4px; }
+  .meter-row:hover { background: var(--accent-wash); }
+  .meter-row .m-label { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meter-row .m-val { font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .meter { height: 10px; background: var(--score-track); border-radius: 0 4px 4px 0; position: relative; }
+  .meter i { position: absolute; inset: 0 auto 0 0; background: var(--score-fill); border-radius: 0 4px 4px 0; }
+
+  /* token bars */
+  .bar-row { display: grid; grid-template-columns: 96px 1fr 46px; align-items: center; gap: 8px; padding: 3px 0; border-radius: 4px; }
+  .bar-row:hover { background: var(--accent-wash); }
+  .bar-row .b-label { font-size: 12.5px; color: var(--ink-2); }
+  .bar-row .b-val { font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar-track { height: 12px; border-left: 1px solid var(--baseline); }
+  .bar-track i { display: block; height: 100%; background: var(--token-fill); border-radius: 0 4px 4px 0; }
+
+  /* risk list */
+  .risk { display: grid; grid-template-columns: 14px 58px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--grid); font-size: 12.5px; }
+  .risk:last-child { border-bottom: none; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; justify-self: center; }
+  .risk .r-id { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .risk .r-pi { color: var(--ink-2); white-space: nowrap; }
+  .sev { font-size: 11px; color: var(--ink-2); }
+
+  /* classification + path */
+  .klist { list-style: none; display: grid; gap: 6px; font-size: 12.5px; }
+  .klist b { font-weight: 600; }
+  .klist span { color: var(--ink-2); }
+  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+  .path .step { background: var(--accent-wash); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-weight: 600; }
+  .path .arrow { color: var(--muted); }
+  .path .gate { border-style: dashed; font-weight: 600; }
+
+  /* index */
+  .idx { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .idx a {
+    display: block; text-decoration: none; color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface);
+  }
+  .idx a:hover { background: var(--accent-wash); }
+  .idx .i-num { font-size: 11px; color: var(--muted); }
+  .idx .i-title { font-weight: 600; font-size: 13px; }
+  .idx .i-desc { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+  footer { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="card">
+    <h1>CHAOS — public-alpha external assessment</h1>
+    <div class="prov">Assessed commit 6421feb · 2026-07-18 · five investigation streams + spot verification · all 266 package tests and the .NET example executed · ecosystem research dated same day. Source of truth: the markdown sections (see index below); this dashboard is a generated view.</div>
+    <div class="verdict">
+      <span class="v-label">Verdict</span>
+      <span class="v-text">Continue with a narrower focus</span>
+      <span style="color:var(--ink-2)">— elevate the interaction runtime, compress the methodology, stabilize before expanding.</span>
+    </div>
+    <div class="amend"><strong>Amended same day:</strong> author reports the full lifecycle was validated privately (itself · demo · one real brownfield project); artifacts were deliberately kept out of the public repo. Gap reclassified <em>evidentiary, not executional</em>. <strong>Decision:</strong> Option 2 — publish a complete, real, sanitized showcase trail (roadmap EA-V1; orphan branch recommended).</div>
+  </header>
+
+  <section class="tiles" aria-label="Key figures">
+    <div class="tile"><div class="t-label">Package tests passing</div><div class="t-value">264/266</div><div class="t-note">2 fail on a never-committed fixture</div></div>
+    <div class="tile"><div class="t-label">Instruction tokens per standard lifecycle</div><div class="t-value">≈196k</div><div class="t-note">across 9 sessions, before user code</div></div>
+    <div class="tile"><div class="t-label">Human stops per standard change</div><div class="t-value">11–14</div><div class="t-note">≈17–19 durable artifacts</div></div>
+    <div class="tile"><div class="t-label">Commands with public runtime evidence</div><div class="t-value">3/17</div><div class="t-note">full lifecycle validated privately (reported)</div></div>
+    <div class="tile"><div class="t-label">Real decision cycles captured</div><div class="t-value">8</div><div class="t-note">incl. an 11-min pause → answer → resume</div></div>
+    <div class="tile"><div class="t-label">Instruction surface</div><div class="t-value">1.2&nbsp;MB ×2</div><div class="t-note">204 skill files, twin Claude/Copilot trees</div></div>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-label="Scorecard">
+      <h2>Scorecard — 21 dimensions (1–10)</h2>
+      <div class="meter-row" title="Runtime engineering quality: 264/266 tests, 3 any-casts in 13.6k LOC"><span class="m-label">Implementation quality</span><div class="meter"><i style="width:80%"></i></div><span class="m-val">8</span></div>
+      <div class="meter-row" title="HITL-governance gap + EU AI Act timing"><span class="m-label">Problem relevance</span><div class="meter"><i style="width:80%"></i></div><span class="m-val">8</span></div>
+      <div class="meter-row" title="One idea threads everything: decisions as durable state"><span class="m-label">Conceptual coherence</span><div class="meter"><i style="width:80%"></i></div><span class="m-val">8</span></div>
+      <div class="meter-row" title="Strong runtime foundations; dragged by races + triplication"><span class="m-label">Technical architecture</span><div class="meter"><i style="width:70%"></i></div><span class="m-val">7</span></div>
+      <div class="meter-row" title="Robust single-user; races + silent hook no-ops"><span class="m-label">Reliability</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Great panel CSP; MCP read paths + answer bridge open"><span class="m-label">Security</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Niche-novel decision runtime; known ingredients"><span class="m-label">Novelty</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Honest label; sanitization + first-run holes"><span class="m-label">Public-alpha readiness</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Strong on strict-risk brownfield; costly everyday"><span class="m-label">Solo-developer value</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Audit-trail thesis fits 2026 regulation; rest missing"><span class="m-label">Enterprise potential</span><div class="meter"><i style="width:60%"></i></div><span class="m-val">6</span></div>
+      <div class="meter-row" title="Open space today; platform absorption risk"><span class="m-label">Differentiation</span><div class="meter"><i style="width:50%"></i></div><span class="m-val">5</span></div>
+      <div class="meter-row" title="Forkable text + clean lib; triplication tax"><span class="m-label">Extensibility</span><div class="meter"><i style="width:50%"></i></div><span class="m-val">5</span></div>
+      <div class="meter-row" title="Manual builds, silent failures, Claude-gated"><span class="m-label">Usability</span><div class="meter"><i style="width:40%"></i></div><span class="m-val">4</span></div>
+      <div class="meter-row" title="~12 stops/change; real aha moments exist"><span class="m-label">Developer experience</span><div class="meter"><i style="width:40%"></i></div><span class="m-val">4</span></div>
+      <div class="meter-row" title="Copilot surface exists, never executed"><span class="m-label">Provider portability</span><div class="meter"><i style="width:40%"></i></div><span class="m-val">4</span></div>
+      <div class="meter-row" title="Niche, heavy, no public proof yet; tailwinds real"><span class="m-label">OSS adoption potential</span><div class="meter"><i style="width:40%"></i></div><span class="m-val">4</span></div>
+      <div class="meter-row" title="13–30k per command; 196k per lifecycle; 3× re-reads"><span class="m-label">Token efficiency</span><div class="meter"><i style="width:30%"></i></div><span class="m-val">3</span></div>
+      <div class="meter-row" title="No installer; missing openspec init; silent traps"><span class="m-label">Onboarding</span><div class="meter"><i style="width:30%"></i></div><span class="m-val">3</span></div>
+      <div class="meter-row" title="No CI tests, no public proof, no external users"><span class="m-label">Beta readiness</span><div class="meter"><i style="width:30%"></i></div><span class="m-val">3</span></div>
+      <div class="meter-row" title="Structurally single-user"><span class="m-label">Team value</span><div class="meter"><i style="width:30%"></i></div><span class="m-val">3</span></div>
+      <div class="meter-row" title="No versioning/migrations/publication/enforcement"><span class="m-label">v1 readiness</span><div class="meter"><i style="width:20%"></i></div><span class="m-val">2</span></div>
+      <div class="prov" style="margin-top:10px">Unsmoothed; engineering (7–8s) leads adoption surface (3–4s) — the expected shape at this stage. Details: 16-scorecard.md</div>
+    </section>
+
+    <div style="display:grid; gap:16px; align-content:start">
+      <section class="card" aria-label="Risk register">
+        <h2>Risk register — top signals</h2>
+        <div class="risk"><span class="dot" style="background:var(--status-critical)"></span><span class="r-id">EA-R1</span><span>Documentation generator, not accelerator <span class="sev">(critical focus)</span></span><span class="r-pi">P&nbsp;High · I&nbsp;Fatal</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-critical)"></span><span class="r-id">EA-R2</span><span>Ceremony → users bypass the workflow <span class="sev">(critical focus)</span></span><span class="r-pi">P&nbsp;High · I&nbsp;High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-serious)"></span><span class="r-id">EA-R4</span><span>Prompt/behavior drift, twin-tree divergence <span class="sev">(elevated)</span></span><span class="r-pi">P&nbsp;High · I&nbsp;Med</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-serious)"></span><span class="r-id">EA-R3</span><span>Token cost unacceptable <span class="sev">(elevated)</span></span><span class="r-pi">P&nbsp;Med-High · I&nbsp;High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-serious)"></span><span class="r-id">EA-R5</span><span>OpenSpec OPSX substrate drift <span class="sev">(elevated)</span></span><span class="r-pi">P&nbsp;Med · I&nbsp;High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-serious)"></span><span class="r-id">EA-R6</span><span>Platform absorption (Agent HQ, Claude Code) <span class="sev">(elevated)</span></span><span class="r-pi">P&nbsp;Med · I&nbsp;High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-serious)"></span><span class="r-id">EA-R7</span><span>Single-maintainer bus factor <span class="sev">(elevated)</span></span><span class="r-pi">P&nbsp;High · I&nbsp;Med</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-warning)"></span><span class="r-id">EA-R8</span><span>False confidence (textual enforcement) <span class="sev">(monitor)</span></span><span class="r-pi">P&nbsp;Med · I&nbsp;High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-warning)"></span><span class="r-id">EA-R9</span><span>Wrong resume from thin/stale capsules <span class="sev">(monitor)</span></span><span class="r-pi">P&nbsp;Med · I&nbsp;Med-High</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-warning)"></span><span class="r-id">EA-R10</span><span>Claude-only dependence <span class="sev">(monitor)</span></span><span class="r-pi">P&nbsp;Med · I&nbsp;Med</span></div>
+        <div class="risk"><span class="dot" style="background:var(--status-warning)"></span><span class="r-id">EA-R11</span><span>Multi-process state races <span class="sev">(monitor)</span></span><span class="r-pi">P&nbsp;Low-Med · I&nbsp;Med</span></div>
+        <div class="prov" style="margin-top:8px">Kill/pivot criteria: 12-risk-register.md §12.3</div>
+      </section>
+
+      <section class="card" aria-label="Architecture classification">
+        <h2>Architecture classification rollup</h2>
+        <ul class="klist">
+          <li><b>Strong foundation</b> — <span>atomic writes · enforced state machines · runner safety stack · Decision Center security</span></li>
+          <li><b>Good alpha compromise</b> — <span>buildless source-import layout · manual lock janitoring · structural parity CI</span></li>
+          <li><b>Acceptable debt</b> — <span>no schema migrations · null capsule hash · untracked MCP dist</span></li>
+          <li><b>Needs attention before beta</b> — <span>no cross-process mutex · MCP read-path IDs · fixture-dead tests · hook fragility</span></li>
+          <li><b>Needs redesign before v1</b> — <span>contract triplication ×2 surfaces · package formalization</span></li>
+          <li><b>Fundamental risk</b> — <span>none found; failures degrade to "stop and ask"</span></li>
+        </ul>
+      </section>
+
+      <section class="card" aria-label="Critical path">
+        <h2>Critical path</h2>
+        <div class="path">
+          <span class="step" title="Sanitize private-client residue">S1</span><span class="arrow">→</span>
+          <span class="step" title="First-run integrity (openspec init, fixture, MCP dist, hooks)">S2</span><span class="arrow">→</span>
+          <span class="step" title="Real CI: run all 266 tests">S3</span><span class="arrow">→</span>
+          <span class="step" title="Showcase trail — decided Option 2">V1&nbsp;showcase</span><span class="arrow">→</span>
+          <span class="step" title="Experiments X1 cold-start · X2 with/without · X4 resume abuse">X1/X2/X4</span><span class="arrow">→</span>
+          <span class="step" title="risk × execution-profile model">B1&nbsp;profiles</span><span class="arrow">→</span>
+          <span class="step" title="Token program + plugin packaging">B2/B4</span><span class="arrow">→</span>
+          <span class="step gate" title="Continue vs extract runtime (EA-D3) per kill criteria">beta / pivot gate</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" aria-label="Token cost">
+    <h2>Instruction load per command — top 10 (≈k tokens, measured)</h2>
+    <div class="bar-row"><span class="b-label">status</span><div class="bar-track"><i style="width:99%"></i></div><span class="b-val">29.6k</span></div>
+    <div class="bar-row"><span class="b-label">todo</span><div class="bar-track"><i style="width:87%"></i></div><span class="b-val">26.2k</span></div>
+    <div class="bar-row"><span class="b-label">propose</span><div class="bar-track"><i style="width:85%"></i></div><span class="b-val">25.5k</span></div>
+    <div class="bar-row"><span class="b-label">apply</span><div class="bar-track"><i style="width:85%"></i></div><span class="b-val">25.5k</span></div>
+    <div class="bar-row"><span class="b-label">review</span><div class="bar-track"><i style="width:79%"></i></div><span class="b-val">23.7k</span></div>
+    <div class="bar-row"><span class="b-label">sync</span><div class="bar-track"><i style="width:71%"></i></div><span class="b-val">21.4k</span></div>
+    <div class="bar-row"><span class="b-label">init</span><div class="bar-track"><i style="width:70%"></i></div><span class="b-val">20.9k</span></div>
+    <div class="bar-row"><span class="b-label">code-review</span><div class="bar-track"><i style="width:68%"></i></div><span class="b-val">20.4k</span></div>
+    <div class="bar-row"><span class="b-label">archive</span><div class="bar-track"><i style="width:63%"></i></div><span class="b-val">18.9k</span></div>
+    <div class="bar-row"><span class="b-label">verify</span><div class="bar-track"><i style="width:63%"></i></div><span class="b-val">18.8k</span></div>
+    <div class="prov" style="margin-top:8px">Full 15-command table, method, and the efficiency program (target ≤80k/lifecycle): 06-token-economics.md</div>
+  </section>
+
+  <section class="card" aria-label="Section index">
+    <h2>Assessment sections</h2>
+    <div class="idx">
+      <a href="../01-executive-verdict.md"><div class="i-num">01</div><div class="i-title">Executive verdict</div><div class="i-desc">Ten questions answered · amendments · verdict</div></a>
+      <a href="../02-implementation-inventory.md"><div class="i-num">02</div><div class="i-title">What CHAOS is &amp; has</div><div class="i-desc">Abstractions · implemented-vs-documented · disagreements</div></a>
+      <a href="../03-value-proposition.md"><div class="i-num">03</div><div class="i-title">Value proposition</div><div class="i-desc">Problems · positioning · overclaims to avoid</div></a>
+      <a href="../04-architecture-runtime.md"><div class="i-num">04</div><div class="i-title">Architecture &amp; runtime</div><div class="i-desc">Packages · state · locks · MCP · runner · security</div></a>
+      <a href="../05-workflow-commands.md"><div class="i-num">05</div><div class="i-title">Workflow &amp; commands</div><div class="i-desc">Dispositions · ceremony · hooks · risk × profile</div></a>
+      <a href="../06-token-economics.md"><div class="i-num">06</div><div class="i-title">Token economics</div><div class="i-desc">Measured costs · waste · efficiency program</div></a>
+      <a href="../07-ecosystem-comparison.md"><div class="i-num">07</div><div class="i-title">Ecosystem comparison</div><div class="i-desc">Spec Kit · OPSX · BMAD · Agent HQ · Inbox · is it SOTA?</div></a>
+      <a href="../08-novelty-differentiation.md"><div class="i-num">08</div><div class="i-title">Novelty &amp; identity</div><div class="i-desc">Commodity→novel · the defensible assembly</div></a>
+      <a href="../09-developer-experience.md"><div class="i-num">09</div><div class="i-title">Developer experience</div><div class="i-desc">First-run traps · aha/abandonment · DC improvements</div></a>
+      <a href="../10-adoption-oss-readiness.md"><div class="i-num">10</div><div class="i-title">Adoption &amp; OSS</div><div class="i-desc">Personas · barriers · gap classification</div></a>
+      <a href="../11-team-enterprise-viability.md"><div class="i-num">11</div><div class="i-title">Team &amp; enterprise</div><div class="i-desc">Necessary vs premature</div></a>
+      <a href="../12-risk-register.md"><div class="i-num">12</div><div class="i-title">Risk register</div><div class="i-desc">EA-R1…R11 · kill/pivot criteria</div></a>
+      <a href="../13-improvement-inventory.md"><div class="i-num">13</div><div class="i-title">Improvements</div><div class="i-desc">EA-I01…I25 · must/should/explore/defer/reject</div></a>
+      <a href="../14-roadmap.md"><div class="i-num">14</div><div class="i-title">Roadmap</div><div class="i-desc">EA-D directions · EA-S/V/B/A horizons · critical path</div></a>
+      <a href="../15-validation-experiments.md"><div class="i-num">15</div><div class="i-title">Experiments</div><div class="i-desc">EA-X1…X6 with thresholds</div></a>
+      <a href="../16-scorecard.md"><div class="i-num">16</div><div class="i-title">Scorecard</div><div class="i-desc">21 dimensions · confidence · "+2 requires"</div></a>
+    </div>
+  </section>
+
+  <footer class="card">
+    Evidence labels: Observed (read/ran directly) · Reported (author testimony) · Inferred · Hypothesis · Recommendation · Unknown. This file is a generated, self-contained view (inline CSS only, no external assets, light/dark via system preference) — source of truth is the markdown in the parent folder. Assessment produced 2026-07-18 against commit 6421feb.
+  </footer>
+
+</div>
+</body>
+</html>

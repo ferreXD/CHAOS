@@ -7,11 +7,11 @@ Before inspecting new code, search the archaeology index for related topics. Pre
 ```md
 ## Existing Archaeology Candidates
 
-1. CustomerInventory API
+1. Task Tracker API
    Mode: standard
    Confidence: MEDIUM
    Reports:
-   - .chaos/archaeology/customer-inventory-api-archaeology.md
+   - .chaos/archaeology/task-tracker-api-archaeology.md
 
 Options:
 1. Reuse existing evidence

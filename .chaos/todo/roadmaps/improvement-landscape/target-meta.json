@@ -1,0 +1,12 @@
+{
+  "labels": {
+    "h-alpha": "Immediate · Public-alpha",
+    "h-beta": "Beta · Foundation & hardening",
+    "h-longterm": "Longer-term · Differentiators"
+  },
+  "order": {
+    "h-alpha": 0,
+    "h-beta": 1,
+    "h-longterm": 2
+  }
+}

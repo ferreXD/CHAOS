@@ -62,9 +62,34 @@ function main() {
 
   const generatedAt = args.now || maxTimestamp(items) || new Date().toISOString();
 
+  // Optional target metadata (labels/ordering) for non-default target vocabularies
+  // (e.g. roadmap-horizon views). Merged over the built-in defaults by the renderer.
+  let targetMeta = {};
+  if (args['target-meta']) {
+    const metaFile = resolve(repoRoot, args['target-meta']);
+    if (existsSync(metaFile)) {
+      try {
+        targetMeta = JSON.parse(readFileSync(metaFile, 'utf8')) || {};
+      } catch (e) {
+        console.error(`[chaos-todo-views] could not parse --target-meta ${metaFile}: ${e.message}`);
+        process.exit(1);
+      }
+    } else {
+      console.error(`[chaos-todo-views] --target-meta file not found: ${metaFile}`);
+      process.exit(1);
+    }
+  }
+
   const data = {
     generatedAt,
     sourceCommand: args['source-command'] || 'chaos:todo --refresh',
+    // Page chrome + link plumbing (all optional; defaults reproduce the main backlog view).
+    pageTitle: args.title || 'CHAOS Backlog',
+    pageSubtitle: args.subtitle || 'Todo dashboard',
+    itemsHref: args['items-href'] || '../items/',
+    sourceOfTruth: args['source-of-truth'] || '.chaos/todo/items/',
+    targetLabels: targetMeta.labels || {},
+    targetOrder: targetMeta.order || {},
     context: index.context,
     provenance: index.provenance,
     dedup: index.dedup,

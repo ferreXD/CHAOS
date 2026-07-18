@@ -282,3 +282,7 @@ __pycache__/
 .chaos/interactions/decisions/
 .chaos/interactions/capsules/
 
+# Claude Code personal, per-developer settings. The repo-shared .claude/settings.json
+# is tracked; the personal overlay (local MCP opt-ins, machine-specific hooks) is not.
+.claude/settings.local.json
+

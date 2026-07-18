@@ -2,8 +2,8 @@ version: 0.1
 
 project:
   name: "CHAOS"
-  type: dotnet
-  primaryLanguage: csharp
+  type: node
+  primaryLanguage: typescript
   specEngine: openspec
 
 paths:
@@ -65,6 +65,12 @@ toolchain:
     required: true
     command: openspec --version
     installCommand: npm install -g @fission-ai/openspec@latest
+    # The OpenSpec CLI (above) is distinct from an initialized OpenSpec *project*.
+    # chaos:propose wraps OpenSpec and writes under `openspec/changes/<id>/`, so the
+    # project must be initialized once per repo before the first propose. A fresh clone
+    # has the CLI but no project directory; doctor (CD-RT-07) surfaces this as a WARN.
+    projectMarker: openspec
+    initCommand: openspec init
 
 validation:
   build:
@@ -127,10 +133,8 @@ policies:
     repoWideSyncCommand: "chaos:sync --all"
     repoWideSyncReport: ".chaos/sync-reports/repo-sync-YYYY-MM-DD.md"
     mainlineSyncRecommended: true
-    # Owner-confirmed 2026-07-01 (chaos:status follow-up): the mainline is chaos/main,
-    # not origin/main (disjoint history / different repo scaffold). chaos/main does not
-    # exist yet as of this writing.
-    mainlineBranch: chaos/main
+    # The public repository mainline is `main` (origin/main).
+    mainlineBranch: main
     roles:
       developerSafe:
         - "chaos:sync --change <change-id>"
