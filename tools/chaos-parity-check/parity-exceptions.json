@@ -1,0 +1,26 @@
+{
+  "_description": "Declared, intentional asymmetries between the Claude (.claude/) and Copilot (.github/) CHAOS surfaces. check.mjs treats anything that differs and is NOT listed here as drift. Each entry is self-documenting via its `reason`. Remove an entry when the asymmetry is resolved; `--strict` flags entries that are no longer justified.",
+  "commands": {
+    "claudeOnly": [],
+    "copilotOnly": [
+      { "name": "opsx-apply", "reason": "OpenSpec experimental flow. Mirrored on Claude as the openspec-apply-change skill, not a .claude/commands wrapper." },
+      { "name": "opsx-archive", "reason": "OpenSpec experimental flow. Mirrored on Claude as the openspec-archive-change skill." },
+      { "name": "opsx-explore", "reason": "OpenSpec experimental flow. Mirrored on Claude as the openspec-explore skill." },
+      { "name": "opsx-propose", "reason": "OpenSpec experimental flow. Mirrored on Claude as the openspec-propose skill." },
+      { "name": "opsx-sync", "reason": "OpenSpec experimental flow. Mirrored on Claude as the openspec-sync-specs skill." }
+    ]
+  },
+  "skills": {
+    "claudeOnly": [],
+    "copilotOnly": []
+  },
+  "agents": {
+    "claudeOnly": [],
+    "copilotOnly": [
+      { "name": "CSharpExpert", "reason": "Generic C# fallback agent retained on Copilot only (config.yaml agents.copilot.csharpExpertFallback). The CHAOS-integrated specialist chaos-csharp-implementation-specialist exists on both surfaces." }
+    ]
+  },
+  "referenceFiles": {
+    "ignore": []
+  }
+}

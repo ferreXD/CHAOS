@@ -1,0 +1,31 @@
+# Detects drift between the Claude (.claude/) and Copilot (.github/) CHAOS surfaces.
+# Canonical mechanism: tools/chaos-parity-check/ (zero-dep Node script; run it locally the same way).
+name: Claude/Copilot parity
+
+on:
+  push:
+    paths:
+      - '.claude/**'
+      - '.github/prompts/**'
+      - '.github/skills/**'
+      - '.github/agents/**'
+      - 'tools/chaos-parity-check/**'
+  pull_request:
+    paths:
+      - '.claude/**'
+      - '.github/prompts/**'
+      - '.github/skills/**'
+      - '.github/agents/**'
+      - 'tools/chaos-parity-check/**'
+  workflow_dispatch:
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Claude <-> Copilot surface parity
+        run: node tools/chaos-parity-check/check.mjs
