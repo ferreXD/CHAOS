@@ -39,8 +39,36 @@ Options:
 | `--out <file>` | `.chaos/todo/views/index.html` | Output HTML (use a dated path for a snapshot). |
 | `--now <iso>` | latest item timestamp | Value shown as "Generated …". |
 | `--source-command <s>` | `chaos:todo --refresh` | Footer provenance label. |
+| `--title <s>` | `CHAOS Backlog` | Page `<title>` + brand heading. |
+| `--subtitle <s>` | `Todo dashboard` | Brand subtitle. |
+| `--items-href <s>` | `../items/` | Relative href prefix from the output HTML to the item `.md` files. Set this when the view lives in a sub-directory. |
+| `--source-of-truth <s>` | `.chaos/todo/items/` | Path shown in the footer / header comment as the source of truth. |
+| `--target-meta <file>` | — | JSON `{ "labels": {key:label}, "order": {key:rank} }` merged over the built-in target vocabulary. Use it to label/sort a non-default target set (e.g. roadmap horizons). |
 
 Requires **Node ≥ 22** (already a CHAOS dependency). Zero npm dependencies.
+
+### Sub-directory / roadmap views
+
+The defaults reproduce the main backlog view byte-for-byte. To render a **scoped** view (e.g. a
+roadmap horizon board) from its own item set into a nested location, point the tool at that source
+and fix the relative link prefix. Example — the public-alpha assessment roadmap view:
+
+```bash
+node tools/chaos-todo-views/generate.mjs \
+  --items .chaos/todo/roadmaps/public-alpha/items \
+  --index .chaos/todo/roadmaps/public-alpha/index.md \
+  --out   .chaos/todo/views/roadmaps/public-alpha/index.html \
+  --items-href "../../../roadmaps/public-alpha/items/" \
+  --source-of-truth ".chaos/todo/roadmaps/public-alpha/items/" \
+  --title "CHAOS Public-Alpha Roadmap" \
+  --subtitle "Roadmap view · 2026-07-18 assessment" \
+  --target-meta .chaos/todo/roadmaps/public-alpha/target-meta.json \
+  --source-command "chaos:todo --from-roadmap (public-alpha assessment roadmap view)"
+```
+
+Because `--items-href` is only a link prefix, keep the output HTML at a directory depth where the
+prefix resolves back to the item files (as above: view at `views/roadmaps/public-alpha/`,
+items at `roadmaps/public-alpha/items/`).
 
 ## Design notes
 

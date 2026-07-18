@@ -31,7 +31,7 @@ CONFLICT
 ```md
 | Requirement | Source | Implementation evidence | Test evidence | Status | Confidence | Notes |
 |---|---|---|---|---|---|---|
-| REQ-001: endpoint accepts request | specs/api.md | `CustomerInventoryEndpoint.cs` | `CustomerInventoryEndpointTests.cs` | SATISFIED | HIGH | Build/tests passed. |
+| REQ-001: endpoint accepts request | specs/api.md | `CreateTaskEndpoint.cs` | `CreateTaskEndpointTests.cs` | SATISFIED | HIGH | Build/tests passed. |
 | REQ-002: duplicate operation is idempotent | specs/replay.md | `OperationId` check inferred | Missing | PARTIAL | MEDIUM | Needs explicit test. |
 | REQ-003: sync failure remains pending | proposal.md | Not found | Not found | MISSING | LOW | Route to `chaos:apply --continue`. |
 ```

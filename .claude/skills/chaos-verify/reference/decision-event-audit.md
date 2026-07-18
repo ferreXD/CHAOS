@@ -62,7 +62,7 @@ Example:
 ### VFY-DEC-001 — Record untracked persistence decision
 
 Command: chaos:verify
-Change ID: customer-inventory-snapshot
+Change ID: add-task-comments
 Type: DECISION_EVENT_RECONSTRUCTION
 Status: ACCEPTED_DURING_VERIFY
 Confidence: MEDIUM

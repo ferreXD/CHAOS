@@ -49,7 +49,7 @@ this hook infers.
 2. An OpenSpec/CHAOS change path appearing anywhere in the text:
    `.chaos/changes/<id>/...` or `openspec/changes/<id>/...`.
 3. The first positional token immediately following the command match
-   (e.g. `chaos:apply customer-inventory-api` → `customer-inventory-api`).
+   (e.g. `chaos:apply add-task-query-filters` → `add-task-query-filters`).
    Skipped entirely for `chaos:sync`, since a bare positional token after
    `sync` is ambiguous with other flags.
 4. Otherwise `changeId` is `""` with `LOW` confidence.

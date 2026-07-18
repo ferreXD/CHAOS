@@ -3,7 +3,7 @@
     "chaos-interaction": {
       "command": "node",
       "args": [
-        "tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js",
+        "tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts",
         "--repo-root",
         ".",
         "--root",

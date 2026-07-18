@@ -13,9 +13,9 @@ chaosMetadata:
   changeId: null
   sourceCommand: chaos:status
   lastWrittenAt: 2026-07-01T09:42:00+02:00
-  lastWrittenBy: ferrexd
+  lastWrittenBy: vscode-user
   lastAuditedAt: 2026-07-01T09:42:00+02:00
-  lastAuditedBy: ferrexd
+  lastAuditedBy: vscode-user
   repositoryContext:
     provider: github
     branch: main
@@ -36,7 +36,7 @@ chaosMetadata:
   schemaVersion: 1
   artifactType: verification-report
   artifactScope: change
-  changeId: customer-inventory-api
+  changeId: add-task-query-filters
   sourceCommand: chaos:verify
   ...
 ```

@@ -61,6 +61,28 @@ openspec --version  # after the global install above
 
 ---
 
+## Initialize the OpenSpec project (both paths)
+
+Installing the OpenSpec **CLI** (prerequisite above) is not the same as having an initialized
+OpenSpec **project**. CHAOS wraps OpenSpec: `chaos:propose` writes a change under
+`openspec/changes/<id>/`, and the lifecycle commands read it back. A fresh clone has the CLI but
+**no `openspec/` directory**, so the first `chaos:propose` has nothing to wrap — the single
+biggest silent first-run gap.
+
+Initialize it once, from the repo root, before your first `chaos:propose`:
+
+```bash
+openspec init      # scaffolds ./openspec (project.md, specs/, changes/)
+```
+
+`chaos:doctor` reports this for you: `CD-RT-07` WARNs when the `openspec/` project directory is
+absent and prints `openspec init` as the remediation (it is a warning, not a blocker — a fresh
+clone is still `READY_WITH_WARNINGS` until you actually run an OpenSpec-dependent command). You
+do **not** need this to read the [demo](demo/README.md), which uses representative excerpts, but
+you **do** need it before proposing a real change in this repo or your own.
+
+---
+
 ## Path A — Evaluate CHAOS in this repository
 
 The fastest way to see CHAOS work end-to-end. You clone this repo, build the two local
@@ -71,18 +93,19 @@ git clone <this-repo-url> chaos
 cd chaos
 ```
 
-**1. Build the interaction runtime (MCP server).**
+**1. Install the interaction runtime (MCP server) dependencies.**
 
 ```bash
 cd tools/chaos-interaction-mcp
 npm install
-npm run build        # tsc -> dist/ (also compiles the runtime it imports)
+npm run build        # OPTIONAL — only if you prefer the compiled dist entry
 cd ../..
 ```
 
-This produces `tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js`,
-the entry the committed `.mcp.json` points at. *(You can skip the build and run the `.ts`
-source instead — see [Wiring the MCP server](#wiring-the-mcp-server).)*
+The committed `.mcp.json` points at the **source** entry
+`tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts`, which Node ≥ 22.6 runs directly —
+so `npm install` alone is enough and **no build is required**. `npm run build` is optional (see
+[Wiring the MCP server](#wiring-the-mcp-server) for the built-`dist` alternative).
 
 **2. Build and install the Decision Center.**
 
@@ -104,7 +127,8 @@ chaos:doctor
 ```
 
 Expect `READY` or `READY_WITH_WARNINGS`. Warnings about optional pieces (e.g. a missing
-provider MCP) are fine.
+provider MCP, or `CD-RT-07` reminding you to run `openspec init` before your first real
+`chaos:propose`) are fine.
 
 **4. Run the demo.** Follow the worked, runnable walkthrough — one small change to a real
 ASP.NET Core API, taken through `propose → review → apply → verify → archive → sync`:
@@ -130,7 +154,7 @@ tools/chaos-interaction-diagnostics/ # recommended — runtime health diagnostic
 tools/chaos-interaction-runner/      # optional  — headless live auto-resume runner
 extensions/chaos-decision-center/    # RECOMMENDED — human-facing Decision Center UI
 .chaos/interactions/         # REQUIRED — schemas/contracts the runtime validates against
-.mcp.json                    # MCP wiring for Claude Code (built dist path)
+.mcp.json                    # MCP wiring for Claude Code (build-free source path)
 .vscode/mcp.json             # optional — VS Code native MCP wiring (source path, no build)
 .github/                     # OPTIONAL — experimental Copilot adapter
 ```
@@ -194,10 +218,11 @@ See [Wiring the MCP server](#wiring-the-mcp-server) and
 [Installing the Decision Center](#installing-the-decision-center) below, then reload your
 MCP client so the `chaos-interaction` server is picked up.
 
-### Step 5 — Verify, then run your first command
+### Step 5 — Initialize OpenSpec, verify, then run your first command
 
 ```text
-chaos:doctor        # verify local execution readiness
+openspec init       # once per repo — see "Initialize the OpenSpec project" above
+chaos:doctor        # verify local execution readiness (CD-RT-07 WARNs if openspec init is skipped)
 chaos:help          # list the available commands
 ```
 
@@ -212,7 +237,10 @@ that's `chaos:init`; to see the full lifecycle first, walk the
 The `chaos-interaction` MCP server is how CHAOS commands create, inspect, and resume
 decisions. There are two equivalent ways to point your client at it.
 
-**Built (`dist`) — what the committed `.mcp.json` uses.** Requires Step 3's `npm run build`:
+**Source (`.ts`) — no build step (what the committed `.mcp.json` and `.vscode/mcp.json` use).**
+Node ≥ 22.6 strips the types and runs the TypeScript directly, so the server works after
+`npm install` alone — no `npm run build`. This is the default because it removes the biggest
+silent first-run failure: an unbuilt (or stale) `dist/` leaves MCP dead with no obvious error.
 
 ```json
 {
@@ -220,7 +248,7 @@ decisions. There are two equivalent ways to point your client at it.
     "chaos-interaction": {
       "command": "node",
       "args": [
-        "tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js",
+        "tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts",
         "--repo-root", ".",
         "--root", ".chaos/interactions",
         "--schema-dir", ".chaos/interactions/schema"
@@ -230,17 +258,22 @@ decisions. There are two equivalent ways to point your client at it.
 }
 ```
 
-**Source (`.ts`) — no build step.** Node ≥ 22.6 strips the types and runs the TypeScript
-directly; this is what `.vscode/mcp.json` uses:
+**Built (`dist`) — optional, requires `npm run build`.** A compiled entry starts marginally
+faster and does not depend on Node's type-stripping. If you prefer it, run Step 3's build and
+point `.mcp.json` at the `dist` path instead:
 
 ```json
 "args": [
-  "tools/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.ts",
+  "tools/chaos-interaction-mcp/dist/chaos-interaction-mcp/src/cli/chaos-interaction-mcp.js",
   "--repo-root", ".",
   "--root", ".chaos/interactions",
   "--schema-dir", ".chaos/interactions/schema"
 ]
 ```
+
+Either way, `chaos:doctor`'s `CD-MCP-03` check surfaces it loudly (a WARN with the exact
+remediation command) if the wired entry is missing or the server package's `node_modules` is
+not installed — so a dead MCP wiring is never silent.
 
 All paths are repo-root-relative — **don't commit absolute machine paths.** All server
 logging goes to stderr; stdout is reserved for the MCP protocol. After editing MCP config,
@@ -336,15 +369,26 @@ copy the tooling or build the runtime, which is exactly what this guide covers.
 
 ## Troubleshooting
 
-- **MCP tools (`chaos_*`) don't appear.** Confirm Node ≥ 22.6, that you built the MCP server
-  (Step 3) if you're using the `dist` path in `.mcp.json`, and that you reloaded the MCP
-  client. As a build-free alternative, point at the `.ts` source (see
-  [Wiring the MCP server](#wiring-the-mcp-server)).
+- **MCP tools (`chaos_*`) don't appear.** Confirm Node ≥ 22.6, that you ran `npm install` in
+  `tools/chaos-interaction-mcp` (the committed `.mcp.json` uses the build-free `.ts` source path,
+  so no `npm run build` is needed — but the dependencies must be installed), and that you
+  reloaded the MCP client. `chaos:doctor`'s `CD-MCP-03` names the exact fix if the wiring can't
+  resolve. If you switched `.mcp.json` to the `dist` path, also run `npm run build`.
 - **Decision Center shows `CHAOS: runtime unavailable`.** Check the `chaosDecisionCenter.interactionsRoot`
   (default `.chaos/interactions`) and `schemaDir` settings resolve to the copied
   `.chaos/interactions/` folder, and that you built the extension (Step 3).
-- **`openspec: command not found`.** Install it globally:
+- **`openspec: command not found`.** Install the CLI globally:
   `npm install -g @fission-ai/openspec@latest`.
+- **`chaos:propose` fails with no OpenSpec project / `openspec/` is missing.** The CLI is
+  installed but the project was never initialized. Run `openspec init` from the repo root once
+  (see [Initialize the OpenSpec project](#initialize-the-openspec-project-both-paths));
+  `chaos:doctor`'s `CD-RT-07` also flags this.
+- **A hook "silently does nothing" (no `.chaos/runtime/*` updates).** The `command` interpreter
+  (`py -3` in the committed `.claude/settings.json`) isn't resolving — a common Windows
+  Store-stub / broken-launcher issue, or a non-Windows machine where `py` doesn't exist. Set
+  `command` to whatever `python3 --version` / `python --version` / `py -3 --version` actually
+  runs. `chaos:doctor`'s `CD-HOOK-05` executes the wired interpreter and WARNs loudly when it
+  fails; see `.claude/hooks/README.md` troubleshooting.
 - **A command stops and "waits on a decision."** That's expected — answer it in the Decision
   Center, or copy the `chaos:resume --run <run-id>` instruction it printed. Decisions never
   get answered from chat.

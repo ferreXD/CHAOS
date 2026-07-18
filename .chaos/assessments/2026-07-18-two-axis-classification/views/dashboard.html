@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOS two-axis classification — 2026-07-18</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane: #f9f9f7; --surface: #fcfcfb;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --bar-fill: #2a78d6; --accent-wash: rgba(42,120,214,0.08);
+    --flag: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane: #0d0d0d; --surface: #1a1a19;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --bar-fill: #3987e5; --accent-wash: rgba(57,135,229,0.12);
+      --flag: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0d0d0d; --surface: #1a1a19;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --bar-fill: #3987e5; --accent-wash: rgba(57,135,229,0.12);
+    --flag: #3987e5;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--plane); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px 16px 48px; }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+  .prov { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; margin-top: 12px; padding: 12px 14px; background: var(--accent-wash); border-radius: 8px; }
+  .verdict .v-label { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .verdict .v-text { font-size: 22px; font-weight: 650; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .t-label { font-size: 12px; color: var(--ink-2); }
+  .tile .t-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .t-note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* matrix */
+  .matrix { display: grid; grid-template-columns: 88px repeat(4, 1fr); gap: 8px; }
+  .mx-h { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; align-self: end; padding-bottom: 4px; }
+  .mx-r { font-size: 12px; color: var(--ink-2); font-weight: 600; align-self: center; }
+  .cell { border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; background: var(--surface); }
+  .cell:hover { background: var(--accent-wash); }
+  .cell.flag { border-color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
+  .cell .c-use { font-size: 11px; color: var(--ink-2); min-height: 28px; }
+  .cell .c-tok { font-size: 13px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .cell .c-stops { font-size: 11px; color: var(--muted); }
+  .cell .c-bar { height: 6px; background: none; border-left: 1px solid var(--baseline); margin-top: 6px; }
+  .cell .c-bar i { display: block; height: 100%; background: var(--bar-fill); border-radius: 0 3px 3px 0; }
+
+  .klist { list-style: none; display: grid; gap: 6px; font-size: 12.5px; padding: 0; }
+  .klist b { font-weight: 600; }
+  .klist span { color: var(--ink-2); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } .matrix { grid-template-columns: 64px repeat(4, 1fr); } }
+  pre.mock { background: var(--plane); border: 1px solid var(--grid); border-radius: 8px; padding: 12px; font-size: 11px; line-height: 1.45; overflow-x: auto; color: var(--ink-2); }
+  .idx { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .idx a { display: block; text-decoration: none; color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); }
+  .idx a:hover { background: var(--accent-wash); }
+  .idx .i-num { font-size: 11px; color: var(--muted); }
+  .idx .i-title { font-weight: 600; font-size: 13px; }
+  .idx .i-desc { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+  footer { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="card">
+    <h1>CHAOS — two-axis change classification &amp; adaptive workflow selection</h1>
+    <div class="prov">Design deep-dive for IL-WF1 / EA-B1 · commit 6421feb · 2026-07-18 · third companion assessment. Source of truth: the markdown sections; this dashboard is a generated view. Token/stop figures are Hypothesis until IL-PF10 measures them.</div>
+    <div class="verdict">
+      <span class="v-label">Verdict</span>
+      <span class="v-text">Adopt the two-axis model</span>
+      <span style="color:var(--ink-2)">— systemRisk × executionProfile: risk raises the strength of relevant safeguards; profile sets workflow weight; neither sets the other.</span>
+    </div>
+  </header>
+
+  <section class="tiles" aria-label="Key figures">
+    <div class="tile"><div class="t-label">Model</div><div class="t-value">2 + 5</div><div class="t-note">axes + closed modifiers; third axis rejected</div></div>
+    <div class="tile"><div class="t-label">Workflow combinations</div><div class="t-value">4 × 3</div><div class="t-note">templates ⊕ overlays; zero hardcoded</div></div>
+    <div class="tile"><div class="t-label">Adaptive gate catalog</div><div class="t-value">27</div><div class="t-note">selected by relevance, strengthened by risk</div></div>
+    <div class="tile"><div class="t-label">Golden scenarios</div><div class="t-value">15</div><div class="t-note">the rule table's CI fixture suite</div></div>
+    <div class="tile"><div class="t-label">Strict-small savings</div><div class="t-value">~75%</div><div class="t-note">~180–220k → 40–60k tokens (Hypothesis)</div></div>
+    <div class="tile"><div class="t-label">Extra stops below strict</div><div class="t-value">0</div><div class="t-note">classification is one inline line</div></div>
+  </section>
+
+  <section class="card" aria-label="Workflow matrix">
+    <h2>The matrix — est. instruction tokens · decision stops per combination</h2>
+    <div class="matrix">
+      <div></div>
+      <div class="mx-h">micro</div><div class="mx-h">compact</div><div class="mx-h">normal</div><div class="mx-h">full</div>
+
+      <div class="mx-r">light</div>
+      <div class="cell" title="typo, comment, trivial config"><div class="c-use">typo · trivial config</div><div class="c-tok">~15–20k</div><div class="c-stops">0–1 stops</div><div class="c-bar"><i style="width:8%"></i></div></div>
+      <div class="cell" title="small docs/test/tooling change"><div class="c-use">small docs/tooling</div><div class="c-tok">~25–35k</div><div class="c-stops">1 stop</div><div class="c-bar"><i style="width:14%"></i></div></div>
+      <div class="cell" title="low-risk feature of ordinary size"><div class="c-use">low-risk feature</div><div class="c-tok">~60–90k</div><div class="c-stops">2–3 stops</div><div class="c-bar"><i style="width:34%"></i></div></div>
+      <div class="cell" title="large low-risk restructure (rare)"><div class="c-use">big low-risk restructure <em>(rare)</em></div><div class="c-tok">~110–150k</div><div class="c-stops">3–5 stops</div><div class="c-bar"><i style="width:59%"></i></div></div>
+
+      <div class="mx-r">standard</div>
+      <div class="cell" title="index add, small bounded fix"><div class="c-use">index add · bounded fix</div><div class="c-tok">~18–25k</div><div class="c-stops">1 stop</div><div class="c-bar"><i style="width:10%"></i></div></div>
+      <div class="cell" title="bounded fix/feature in one module"><div class="c-use">one-module feature</div><div class="c-tok">~35–50k</div><div class="c-stops">1–2 stops</div><div class="c-bar"><i style="width:19%"></i></div></div>
+      <div class="cell" title="ordinary feature"><div class="c-use">ordinary feature</div><div class="c-tok">~90–120k</div><div class="c-stops">3–5 stops</div><div class="c-bar"><i style="width:48%"></i></div></div>
+      <div class="cell" title="large refactor, complex feature"><div class="c-use">large refactor</div><div class="c-tok">~140–190k</div><div class="c-stops">5–8 stops</div><div class="c-bar"><i style="width:75%"></i></div></div>
+
+      <div class="mx-r">strict</div>
+      <div class="cell" title="one-line risky config with tooling-verified validation"><div class="c-use">one-line risky config</div><div class="c-tok">~25–35k</div><div class="c-stops">2 stops</div><div class="c-bar"><i style="width:14%"></i></div></div>
+      <div class="cell flag" title="THE FLAGSHIP: conn string, auth policy cfg, migration — full safeguards, no ceremony"><div class="c-use"><b>flagship:</b> conn string · migration</div><div class="c-tok">~40–60k</div><div class="c-stops">2–3 stops</div><div class="c-bar"><i style="width:23%"></i></div></div>
+      <div class="cell" title="risky ordinary feature (auth code, breaking API)"><div class="c-use">auth code · breaking API</div><div class="c-tok">~110–140k</div><div class="c-stops">4–6 stops</div><div class="c-bar"><i style="width:57%"></i></div></div>
+      <div class="cell" title="brownfield architectural/dangerous work — today's full chain"><div class="c-use">brownfield architectural</div><div class="c-tok">~180–220k</div><div class="c-stops">6–10 stops</div><div class="c-bar"><i style="width:100%"></i></div></div>
+    </div>
+    <div class="prov" style="margin-top:10px">Outlined cell = strict-compact, the combination this design exists to create. Today, every strict change pays the bottom-right cell.</div>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-label="Model rules">
+      <h2>The rules that make it safe</h2>
+      <ul class="klist">
+        <li><b>Risk = max-of signals</b> — <span>never averaged; unknown raises uncertainty, uncertainty raises the floor</span></li>
+        <li><b>Tie-break</b> — <span>ambiguous profile rounds UP at strict, DOWN otherwise (escalation is cheap)</span></li>
+        <li><b>Escalation self-applies</b> — <span>at task boundaries, evidence reused by hash; approval decision only if a new gate demands one</span></li>
+        <li><b>Downgrades need a human</b> — <span>mechanically: history entries moving an axis down require a human decisionRef; doctor flags violations as blockers</span></li>
+        <li><b>n/a ≠ skipped</b> — <span>verify records satisfied / waived / not-applicable-with-reason per gate, audited against signals</span></li>
+        <li><b>Visible restraint</b> — <span>every skipped ceremony is listed with why it's safe — the trust mechanism</span></li>
+        <li><b>Calibration is governed</b> — <span>retro proposes rule-table changes as normal proposals; thresholds never drift silently; repo-scoped, never per-user</span></li>
+      </ul>
+    </section>
+
+    <section class="card" aria-label="Classification card">
+      <h2>Decision Center classification card (strict confirm)</h2>
+      <pre class="mock">Change: update-prod-connection-string
+SYSTEM RISK: STRICT      EXECUTION PROFILE: COMPACT
+confidence HIGH · signals+agent
+
+Why strict:  production connectivity · credential-
+             sensitive config · availability impact
+Why compact: 1 file · no code redesign · staged
+             validation only
+
+Safeguards (5): secret-ref validation · env target
+  check · connectivity verification · rollback
+  instructions · your approval before apply
+Skipped (why safe): archaeology · code review ·
+  architecture analysis · retrospective
+
+[Approve strict-compact] [Change profile…] [Escalate]</pre>
+    </section>
+  </div>
+
+  <section class="card" aria-label="Section index">
+    <h2>Sections</h2>
+    <div class="idx">
+      <a href="../01-problem-and-model.md"><div class="i-num">01</div><div class="i-title">Problem &amp; model</div><div class="i-desc">Terminology, levels, modifiers</div></a>
+      <a href="../02-classification-algorithm.md"><div class="i-num">02</div><div class="i-title">Algorithm</div><div class="i-desc">Ownership, confidence, overrides, calibration</div></a>
+      <a href="../03-contract-and-artifacts.md"><div class="i-num">03</div><div class="i-title">Contract</div><div class="i-desc">classification.yaml, placement, migration</div></a>
+      <a href="../04-adaptive-gates.md"><div class="i-num">04</div><div class="i-title">Adaptive gates</div><div class="i-desc">27-gate catalog with triggers</div></a>
+      <a href="../05-workflow-matrix.md"><div class="i-num">05</div><div class="i-title">Workflow matrix</div><div class="i-desc">4 templates ⊕ 3 overlays</div></a>
+      <a href="../06-scenarios.md"><div class="i-num">06</div><div class="i-title">Scenarios</div><div class="i-desc">15 golden classifications + weaknesses</div></a>
+      <a href="../07-reclassification-protocol.md"><div class="i-num">07</div><div class="i-title">Reclassification</div><div class="i-desc">Escalation/downgrade asymmetry, DC UX</div></a>
+      <a href="../08-command-impacts.md"><div class="i-num">08</div><div class="i-title">Command impacts</div><div class="i-desc">All ten commands, concretely</div></a>
+      <a href="../09-recommendation-and-roadmap.md"><div class="i-num">09</div><div class="i-title">Recommendation</div><div class="i-desc">Failure modes, tests, EA-B1a–e, final answers</div></a>
+    </div>
+  </section>
+
+  <footer class="card">
+    Labels: Observed · Reported (author) · Inferred · Hypothesis · Recommendation. Self-contained generated view (inline CSS, no external assets, light/dark via system preference). Companions: ../2026-07-18-public-alpha-assessment/ · ../2026-07-18-improvement-landscape/.
+  </footer>
+
+</div>
+</body>
+</html>

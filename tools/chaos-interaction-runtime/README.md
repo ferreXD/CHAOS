@@ -106,7 +106,7 @@ node src/cli/chaos-interaction-runtime.ts create-decision \
   --option full-strict --option strict-risk-compact --recommended strict-risk-compact
 
 node src/cli/chaos-interaction-runtime.ts answer-decision \
-  --decision <decisionId> --selected strict-risk-compact --by ferrexd
+  --decision <decisionId> --selected strict-risk-compact --by vscode-user
 
 node src/cli/chaos-interaction-runtime.ts get-response --decision <decisionId>
 node src/cli/chaos-interaction-runtime.ts list-locks
@@ -146,7 +146,7 @@ const dec = runtime.createDecision({
   options: [{ id: "a", label: "A" }, { id: "b", label: "B", recommended: true }],
 });
 // ... command STOPS here (dec.mustStop === true) ...
-runtime.answerDecision({ decisionId: dec.decisionId, selectedOptionId: "b", selectedBy: "ferrexd" });
+runtime.answerDecision({ decisionId: dec.decisionId, selectedOptionId: "b", selectedBy: "vscode-user" });
 ```
 
 ## Resume capsule discovery (Iteration 4)

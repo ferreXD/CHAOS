@@ -10,7 +10,7 @@
  *        --option full-strict --option strict-risk-compact --recommended strict-risk-compact
  *   node src/cli/chaos-interaction-runtime.ts create-decision --run <runId> --title "Provide the value" \
  *        --interaction-type freeform-input     # freeform needs no --option
- *   node src/cli/chaos-interaction-runtime.ts answer-decision --decision <decisionId> --selected strict-risk-compact --by ferrexd
+ *   node src/cli/chaos-interaction-runtime.ts answer-decision --decision <decisionId> --selected strict-risk-compact --by vscode-user
  *   node src/cli/chaos-interaction-runtime.ts get-response --decision <decisionId>
  *   node src/cli/chaos-interaction-runtime.ts list-locks
  *

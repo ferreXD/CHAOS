@@ -204,15 +204,15 @@ chaosMetadata:
   schemaVersion: 1
   artifactType: verification-report
   artifactScope: change
-  changeId: customer-inventory-api
+  changeId: add-task-query-filters
   sourceCommand: chaos:verify
   lastWrittenAt: 2026-07-01T10:15:00+02:00
-  lastWrittenBy: ferrexd
+  lastWrittenBy: vscode-user
   lastAuditedAt: 2026-07-01T10:15:00+02:00
-  lastAuditedBy: ferrexd
+  lastAuditedBy: vscode-user
   repositoryContext:
-    provider: azure-devops
-    branch: feature/customer-inventory-api
+    provider: github
+    branch: feature/add-task-query-filters
     reviewRequest: null
     contextSource: git
     confidence: MEDIUM
@@ -338,4 +338,3 @@ yourself.
   still-spec-only hooks policy both capabilities are narrow slices of.
 - `.claude/skills/chaos-shared/reference/mcp-security-policy.md` — no-secrets/read-only-by-default
   posture both capabilities follow.
-- `PATCH-SUMMARY.md` (repo root) — what this delivery added/changed and why.

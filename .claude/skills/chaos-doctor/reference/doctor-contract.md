@@ -7,8 +7,12 @@ Defines the doctor report shape, verdict semantics, and the strict fix policy.
 - **READY** — all required checks pass for the active mode; no blocking gaps.
 - **READY_WITH_WARNINGS** — usable; non-blocking gaps exist (e.g. MCP unavailable, optional
   CLI not authenticated). The default outcome when only optional capabilities are missing.
-- **NOT_READY** — a required local capability is missing for the active mode (e.g. git or
-  OpenSpec unavailable) and must be fixed before normal CHAOS use.
+- **NOT_READY** — a required local capability is missing for the active mode (e.g. git
+  unavailable, or the OpenSpec CLI unavailable *when an OpenSpec-dependent flow is requested* —
+  CD-RT-03) and must be fixed before normal CHAOS use. A missing OpenSpec *project* directory,
+  an unbuilt/uninstalled local MCP server, or an unwired/unresolvable hook interpreter on an
+  otherwise-ready repo are WARNs with remediations (CD-RT-07 `openspec init`, CD-MCP-03
+  `npm install`, CD-HOOK-05), **not** NOT_READY — a fresh clone lands at READY_WITH_WARNINGS.
 - **BLOCKED** — a mode-required, provider-backed fact cannot be resolved (e.g. `--strict`
   needs provider authority but no provider context is reachable).
 - **UNKNOWN** — diagnostics could not run far enough to judge (e.g. not inside a git repo).

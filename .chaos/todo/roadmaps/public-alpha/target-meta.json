@@ -1,0 +1,20 @@
+{
+  "labels": {
+    "h0-stabilization": "H0 · Stabilization",
+    "h1-validation": "H1 · Validation",
+    "h1b-addendum": "H0–H1 · Alpha addendum",
+    "h2-beta-foundation": "H2 · Beta foundation",
+    "h3-beta-adoption": "H3 · Beta adoption",
+    "h4-v1-productization": "H4 · v1 productization",
+    "research-track": "Research track"
+  },
+  "order": {
+    "h0-stabilization": 0,
+    "h1-validation": 1,
+    "h1b-addendum": 2,
+    "h2-beta-foundation": 3,
+    "h3-beta-adoption": 4,
+    "h4-v1-productization": 5,
+    "research-track": 6
+  }
+}

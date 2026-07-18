@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "commandRunId": "RUN-2026-07-18-chaos-propose-add-execution-profiles-9b1e2f",
+  "sourceCommand": "chaos:propose",
+  "changeId": "add-execution-profiles",
+  "adapter": "claude",
+  "state": "waiting-for-decision",
+  "requestedMode": "standard",
+  "activeDecisionIds": [
+    "DEC-2026-07-18-add-execution-profiles-select-execution-pro-4a7c"
+  ],
+  "answeredDecisionIds": [],
+  "consumedDecisionIds": [],
+  "lastCompletedStep": "draft-proposal-and-delta-specs",
+  "nextStep": "await-execution-profile-decision",
+  "lockIds": [
+    "LOCK-2026-07-18-add-execution-profiles-7d3a"
+  ],
+  "resumeCapsulePath": ".chaos/interactions/capsules/RUN-2026-07-18-chaos-propose-add-execution-profiles-9b1e2f.json",
+  "createdAt": "2026-07-18T10:12:44+02:00",
+  "lastSeenAt": "2026-07-18T10:15:31+02:00",
+  "expiresAt": null,
+  "metadata": {
+    "confidence": "HIGH",
+    "knowledgeType": "FACT"
+  }
+}
