@@ -1,0 +1,83 @@
+name: Bug report
+description: Report a bug or gap in the CHAOS tooling, commands, or docs
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. CHAOS is an **experimental, public-alpha**
+        project, so rough edges are expected — a clear report helps a lot.
+
+        Please **search existing issues** first, and **do not include secrets**, tokens,
+        connection strings, or private/personal data anywhere in this report.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The actual behaviour you observed.
+      placeholder: e.g. chaos:apply wrote outside the change scope without prompting a decision.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: The behaviour you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, in order, so someone else can reproduce it.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface?
+      description: Where you hit the bug.
+      options:
+        - Claude Code (.claude/)
+        - GitHub Copilot (.github/) — experimental adapter
+        - Both
+        - Not surface-specific / N/A
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: CHAOS command involved
+      description: If applicable, the command (and mode/flags) you ran.
+      placeholder: e.g. chaos:verify <change-id> --strict
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your setup. Run chaos:doctor if you can and paste the summary here.
+      value: |
+        - OS:
+        - Node.js version:
+        - OpenSpec version:
+        - Surface + version (Claude Code / Copilot):
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Logs, reports, or additional context
+      description: Relevant report snippets (e.g. from .chaos/…) or logs. Redact anything sensitive.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This report contains no secrets, tokens, or private/personal data.
+          required: true

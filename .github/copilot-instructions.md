@@ -2,6 +2,12 @@
 
 This repository uses CHAOS: Controlled Human-led Agent-Orchestrated SDLC.
 
+> **Stability: experimental adapter.** The GitHub Copilot surface is a **hand-maintained mirror**
+> of the Claude Code reference implementation. It follows the same workflow contracts but is **not
+> yet at parity** and has **no automated Claude↔Copilot parity check** — prefer the Claude Code
+> surface where fidelity matters. Full details and known limitations:
+> [Copilot adapter maturity](#copilot-adapter-maturity).
+
 ## Mandatory workflow posture
 
 - CHAOS is human-led. A recommendation is not a decision; a displayed plan is not approval.
@@ -85,7 +91,7 @@ After presenting the decision, STOP.
 ## Copilot adapter maturity
 
 - The Claude-native adapter is the **primary/reference** CHAOS implementation.
-- The GitHub Copilot adapter is **experimental** until fully validated, and follows the same workflow contracts.
+- The GitHub Copilot adapter is **experimental**: a **hand-maintained mirror** of the Claude reference library that follows the same workflow contracts but is **not yet validated at parity** and has **no automated Claude↔Copilot parity check** yet. Do not represent Copilot support as stable or at full parity.
 - Known limitation: Copilot may not provide the same native interactive decision UX as Claude. The numbered decision fallback is compliant **only if** it stops and waits for an explicit user selection.
 - Known limitation: hook enforcement is Claude-first. Copilot consumes the same `.chaos/runtime/*` files but does not execute Claude hooks natively.
-- Known limitation: **auto-resume is Claude-harness only.** Copilot has no headless runner or in-session Stop-hook, so a command that stops on a Decision-Center decision is resumed **manually** via `chaos-resume.prompt.md`. The interaction runtime, Decision Center, and manual resume otherwise reach parity with the Claude adapter.
+- Known limitation: **auto-resume is Claude-harness only.** Copilot has no headless runner or in-session Stop-hook, so a command that stops on a Decision-Center decision is resumed **manually** via `chaos-resume.prompt.md`. Aside from resume automation, the interaction runtime, Decision Center, and manual-resume flows are built to the same contracts as the Claude adapter — but because the Copilot surface is a hand-maintained mirror with no automated parity check, treat parity as a goal, not a guarantee.

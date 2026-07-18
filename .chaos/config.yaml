@@ -161,9 +161,24 @@ policies:
     scanCodeMarkers: false
     htmlViews:
       enabled: true
-      selfContained: true
-      externalAssetsAllowed: false
+      selfContained: true          # inline CSS + inline JS; fully offline
+      externalAssetsAllowed: false # no external/CDN/network assets
+      singlePage: true             # one consolidated dashboard: views/index.html
+      generator: "node tools/chaos-todo-views/generate.mjs"
       regenerateOnlyWhenSourcesChange: true
+
+  # Claude <-> Copilot surface parity. Canonical mechanism: tools/chaos-parity-check/.
+  # Deterministic, zero-dependency check that the two adapter surfaces (.claude/ and .github/)
+  # stay in structural parity; intentional asymmetries are declared in parity-exceptions.json.
+  # Enforced in CI via .github/workflows/parity-check.yml. Non-secret intent only.
+  parity:
+    enabled: true
+    checker: "node tools/chaos-parity-check/check.mjs"
+    exceptions: tools/chaos-parity-check/parity-exceptions.json
+    ci: .github/workflows/parity-check.yml
+    surfaces:
+      claude: [.claude/commands, .claude/skills, .claude/agents]
+      copilot: [.github/prompts, .github/skills, .github/agents]
 
   # vNext repository-context / MCP authority policy. Canonical contracts:
   # .claude/skills/chaos-shared/reference/repository-context-contract.md and

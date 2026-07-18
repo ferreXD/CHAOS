@@ -1,0 +1,10 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+
+# Rider / VS
+.idea/
+.vs/
+*.user
