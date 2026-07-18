@@ -170,6 +170,14 @@ Never install anything silently. If installing OpenSpec is approved and Node/npm
 npm install -g @fission-ai/openspec@latest
 ```
 
+After the spec-engine CLI check passes, **initialize the spec-engine project** if it is not
+already present — treat this as part of bootstrapping, not a manual chore for the user. The spec
+engine is a swappable provider: resolve `project.specEngine` (default `openspec`) and, when the
+`toolchain.<specEngine>.projectMarker` directory (default `openspec/`) is missing, run
+`toolchain.<specEngine>.initCommand` (default `openspec init`) from the repo root. Show the command
+first, never run it silently, and skip when `specEngine: none`. Do not re-run it over an existing
+project. Record the project-init outcome (created / already-present / deferred / skipped).
+
 Record toolchain results and user choices in `.chaos/bootstrap-report.md`.
 
 

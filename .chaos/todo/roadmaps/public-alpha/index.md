@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: chaos:todo
-  lastWrittenAt: "2026-07-18T12:00:00+02:00"
+  lastWrittenAt: "2026-07-19T00:13:59+02:00"
   lastWrittenBy: vscode-user
-  lastAuditedAt: "2026-07-18T12:00:00+02:00"
+  lastAuditedAt: "2026-07-19T00:13:59+02:00"
   lastAuditedBy: vscode-user
   repositoryContext:
     provider: github
@@ -31,14 +31,14 @@ chaosMetadata:
 > the provenance notes below.
 >
 > These items mirror the assessment roadmap for planning and are **not** part of the durable
-> main backlog (`.chaos/todo/items/`). 28 items (28 open, 0 done) across
+> main backlog (`.chaos/todo/items/`). 28 items (25 open, 3 done) across
 > Horizons 0–4, the Horizon 0–1 (alpha) addendum, and the research track.
 
 | Todo ID | Title | Status | Priority | Target | Type | Owner | Item file |
 |---|---|---|---|---|---|---|---|
-| TODO-2026-07-18-ea-s1-sanitize-for-real | EA-S1 — Sanitize public surface for real | open | BLOCKER | h0-stabilization | sanitization | TBD | `items/2026-07-18-ea-s1-sanitize-for-real.md` |
-| TODO-2026-07-18-ea-s2-first-run-integrity | EA-S2 — First-run integrity on a fresh clone | open | BLOCKER | h0-stabilization | implementation | TBD | `items/2026-07-18-ea-s2-first-run-integrity.md` |
-| TODO-2026-07-18-ea-s3-real-ci | EA-S3 — Real CI that runs the tests | open | BLOCKER | h0-stabilization | ci | TBD | `items/2026-07-18-ea-s3-real-ci.md` |
+| TODO-2026-07-18-ea-s1-sanitize-for-real | EA-S1 — Sanitize public surface for real | done | BLOCKER | h0-stabilization | sanitization | TBD | `items/2026-07-18-ea-s1-sanitize-for-real.md` |
+| TODO-2026-07-18-ea-s2-first-run-integrity | EA-S2 — First-run integrity on a fresh clone | done | BLOCKER | h0-stabilization | implementation | TBD | `items/2026-07-18-ea-s2-first-run-integrity.md` |
+| TODO-2026-07-18-ea-s3-real-ci | EA-S3 — Real CI that runs the tests | done | BLOCKER | h0-stabilization | ci | TBD | `items/2026-07-18-ea-s3-real-ci.md` |
 | TODO-2026-07-18-ea-s4-security-md-demo-reframing | EA-S4 — SECURITY.md + honest demo reframing | open | BLOCKER | h0-stabilization | documentation | TBD | `items/2026-07-18-ea-s4-security-md-demo-reframing.md` |
 | TODO-2026-07-18-ea-v1-showcase-trail | EA-V1 — Publish the showcase trail (one real strict-mode lifecycle) | open | BLOCKER | h1-validation | validation | TBD | `items/2026-07-18-ea-v1-showcase-trail.md` |
 | TODO-2026-07-18-ea-v2-run-experiments-x1-x2-x4 | EA-V2 — Run validation experiments EA-X1 / EA-X2 / EA-X4 | open | BLOCKER | h1-validation | validation | TBD | `items/2026-07-18-ea-v2-run-experiments-x1-x2-x4.md` |

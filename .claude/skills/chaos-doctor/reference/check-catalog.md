@@ -13,7 +13,7 @@ Read-only; honour `mcp-security-policy.md` (least privilege, no secrets, redact)
 | CD-RT-04 | Configured build command resolvable (`validation.build`) | WARN |
 | CD-RT-05 | Configured test command resolvable (`validation.test`) | WARN |
 | CD-RT-06 | Node `>= 20.19.0`, npm present (OpenSpec compatibility) | WARN |
-| CD-RT-07 | OpenSpec **project** initialized — `toolchain.openspec.projectMarker` dir (default `openspec/`) exists | WARN with remediation `openspec init` (`toolchain.openspec.initCommand`); FAIL → NOT_READY only if an OpenSpec-dependent write flow (e.g. `chaos:propose`) is requested against a repo with no project. Distinct from CD-RT-03 (CLI presence): a fresh clone has the CLI but no project. |
+| CD-RT-07 | Spec-engine **project** initialized — `toolchain.<specEngine>.projectMarker` dir (default `openspec/`) exists | WARN **safety-net**: `chaos:init` scaffolds this automatically (it runs `toolchain.<specEngine>.initCommand`), so this only fires when init was skipped — e.g. tooling copied by hand into a repo. Remediation: run `chaos:init`, or the engine's `initCommand` (`openspec init`) directly. FAIL → NOT_READY only if an OpenSpec-dependent write flow (e.g. `chaos:propose`) runs against a repo with no project. Distinct from CD-RT-03 (CLI presence): a fresh clone has the CLI but no project. |
 
 ## Repository / provider context (`CD-REPO-*`)
 

@@ -61,25 +61,31 @@ openspec --version  # after the global install above
 
 ---
 
-## Initialize the OpenSpec project (both paths)
+## Initialize the OpenSpec project
 
 Installing the OpenSpec **CLI** (prerequisite above) is not the same as having an initialized
-OpenSpec **project**. CHAOS wraps OpenSpec: `chaos:propose` writes a change under
-`openspec/changes/<id>/`, and the lifecycle commands read it back. A fresh clone has the CLI but
-**no `openspec/` directory**, so the first `chaos:propose` has nothing to wrap — the single
-biggest silent first-run gap.
+OpenSpec **project**. CHAOS wraps OpenSpec — a swappable spec-engine provider selected by
+`project.specEngine` in `.chaos/config.yaml`: `chaos:propose` writes each change under
+`openspec/changes/<id>/`, and the lifecycle commands read it back. A repo with the CLI but **no
+`openspec/` directory** has nothing for the first `chaos:propose` to wrap.
 
-Initialize it once, from the repo root, before your first `chaos:propose`:
+**Scaffolding this is `chaos:init`'s job, not yours.** When you adopt CHAOS into your own repo
+(Path B), `chaos:init` initializes the spec-engine project for you — it runs the engine's
+`toolchain.<specEngine>.initCommand` (`openspec init`) when the project is missing. You do not run
+`openspec init` by hand.
+
+The one exception is **evaluating this repository (Path A)**: it is already CHAOS-initialized and
+ships no `openspec/`, so to run a real `chaos:propose` here, scaffold the project once from the
+repo root:
 
 ```bash
-openspec init      # scaffolds ./openspec (project.md, specs/, changes/)
+openspec init      # Path A only — or any repo where chaos:init was skipped
 ```
 
-`chaos:doctor` reports this for you: `CD-RT-07` WARNs when the `openspec/` project directory is
-absent and prints `openspec init` as the remediation (it is a warning, not a blocker — a fresh
-clone is still `READY_WITH_WARNINGS` until you actually run an OpenSpec-dependent command). You
-do **not** need this to read the [demo](demo/README.md), which uses representative excerpts, but
-you **do** need it before proposing a real change in this repo or your own.
+`chaos:doctor`'s `CD-RT-07` is the **safety net**: it WARNs when the project directory is absent
+and points you at `chaos:init` (or `openspec init`). It is a warning, not a blocker — a fresh clone
+is still `READY_WITH_WARNINGS`. You do **not** need any of this to read the [demo](demo/README.md),
+which uses representative excerpts.
 
 ---
 
@@ -218,16 +224,16 @@ See [Wiring the MCP server](#wiring-the-mcp-server) and
 [Installing the Decision Center](#installing-the-decision-center) below, then reload your
 MCP client so the `chaos-interaction` server is picked up.
 
-### Step 5 — Initialize OpenSpec, verify, then run your first command
+### Step 5 — Verify, then run your first command
 
 ```text
-openspec init       # once per repo — see "Initialize the OpenSpec project" above
-chaos:doctor        # verify local execution readiness (CD-RT-07 WARNs if openspec init is skipped)
+chaos:doctor        # verify local execution readiness (CD-RT-07 WARNs until the spec-engine project exists)
 chaos:help          # list the available commands
 ```
 
-Then run your first **governed** command — for a repo that needs governance scaffolding
-that's `chaos:init`; to see the full lifecycle first, walk the
+Then run your first **governed** command — for a repo that needs governance scaffolding that's
+`chaos:init`, which also **initializes the spec-engine project** (`openspec init`) for you as part
+of bootstrapping, so you never run it by hand. To see the full lifecycle first, walk the
 [demo](demo/README.md). See [Run your first command](#run-your-first-command).
 
 ---
@@ -380,9 +386,10 @@ copy the tooling or build the runtime, which is exactly what this guide covers.
 - **`openspec: command not found`.** Install the CLI globally:
   `npm install -g @fission-ai/openspec@latest`.
 - **`chaos:propose` fails with no OpenSpec project / `openspec/` is missing.** The CLI is
-  installed but the project was never initialized. Run `openspec init` from the repo root once
-  (see [Initialize the OpenSpec project](#initialize-the-openspec-project-both-paths));
-  `chaos:doctor`'s `CD-RT-07` also flags this.
+  installed but the project was never initialized. `chaos:init` scaffolds it for you in your own
+  repo; when evaluating this repo (Path A) or if init was skipped, run `openspec init` from the
+  repo root once (see [Initialize the OpenSpec project](#initialize-the-openspec-project)).
+  `chaos:doctor`'s `CD-RT-07` also flags this and points at `chaos:init`.
 - **A hook "silently does nothing" (no `.chaos/runtime/*` updates).** The `command` interpreter
   (`py -3` in the committed `.claude/settings.json`) isn't resolving — a common Windows
   Store-stub / broken-launcher issue, or a non-Windows machine where `py` doesn't exist. Set

@@ -67,8 +67,10 @@ toolchain:
     installCommand: npm install -g @fission-ai/openspec@latest
     # The OpenSpec CLI (above) is distinct from an initialized OpenSpec *project*.
     # chaos:propose wraps OpenSpec and writes under `openspec/changes/<id>/`, so the
-    # project must be initialized once per repo before the first propose. A fresh clone
-    # has the CLI but no project directory; doctor (CD-RT-07) surfaces this as a WARN.
+    # project must exist before the first propose. chaos:init scaffolds it automatically by
+    # running `initCommand` when the `projectMarker` directory is absent (the spec engine is
+    # swappable via project.specEngine); doctor CD-RT-07 is only the safety net if init was
+    # skipped (e.g. tooling copied by hand).
     projectMarker: openspec
     initCommand: openspec init
 
