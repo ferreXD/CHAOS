@@ -109,7 +109,16 @@ Do not install anything silently. If installation is requested, show the exact c
 npm install -g @fission-ai/openspec@latest
 ```
 
-Record all detection results and any installation/remediation answers in `.chaos/bootstrap-report.md`.
+After the spec-engine CLI check passes, **initialize the spec-engine project** if it is not
+already present — this is `chaos:init`'s job, not a manual step left to the user. Resolve
+`project.specEngine` (default `openspec`) and, when the `toolchain.<specEngine>.projectMarker`
+directory (default `openspec/`) is missing, run `toolchain.<specEngine>.initCommand`
+(default `openspec init`) from the repo root. Show the command first; never run it silently;
+skip when `specEngine: none`. Canonical rules: `reference/toolchain-preflight.md` →
+"Spec-engine project initialization".
+
+Record all detection results, the spec-engine project-init outcome, and any
+installation/remediation answers in `.chaos/bootstrap-report.md`.
 
 ## Config requirement
 

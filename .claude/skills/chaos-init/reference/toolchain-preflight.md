@@ -28,6 +28,32 @@ Check optional tools only when relevant or when the command can detect a relevan
 | Claude Code CLI | Claude-specific installation/setup checks | `claude --version` | Optional. Report only when relevant. |
 | GitHub CLI | GitHub/Copilot workflow automation | `gh --version` | Optional. Report only when relevant. |
 
+## Spec-engine project initialization
+
+Verifying the spec-engine **CLI** (OpenSpec, above) is not the same as having an initialized
+spec-engine **project**. CHAOS treats the spec engine as a swappable provider: `project.specEngine`
+in `.chaos/config.yaml` (default `openspec`) selects it, and its `toolchain.<specEngine>` block
+declares `command`, `installCommand`, `projectMarker`, and `initCommand`. **Scaffolding that
+project is `chaos:init`'s responsibility** — never a manual step the user is left to discover after
+a `chaos:doctor` nag.
+
+After the spec-engine CLI check passes, `chaos:init` ensures the project exists:
+
+1. Resolve the active engine from `project.specEngine` and read its `toolchain.<specEngine>` block.
+   If `specEngine` is `none`/absent, skip this step entirely.
+2. Check whether the project-marker directory (`toolchain.<specEngine>.projectMarker`, default
+   `openspec/`) already exists. If it does, record `pass` (already-present) and do nothing —
+   `initCommand` must be idempotent-safe, so never re-run it over an existing project.
+3. If it is absent, initialize it by running `toolchain.<specEngine>.initCommand` (default
+   `openspec init`) from the repo root, under the same safety posture as installs: show the exact
+   command first and never run it silently. `--auto` may run it non-interactively; default and
+   `--guided` confirm first.
+4. Record the outcome (created / already-present / deferred / skipped) in `.chaos/bootstrap-report.md`.
+
+This closes the biggest first-run gap: a fresh clone (or a freshly hand-copied tooling install)
+that has the CLI but no project, so the first `chaos:propose` has nothing to wrap. `chaos:doctor`'s
+`CD-RT-07` is only the **safety net** that flags the gap when `chaos:init` was skipped.
+
 ## Preflight modes
 
 ### Default

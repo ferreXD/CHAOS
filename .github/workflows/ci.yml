@@ -1,0 +1,65 @@
+# Real CI (EA-S3): runs tests + typecheck for the five Node packages and
+# `dotnet test` for the C# task-tracker example, so a broken package turns CI red.
+# Claude/Copilot surface parity is enforced separately by parity-check.yml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: node (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The five CHAOS Interaction Runtime packages. Each is self-contained:
+        # `npm ci` in its own directory is enough (consumers import the runtime's
+        # TypeScript source directly, which a full checkout provides).
+        package:
+          - tools/chaos-interaction-runtime
+          - tools/chaos-interaction-mcp
+          - tools/chaos-interaction-runner
+          - tools/chaos-interaction-diagnostics
+          - extensions/chaos-decision-center
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24: `node --test` strips TypeScript types by default (no flag),
+          # matching the packages' `test` scripts. engines require >=22.6.0.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+      - name: Install
+        working-directory: ${{ matrix.package }}
+        run: npm ci
+      - name: Typecheck
+        working-directory: ${{ matrix.package }}
+        run: npm run typecheck
+      - name: Test
+        working-directory: ${{ matrix.package }}
+        run: npm test
+
+  dotnet:
+    name: dotnet (task-tracker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          # The task-tracker example targets net8.0.
+          dotnet-version: '8.0.x'
+      - name: Test
+        working-directory: examples/task-tracker/dotnet
+        run: dotnet test --nologo
