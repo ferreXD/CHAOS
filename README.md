@@ -131,7 +131,9 @@ governance wrapped around it.
 - **Install & onboarding:** [`docs/installation.md`](docs/installation.md)
 - **Worked end-to-end example:** a runnable [`examples/task-tracker/dotnet/`](examples/task-tracker/dotnet/README.md)
   Task API, taken through the lifecycle (propose → review → apply → verify → archive → sync) in
-  the [demo walkthrough](docs/demo/README.md).
+  the [demo walkthrough](docs/demo/README.md) — an illustrative guided tour. For the **real,
+  un-retouched trail** of that same change actually executed end-to-end, see the golden demo on the
+  [`demo/dotnet` branch](https://github.com/ferreXD/CHAOS/tree/demo/dotnet).
 - **Where this is going:** [project roadmap](.chaos/roadmap/roadmap.md)
 
 ## Contributing

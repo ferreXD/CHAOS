@@ -1,5 +1,19 @@
 # CHAOS worked example — adding query-param filters to the Task Tracker API
 
+> **How to read this page — illustrative walkthrough vs. the real captured trail.**
+> This walkthrough is a **teaching narrative**: the starting-point code is real and runnable, but
+> the CHAOS/OpenSpec artifacts shown inline (`decision.json`, the `*-report.md` excerpts, the
+> `PROP-DEC-001` events, …) are **hand-authored illustrative excerpts**, written to explain the
+> flow — not a byte-for-byte dump of one run.
+>
+> If you want the **real thing** — a complete, un-retouched lifecycle actually executed end-to-end
+> and readable from disk alone — see the **golden demo trail on the [`demo/dotnet`
+> branch](https://github.com/ferreXD/CHAOS/tree/demo/dotnet)**: the change
+> `add-task-query-filters` taken through propose → review → apply → verify → archive → sync, with
+> the full `.chaos/changes/…` audit set, decision events, and the promoted decision-log entry
+> committed as they were produced. That branch is the verifiable artifact; this page is the
+> guided tour.
+
 This is a guided walkthrough of using **CHAOS** to make one small change to a **real, runnable**
 API: adding optional `?status=` and `?priority=` filters to a `GET /tasks` endpoint that today
 returns everything.
