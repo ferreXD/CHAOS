@@ -29,6 +29,7 @@ export {
   atomicWriteJson,
   readJson,
   readJsonIfExists,
+  sweepStaleTempFiles,
 } from "./store/atomicWrite.ts";
 export {
   SchemaValidationError,
@@ -42,6 +43,12 @@ export {
   type Clock,
   type IdFactory,
 } from "./services/identifiers.ts";
+export {
+  buildResumeCapsule,
+  capsuleContentHash,
+  verifyCapsuleIntegrity,
+  type CapsuleOverrides,
+} from "./services/resumeCapsuleService.ts";
 export {
   RuntimeError,
   InvalidStateTransitionError,
