@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: chaos:todo
-  lastWrittenAt: "2026-07-18T13:00:01+02:00"
+  lastWrittenAt: "2026-07-19T12:46:38+02:00"
   lastWrittenBy: vscode-user
-  lastAuditedAt: "2026-07-18T13:00:01+02:00"
+  lastAuditedAt: "2026-07-19T12:46:38+02:00"
   lastAuditedBy: vscode-user
   repositoryContext:
     provider: github
@@ -23,7 +23,7 @@ chaosMetadata:
 todo:
   id: TODO-2026-07-18-r01-ea-v1-il-dx5-showcase-trail
   title: "#1 · EA-V1 (IL-DX5) — Showcase trail (decided)"
-  status: open
+  status: done
   priority: BLOCKER
   target: h-alpha
   type: validation
@@ -49,8 +49,8 @@ todo:
   confidence: HIGH
   rank: 1
   createdAt: "2026-07-18T13:00:01+02:00"
-  lastSeenAt: "2026-07-18T13:00:01+02:00"
-  closedAt: null
+  lastSeenAt: "2026-07-19T12:46:38+02:00"
+  closedAt: "2026-07-19T12:46:38+02:00"
 ---
 
 # TODO — #1 · EA-V1 (IL-DX5) — Showcase trail (decided)
@@ -83,3 +83,4 @@ No specific CHAOS command required.
 ## History
 
 - 2026-07-18 — Created from the improvement-landscape assessment's Top-20 ranked opportunities (11-final-prioritization.md §11.2, horizoned via §11.3/§11.5). Roadmap-scoped: not imported into the main backlog.
+- 2026-07-19 — Closed as **done** (`chaos:todo --close`) alongside its twin `TODO-2026-07-18-ea-v1-showcase-trail` in the public-alpha roadmap view — this is the *same single delivery* (see Deduplication / cross-reference). The showcase trail is published on the `demo/dotnet` branch: real strict-mode lifecycle for `add-task-query-filters` under [`.chaos/changes/add-task-query-filters/`](../../../changes/add-task-query-filters/) with a self-contained walkthrough at [`docs/demo/README.md`](../../../../docs/demo/README.md), linked from the root README. Both closure criteria met (reconstructable without installing ✅; cross-referenced single delivery ✅). Maintainer confirmation from the repository owner's explicit close directive (chat session).
