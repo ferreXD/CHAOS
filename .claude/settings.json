@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event session-start",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event session-start",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-active-command.py\" --event session-start",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-active-command.py\" --event session-start",
             "timeout": 10
           }
         ]
@@ -22,12 +22,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event user-prompt-submit",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event user-prompt-submit",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-active-command.py\" --event user-prompt-submit",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-active-command.py\" --event user-prompt-submit",
             "timeout": 10
           }
         ]
@@ -39,12 +39,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event post-tool-use --stamp",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event post-tool-use --stamp",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-touched-files.py\" --event post-tool-use",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-touched-files.py\" --event post-tool-use",
             "timeout": 15
           }
         ]
@@ -55,17 +55,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event stop --stamp",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-artifact-metadata-hook.py\" --event stop --stamp",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event stop",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-session-context.py\" --event stop",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-stop-summary.py\" --event stop",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-stop-summary.py\" --event stop",
             "timeout": 20
           }
         ]
@@ -74,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py -3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-auto-resume.py\" --event stop --max-wait-seconds 1800",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/scripts/chaos-auto-resume.py\" --event stop --max-wait-seconds 1800",
             "timeout": 1830
           }
         ]
