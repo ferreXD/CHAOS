@@ -1,0 +1,86 @@
+{
+  "2": {
+    "pair": 2,
+    "armX": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "adequate",
+      "conformance_score_0_100": 90,
+      "violations": [],
+      "notes": "Clean, correct soft-delete. Domain (TaskItem/TaskStore) stays pure: DeletedAt added as a trailing defaulted positional param (existing seeds/Add keep compiling — R-003 preserved); no Microsoft.AspNetCore.* or HTTP types in Domain/** (R-004 pass); enum stays TaskState with a Status property, no TaskStatus reintroduced (R-005 pass); no protected files touched (R-006 pass). All contract clauses implemented at the right layer: All(includeDeleted) filter, Get() hides soft-deleted (so GET /tasks/{id} 404s), SoftDelete stamps UtcNow and retains the row, DELETE returns 204/404. SoftDelete generates the timestamp internally (DateTimeOffset.UtcNow) rather than at the boundary — a minor design choice, not a layering fault. Tests are adequate (3): active-null-deletedAt, soft-delete-hidden-but-retained-via-includeDeleted, delete-unknown-404. Gap: does NOT test the GET /tasks/{id} 404-for-soft-deleted contract clause (behavior is implemented, just untested)."
+    },
+    "armY": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "strong",
+      "conformance_score_0_100": 95,
+      "violations": [],
+      "notes": "Same clean, correct soft-delete at the same layers. Domain pure: DeletedAt trailing defaulted param (R-003 preserved), no HTTP/AspNetCore types in Domain/** (R-004 pass), TaskState/Status retained with no TaskStatus (R-005 pass), no protected files (R-006 pass). Contract fully implemented: All(includeDeleted), Get() hides soft-deleted -> 404, SoftDelete retains and stamps, DELETE 204/404. SoftDelete(id, deletedAt) takes the timestamp as a parameter and the endpoint injects DateTimeOffset.UtcNow — clock decided at the boundary, still no HTTP dependency crossing into Domain, so R-004 remains a pass. Tests are strong (5): seeded-tasks-active-null, active-serializes-deletedAt-as-null (asserts camelCase \"deletedAt\":null in raw JSON), full soft-delete flow that ALSO asserts GET /tasks/{id} 404s the deleted task, delete-unknown-404, and default-excludes-vs-includeDeleted. Covers every contract clause including the GET/{id} 404 case and serialization shape."
+    },
+    "betterConformance": "Y",
+    "materialDifference": false,
+    "rationale": "Both arms are rule-clean and architecturally identical: same trailing-defaulted DeletedAt in the Domain record, same All(includeDeleted)/Get()/SoftDelete store shape, same endpoint wiring, no R-004/R-005/R-006 violation in either, and both preserve the green baseline (R-003). The only real difference is test thoroughness and clock placement. Y's tests are strong — they additionally assert the GET /tasks/{id} 404-for-soft-deleted clause and the camelCase deletedAt:null serialization, both of which X implements but leaves untested — so Y conforms modestly better. That edge is a test-coverage/quality difference, not a rule violation or architecture miss (X still correctly implements every clause), and Y's boundary-injected timestamp vs X's internal UtcNow is a stylistic design choice, so materialDifference is false. Scores 95 (Y) vs 90 (X).\"}"
+  },
+  "1": {
+    "pair": 1,
+    "armX": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "strong",
+      "conformance_score_0_100": 94,
+      "violations": [],
+      "notes": "Dedicated ApiKeyEndpointFilter : IEndpointFilter in the Endpoints layer; HTTP concerns (HttpContext, Results.Unauthorized, IEndpointFilter) stay out of Domain/**. Config via constructor DI of IConfiguration with IsNullOrWhiteSpace fallback guard. Filter added at group level so 401 precedes existence/validation. GET / stays public (mapped outside the /tasks group). 8 auth tests cover no-key/wrong-key GET, before-existence GET-by-id, before-validation POST, store-mutation-safety, PUT, DELETE, and public root - directly exercising the '401 before existence/validation' contract. Existing CRUD tests migrated to an authenticated client, preserving green baseline. No TaskStatus reintroduction; no protected-file edits."
+    },
+    "armY": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "adequate",
+      "conformance_score_0_100": 86,
+      "violations": [],
+      "notes": "Inline lambda endpoint filter in TaskEndpoints.cs, correct layer; HTTP concerns stay out of Domain/**. Reads config once at map time via app.ServiceProvider.GetRequiredService<IConfiguration>()[ApiKeyConfigKey] ?? DefaultApiKey - functionally correct and idiomatic-enough, and 401 precedes existence/validation. GET / stays public. Minor robustness edge (not a rule violation, not triggered by the contract): the '?? DefaultApiKey' only null-coalesces, so an empty-string ApiKey config value would set validApiKey to '' and a header-less request (provided == '') would authenticate; Arm X's IsNullOrWhiteSpace guard avoids this. Tests are adequate: no-key GET, wrong-key GET, POST-before-validation, public root - but no PUT/DELETE route coverage, no before-existence GET-by-id, and no store-mutation-safety assertion. Existing CRUD tests migrated to an authenticated client. No TaskStatus reintroduction; no protected-file edits."
+    },
+    "betterConformance": "X",
+    "materialDifference": false,
+    "rationale": "Both arms pass every hard rule (R-003 green baseline preserved via migrated CRUD tests, R-004 HTTP concerns kept in the endpoint layer with Domain/** untouched, R-005 no TaskStatus reintroduction, R-006 no protected-file edits) and both sit at the correct layer implementing the contract exactly: group-level endpoint filter, 401 before existence/validation, GET / public, X-Api-Key/default test-secret-key. X conforms somewhat better on the scored quality dimensions - a dedicated testable filter class, an IsNullOrWhiteSpace config guard, and materially stronger tests (before-existence, mutation-safety, PUT/DELETE) versus Y's adequate four-test set and null-only config coalescing. However, Y has no actual rule violation and no architecture miss - the gap is test thoroughness and a minor robustness nuance the contract never exercises - so the difference is real but not material."
+  },
+  "3": {
+    "pair": 3,
+    "armX": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "strong",
+      "conformance_score_0_100": 95,
+      "violations": [],
+      "notes": "Domain returns TaskUpdateResult (readonly record struct) + TaskUpdateOutcome enum; no HTTP types leak into Domain/**. Version is a required positional param, seeded/created at 1 via AddAt(Version:1), incremented by 1 on update. Compare-and-increment serialized under lock(_updateLock) with reads lock-free — obviously correct. Endpoint maps outcome to Ok/Conflict/NotFound. TaskState naming preserved; no protected files touched. Tests (5) cover create@1, seed@1, unconditional increment, matching-version success, and stale->409 with full unchanged verification (title/status/priority/version). Minor: 409 body fields not asserted."
+    },
+    "armY": {
+      "r003_baseline_green": "pass",
+      "r004_domain_http_boundary": "pass",
+      "r005_taskstate_naming": "pass",
+      "r006_protected_files": "pass",
+      "architecture_fit": "pass",
+      "own_test_quality": "strong",
+      "conformance_score_0_100": 95,
+      "violations": [],
+      "notes": "Domain returns UpdateResult enum + out TaskItem?; no HTTP types leak into Domain/**. Version defaulted to 1 (int Version = 1), so seeds/create get 1 without changing AddAt; incremented by 1 on update. Uses lock-free ConcurrentDictionary.TryUpdate CAS retry loop; TryUpdate compares records by value but monotonic Version rules out ABA, so it is correct. Endpoint maps to Ok/Conflict/NotFound. TaskState naming preserved; no protected files touched. Tests (5) cover create@1, seed@1 (asserts all four seeded titles via Assert.Single), repeated unconditional increment (2->3), matching-version success, and stale->409 with unchanged verification. Minor: 409 body fields not asserted; stale test omits priority check."
+    },
+    "betterConformance": "tie",
+    "materialDifference": false,
+    "rationale": "Both arms fully conform: domain owns the version compare-and-increment and returns a plain outcome type (X: result struct, Y: enum + out param), HTTP status mapping stays in the endpoint (R-004 pass), TaskState naming preserved (R-005 pass), no protected files touched, and both implement the contract exactly (start at 1, increment on PUT, expectedVersion mismatch -> 409 with task unchanged, null -> unconditional). Both ship strong tests covering the happy paths and the two key edges (unconditional increment; stale conflict leaves task unchanged). The only real difference is concurrency strategy — X uses a global lock, Y uses a lock-free CAS retry loop — and both are correct (Y's record value-equality in TryUpdate is safe because Version increases monotonically, precluding ABA). Remaining differences (result struct vs out-param, required vs defaulted Version, comment verbosity, minor test-assertion coverage) are stylistic. No arm has a rule violation or architecture miss the other avoids, so this is a genuine tie with no material difference.\""
+  }
+}

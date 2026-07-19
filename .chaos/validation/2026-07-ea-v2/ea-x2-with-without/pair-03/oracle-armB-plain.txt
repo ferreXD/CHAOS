@@ -1,0 +1,8 @@
+===== PAIR3 ARM-B PLAIN (concurrency) =====
+Passed TaskTracker.Oracle.ConcurrencyOracleTests.Successful_put_increments_version
+Passed TaskTracker.Oracle.ConcurrencyOracleTests.Omitted_expected_version_updates_unconditionally
+Passed TaskTracker.Oracle.ConcurrencyOracleTests.Stale_expected_version_conflicts
+Passed TaskTracker.Oracle.ConcurrencyOracleTests.Conflicting_write_leaves_task_unchanged
+Passed TaskTracker.Oracle.ConcurrencyOracleTests.New_task_starts_at_version_1
+Total tests: 5
+Passed: 5

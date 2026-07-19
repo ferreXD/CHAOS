@@ -1,0 +1,163 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..fc15dd2 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -21,9 +21,14 @@ public enum TaskPriority
+ }
+ 
+ /// <summary>An immutable task record held in the in-memory store.</summary>
++/// <remarks>
++/// <see cref="DeletedAt"/> is null while the task is active. A soft delete stamps it with the
++/// deletion time; the row is retained but hidden from the default <c>GET /tasks</c> listing.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    DateTimeOffset? DeletedAt = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..3e5841b 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -21,12 +21,19 @@ public class TaskStore
+         AddAt("Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2));
+     }
+ 
+-    /// <summary>All tasks, in creation order.</summary>
+-    public IReadOnlyList<TaskItem> All() =>
+-        _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
++    /// <summary>
++    /// Tasks in creation order. Soft-deleted tasks are hidden unless
++    /// <paramref name="includeDeleted"/> is true.
++    /// </summary>
++    public IReadOnlyList<TaskItem> All(bool includeDeleted = false) =>
++        _tasks.Values
++            .Where(t => includeDeleted || t.DeletedAt is null)
++            .OrderBy(t => t.CreatedAt)
++            .ToList();
+ 
++    /// <summary>Returns the active task with the given id, or null if missing or soft-deleted.</summary>
+     public TaskItem? Get(Guid id) =>
+-        _tasks.TryGetValue(id, out var task) ? task : null;
++        _tasks.TryGetValue(id, out var task) && task.DeletedAt is null ? task : null;
+ 
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+@@ -41,7 +48,18 @@ public class TaskStore
+         return updated;
+     }
+ 
+-    public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
++    /// <summary>
++    /// Soft-deletes a task: stamps <see cref="TaskItem.DeletedAt"/> with the current time and
++    /// retains the row. Returns false only when no task with the id exists.
++    /// </summary>
++    public bool SoftDelete(Guid id)
++    {
++        if (!_tasks.TryGetValue(id, out var existing))
++            return false;
++
++        _tasks[id] = existing with { DeletedAt = DateTimeOffset.UtcNow };
++        return true;
++    }
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..6d02624 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -17,8 +17,10 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks — returns active tasks by default; ?includeDeleted=true also returns
++        // soft-deleted ones.
++        group.MapGet("/", (TaskStore store, bool includeDeleted = false) =>
++            Results.Ok(store.All(includeDeleted)));
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+@@ -45,9 +47,9 @@ public static class TaskEndpoints
+                 : Results.NotFound();
+         });
+ 
+-        // DELETE /tasks/{id}
++        // DELETE /tasks/{id} — soft-delete: the task is retained but hidden by default.
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Remove(id) ? Results.NoContent() : Results.NotFound());
++            store.SoftDelete(id) ? Results.NoContent() : Results.NotFound());
+ 
+         return app;
+     }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..e79b8ea 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -79,6 +79,48 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Active_tasks_have_null_deletedAt()
++    {
++        var client = _factory.CreateClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.NotNull(tasks);
++        Assert.All(tasks!, t => Assert.Null(t.DeletedAt));
++    }
++
++    [Fact]
++    public async Task Delete_is_soft_task_hidden_by_default_but_retained_with_includeDeleted()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Soft me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
++        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
++
++        // Hidden from the default listing.
++        var active = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(active!, t => t.Id == created.Id);
++
++        // Retained (not permanently removed) and exposed via includeDeleted, with a non-null deletedAt.
++        var all = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?includeDeleted=true");
++        var soft = Assert.Single(all!, t => t.Id == created.Id);
++        Assert.NotNull(soft.DeletedAt);
++    }
++
++    [Fact]
++    public async Task Delete_unknown_id_returns_not_found()
++    {
++        var client = _factory.CreateClient();
++
++        var delete = await client.DeleteAsync($"/tasks/{Guid.NewGuid()}");
++
++        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
++    }
++
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+@@ -91,5 +133,11 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     }
+ 
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    private record TaskDto(
++        Guid Id,
++        string Title,
++        string Status,
++        string Priority,
++        DateTimeOffset CreatedAt,
++        DateTimeOffset? DeletedAt);
+ }

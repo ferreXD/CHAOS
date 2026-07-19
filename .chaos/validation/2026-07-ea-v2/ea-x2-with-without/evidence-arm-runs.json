@@ -1,0 +1,222 @@
+{
+  "pairs": [
+    {
+      "pair": 1,
+      "changeId": "require-api-key-auth",
+      "armA_chaos": {
+        "arm": "chaos",
+        "summary": "Executed the full CHAOS governed lifecycle for change \"require-api-key-auth\": propose → decisions → review → apply → verify. Implemented API-key auth on all five /tasks routes via a group-level HTTP-layer IEndpointFilter (X-Api-Key header; valid key = config ApiKey, default test-secret-key; 401 before any existence/validation/mutation; GET / stays public), keeping the domain HTTP-free per R-004. Build is clean (0/0) and dotnet test is green at 13/13 (5 baseline tests updated to supply the key + 8 new auth tests); the OpenSpec change validates --strict. The change deliberately crosses the architecture NON-GOAL for authentication, which was surfaced explicitly and driven through an explicit posture decision (AUTH-DEC-001) rather than adopted silently.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/ApiKeyEndpointFilter.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "governanceArtifactsProduced": [
+          ".chaos/changes/require-api-key-auth/proposal-report.md",
+          ".chaos/changes/require-api-key-auth/decision-events.md",
+          ".chaos/changes/require-api-key-auth/proposal-review.md",
+          ".chaos/changes/require-api-key-auth/apply-report.md",
+          ".chaos/changes/require-api-key-auth/verification.md",
+          ".chaos/changes/require-api-key-auth/lifecycle.md",
+          "openspec/changes/require-api-key-auth/proposal.md",
+          "openspec/changes/require-api-key-auth/design.md",
+          "openspec/changes/require-api-key-auth/tasks.md",
+          "openspec/changes/require-api-key-auth/specs/task-api/spec.md",
+          "openspec/changes/require-api-key-auth/.openspec.yaml"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md — its 'Authentication = NON-GOAL / decision-bearing' posture drove framing this as an explicit posture-change decision (AUTH-DEC-001) instead of a silent feature add",
+          ".chaos/rules/index.md — R-004 drove placing auth in an HTTP-layer endpoint filter (not the domain); R-006 kept me off AGENTS.md/root README; R-003 drove keeping the baseline tests green",
+          ".chaos/constitution.md — §6 (posture-contradicting change needs an explicit decision) and §3/§4 (no silent assumptions, label knowledge+confidence) shaped the decision records and every verdict's labels",
+          "AGENTS.md — minimum pre-edit behavior, protected-file list, and the Decision-Center stop/resume rule that this run documents deviating from",
+          ".chaos/config.yaml — confirmed interactionRuntime R-001 posture and protectedFiles policy, informing the documented in-arm deviation framing",
+          ".chaos/changes/add-task-query-filters/decision-events.md — reference for the decision-event shape (type/status/knowledge/confidence/sync-action fields) I reused",
+          ".chaos/changes/add-task-query-filters/verification.md — reference for the verification dashboard + traceability-matrix shape I reused",
+          "openspec/specs/task-api/spec.md — showed a task-api base spec already exists, so I modeled this as a MODIFIED capability with an ADDED requirement delta rather than a new capability"
+        ],
+        "materialDecisionsRecorded": [
+          "AUTH-DEC-001 — Adopt API-key auth, crossing the architecture NON-GOAL (POSTURE_CHANGE; sync UPDATE_ARCHITECTURE_POSTURE); resolved-in-arm with maintainer rationale (no live human, EA-X2)",
+          "AUTH-DEC-002 — Enforce via a group-level IEndpointFilter on MapGroup(\"/tasks\") vs middleware/inline (DESIGN_DECISION; sync NONE); resolved-in-arm",
+          "AUTH-DEC-003 — Read ApiKey from configuration, default test-secret-key when null/whitespace, leave appsettings.json unset so the default path runs, ordinal compare (LOCAL_DESIGN_DECISION; sync NONE); resolved-in-arm"
+        ],
+        "testsPassed": 13,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 642,
+        "buildOk": true,
+        "selfAssessment": "High confidence in correctness: every contract clause is directly evidenced by passing integration tests — X-Api-Key required on all five /tasks routes, valid key = config ApiKey default test-secret-key, 401 on missing/incorrect key evaluated before existence (401 not 404), before validation (401 not 400), and before mutation (rejected POST leaves the store unchanged), and GET / stays public. Rules honored and grep-verified: R-004 (no Microsoft.AspNetCore refs in Domain/**), R-005 (no TaskStatus enum; TaskState intact), R-003 (baseline preserved), R-006 (protected files untouched). One disclosed governance caveat (VFY-001): this is a mechanized EA-X2 run with no live human, so R-001's human approval of the NON-GOAL-crossing decision AUTH-DEC-001 is substituted by an in-arm resolution — I capped the verification verdict at MEDIUM confidence for that reason and recommend human re-confirmation before a real merge. Two deferred follow-ups, both out of this change's edit scope: AUTH-DEC-001 → update the auth posture in .chaos/architecture.md at chaos:sync. Endpoint-filter ordering (runs after parameter binding, before the handler body) is standard ASP.NET Core behavior and is confirmed by the before-existence/before-validation tests. No git commit was made; all changes remain in the working tree as instructed."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added X-Api-Key authentication to all /tasks routes in the Task Tracker API via a group-level endpoint filter that runs before every handler, so auth is enforced ahead of any existence/validation check or store access. The valid key comes from configuration key \"ApiKey\", defaulting to \"test-secret-key\"; missing/incorrect keys return 401 Unauthorized. The root health endpoint GET / stays public. Updated the test suite to supply the key and added coverage for the 401 and public-root cases; build and all tests are green.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 9,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 255,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "selfAssessment": "High confidence. The auth is implemented as a MapGroup endpoint filter on /tasks, which executes before the route handler and thus before any read/mutate or validation — verified by a test that posts an invalid (blank-title) body with no key and asserts 401 (not 400). Key is read once at map time from IConfiguration[\"ApiKey\"] with the \"test-secret-key\" default; the test environment has no ApiKey set, so the default is exercised. GET / remains public (mapped outside the group) and is covered by a test. One mid-task bug: an over-broad replace_all initially rewrote the CreateClient() call inside the AuthedClient() helper into a self-call, causing a stack overflow; I diagnosed it from the crash trace and fixed it. Final run: build clean (0 warnings), 9/9 tests pass. No unrelated CRUD behaviour changed."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy, no budget cap set",
+        "armA_output_tokens": 62597,
+        "armB_output_tokens": 16331
+      }
+    },
+    {
+      "pair": 2,
+      "changeId": "soft-delete-tasks",
+      "armA_chaos": {
+        "arm": "chaos",
+        "summary": "Executed the full CHAOS governed lifecycle (propose → decisions → review → apply → verify) for change \"soft-delete-tasks\" on the Task Tracker API. Implemented the exact contract: a nullable deletedAt timestamp on the domain record (trailing defaulted positional param = backward-compatible migration), DELETE now soft-deletes (204, row retained) via a domain-owned TaskStore.SoftDelete, GET /tasks hides soft-deleted by default with ?includeDeleted=true opt-in, and GET /tasks/{id} 404s soft-deleted tasks. dotnet build is clean (0/0) and dotnet test is green at 10/10 (5 baseline preserved + 5 new); OpenSpec --strict validated. Surfaced explicitly that the change touches the persistence/retention architecture NON-GOAL and bounded it to in-memory retention only (MDEC-003).",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 10,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 779,
+        "buildOk": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/soft-delete-tasks/proposal-report.md",
+          ".chaos/changes/soft-delete-tasks/decision-events.md",
+          ".chaos/changes/soft-delete-tasks/proposal-review.md",
+          ".chaos/changes/soft-delete-tasks/apply-report.md",
+          ".chaos/changes/soft-delete-tasks/verification.md",
+          ".chaos/changes/soft-delete-tasks/lifecycle.md",
+          "openspec/changes/soft-delete-tasks/proposal.md",
+          "openspec/changes/soft-delete-tasks/design.md",
+          "openspec/changes/soft-delete-tasks/specs/task-api/spec.md",
+          "openspec/changes/soft-delete-tasks/tasks.md",
+          "openspec/changes/soft-delete-tasks/.openspec.yaml"
+        ],
+        "materialDecisionsRecorded": [
+          "MDEC-001 — Model soft-delete as a nullable DeletedAt timestamp on the TaskItem domain record (trailing defaulted param = backward-compatible migration)",
+          "MDEC-002 — Own soft-delete visibility + mutation in the domain TaskStore (R-004); endpoints stay thin",
+          "MDEC-003 — Scope retention to the in-memory store only; do NOT cross the persistence non-goal (the architecture decision-bearing area surfaced by the task)",
+          "APP-DEC-001 — GET /tasks/{id} returns 404 for a soft-deleted task via TaskStore.Get hiding deleted rows",
+          "APP-DEC-002 — DELETE resolves against physical existence; re-deleting a soft-deleted task returns 204, only a never-existent id returns 404",
+          "APP-DEC-003 — Rely on default web JSON serialization for deletedAt (camelCase, null-emitting; no attributes needed)"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md — Non-goals/data-access posture drove MDEC-003 (in-memory retention only) and the explicit non-goal surfacing",
+          ".chaos/rules/index.md — R-004 drove domain-owned placement (MDEC-002); R-005 kept TaskState (no rename); R-006 kept AGENTS.md/README untouched; R-001 drove the documented no-human deviation; R-003 kept tests green",
+          ".chaos/constitution.md — confidence doctrine drove knowledge-type + confidence labels on every finding/decision/verdict",
+          "AGENTS.md — minimum pre-edit behaviour + protected-files list drove the OpenSpec change layout and no silent protected-file edits",
+          ".chaos/changes/add-task-query-filters/proposal-report.md + decision-events.md + design.md + verification.md — precedent for domain-owned querying and the exact artifact shapes/metadata I mirrored",
+          "openspec/specs/task-api/spec.md — existing List Tasks base requirement drove using MODIFIED (not ADDED) in the spec delta so openspec validate --strict passes"
+        ],
+        "selfAssessment": "High confidence. Build clean and all 10 tests pass, verified twice; OpenSpec --strict valid. The contract is fully covered by tests including a raw-JSON assertion that active tasks serialize \"deletedAt\":null (confirming web-default camelCase + null emission, since Program.cs sets no DefaultIgnoreCondition). Backward-compatibility is guaranteed by the trailing defaulted record param (existing 5-arg constructions/seeds compile unchanged and stay active). Two honest caveats, both documented: (1) R-001 deviation — no live human was available in this EA-X2 run, so the 6 material decisions were recorded AND resolved-in-arm with maintainer rationale rather than via Decision-Center stop-and-resume; (2) two contract-silent choices were made and recorded — re-deleting an already-soft-deleted (physically present) task returns 204 (APP-DEC-002), and PUT on a soft-deleted task still mutates the physical row (left unchanged per 'don't change unrelated endpoints'). The bodyHash values in artifact frontmatter are real sha256 of each body but computed by my own scheme, which may differ from the repo's metadata-hook algorithm; the hook can reconcile them on a real run."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Implemented soft-delete for tasks in TaskTracker.Api. Added a nullable DeletedAt timestamp to the TaskItem record (serialized as camelCase deletedAt, null when active), changed DELETE /tasks/{id} to stamp DeletedAt via a new TaskStore.SoftDelete instead of removing the row (still 204 on success, 404 for unknown id), made GET /tasks return active tasks by default with ?includeDeleted=true exposing soft-deleted ones, and made GET /tasks/{id} return 404 for soft-deleted tasks. Seeded tasks stay active (DeletedAt defaults to null). Build is clean and all tests pass.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 8,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 133,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "selfAssessment": "High confidence. The contract is fully implemented and each clause is covered by a test: deletedAt null on active tasks, soft-delete hides by default and is retained/exposed with includeDeleted=true (non-null deletedAt), 404 for soft-deleted GET, and 404 for deleting an unknown id. The existing 5 tests still pass unchanged (the original Delete test's post-delete 404 holds because Get filters soft-deleted). DeletedAt serializes as camelCase deletedAt via the framework's default JSON options, and null is emitted (no ignore-null condition configured). One deliberate, unspecified choice: deleting an already-soft-deleted (but still-present) task returns 204 and re-stamps DeletedAt, since it is not an unknown id; the contract only mandates 404 for unknown ids. TaskStore.Remove was replaced by SoftDelete (no remaining callers). Update was left untouched per the no-unrelated-changes constraint."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy, no budget cap set",
+        "armA_output_tokens": 64556,
+        "armB_output_tokens": 9967
+      }
+    },
+    {
+      "pair": 3,
+      "changeId": "optimistic-concurrency-updates",
+      "armA_chaos": {
+        "arm": "chaos",
+        "summary": "Executed the full CHAOS governed lifecycle (propose → decisions → review → apply → verify) for change \"optimistic-concurrency-updates\" in the p3-armA worktree. Added a per-task integer `version` (starts at 1, increments on every successful PUT) and an optional `expectedVersion` on UpdateTaskRequest: mismatch → 409 Conflict with the task left unchanged, match or omitted → 200 with version bump. The version check is domain-owned and lock-guarded (atomic compare-and-increment, no TOCTOU), returning a domain outcome the thin endpoint maps to 200/404/409 — honoring R-004/R-005/R-006 and keeping the 5-test baseline green. Build is clean (0/0) and tests are 10/10; OpenSpec validates `--strict`.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "governanceArtifactsProduced": [
+          ".chaos/changes/optimistic-concurrency-updates/proposal-report.md",
+          ".chaos/changes/optimistic-concurrency-updates/decision-events.md",
+          ".chaos/changes/optimistic-concurrency-updates/proposal-review.md",
+          ".chaos/changes/optimistic-concurrency-updates/apply-report.md",
+          ".chaos/changes/optimistic-concurrency-updates/verification.md",
+          ".chaos/changes/optimistic-concurrency-updates/lifecycle.md",
+          "openspec/changes/optimistic-concurrency-updates/proposal.md",
+          "openspec/changes/optimistic-concurrency-updates/design.md",
+          "openspec/changes/optimistic-concurrency-updates/tasks.md",
+          "openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md",
+          "openspec/changes/optimistic-concurrency-updates/.openspec.yaml"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/rules/index.md",
+          ".chaos/architecture.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          ".chaos/changes/add-task-query-filters/proposal-report.md",
+          ".chaos/changes/add-task-query-filters/decision-events.md"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001 — Version check + increment domain-owned (TaskStore), endpoint maps outcome (R-004)",
+          "PROP-DEC-002 — Atomic lock-guarded check-and-increment to prevent TOCTOU / lost update",
+          "PROP-DEC-003 — Domain signals NotFound/Conflict/Updated via a result type, not exceptions or HTTP types",
+          "PROP-DEC-004 — Accept + surface non-durable version (resets on restart; persistence is an architecture non-goal)",
+          "PROP-DEC-005 — No extra 400 for out-of-band expectedVersion; any non-match → 409 (minimal contract)",
+          "APP-DEC-001 — Rely on the web camelCase JSON policy for version/expectedVersion (no [JsonPropertyName])"
+        ],
+        "testsPassed": 10,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 728,
+        "buildOk": true,
+        "selfAssessment": "High confidence. The contract is implemented exactly (version starts at 1 on POST/seed, increments on every successful PUT; expectedVersion mismatch → 409 + unchanged; match/omitted → 200 + increment) and each clause is covered by a dedicated passing test plus the preserved backward-compat baseline test that omits expectedVersion. R-004 verified by grep (no ASP.NET/Results in Domain/), R-005 verified (no TaskStatus rename), R-006 honored (protected files untouched), OpenSpec --strict validates. Two honest caveats surfaced rather than hidden: (1) `version` is non-durable — it resets on process restart because the store is in-memory (architecture persistence non-goal), so a stale pre-restart expectedVersion could spuriously 409 or coincidentally match; I made the check-and-increment atomic via a lock so concurrency correctness holds within a process lifetime, but concurrent-write atomicity is argued/reasoned, not stress-tested by a test. (2) R-001 stop-and-resume was deviated from — no live human was available in this EA-X2 run, so all six material decisions were recorded AND resolved in-arm with documented maintainer-style rationale and an explicit deviation tag. Changes are left in the working tree, uncommitted, as instructed."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Implemented optimistic concurrency control on PUT /tasks/{id} in the TaskTracker.Api .NET 8 project. Added an integer `version` to TaskItem (defaults to 1 for new and seeded tasks), an optional `expectedVersion` to UpdateTaskRequest, and store/endpoint logic that returns 200 + version increment on match or omission and 409 Conflict (task unchanged) on mismatch. Added 4 new integration tests covering version=1 on create/seed, unconditional increment, matching-version success, and stale-version conflict. Build succeeds and all 10 tests pass.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 10,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 158,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "selfAssessment": "High confidence. The contract is implemented exactly: version starts at 1, every successful PUT increments it, expectedVersion mismatch returns 409 with the task left unchanged (verified by re-GET assertion), omitted expectedVersion is backward-compatible (the pre-existing PUT test still passes). The store's Update uses a ConcurrentDictionary TryUpdate retry loop for correct behavior under concurrent writers. One test-design subtlety I caught and fixed: the TaskStore is a process-wide singleton shared across the xUnit test class, so an initial \"all tasks are version 1\" assertion failed due to cross-test pollution; I scoped it to the four known seeded titles (which no test mutates). No gaps identified; all 5 CRUD behaviors otherwise unchanged."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy, no budget cap set",
+        "armA_output_tokens": 58223,
+        "armB_output_tokens": 12698
+      }
+    }
+  ],
+  "totalOutputTokens": 289881
+}

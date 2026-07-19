@@ -1,0 +1,287 @@
+diff --git a/src/TaskTracker.Api/Contracts/TaskRequests.cs b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+index afb9da7..f15d9bb 100644
+--- a/src/TaskTracker.Api/Contracts/TaskRequests.cs
++++ b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+@@ -5,5 +5,13 @@ namespace TaskTracker.Api.Contracts;
+ /// <summary>Request body for POST /tasks.</summary>
+ public record CreateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
+ 
+-/// <summary>Request body for PUT /tasks/{id}.</summary>
+-public record UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
++/// <summary>
++/// Request body for PUT /tasks/{id}.
++/// <para>
++/// <c>ExpectedVersion</c> (serialized as <c>expectedVersion</c>) is optional. When supplied it must
++/// equal the task's current <c>version</c> or the update is rejected with <c>409 Conflict</c>; when
++/// omitted (<c>null</c>) the update proceeds unconditionally (last-writer-wins). Either way a
++/// successful update increments the version.
++/// </para>
++/// </summary>
++public record UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority, int? ExpectedVersion = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..51ff8b4 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -20,10 +20,19 @@ public enum TaskPriority
+     High
+ }
+ 
+-/// <summary>An immutable task record held in the in-memory store.</summary>
++/// <summary>
++/// An immutable task record held in the in-memory store.
++/// <para>
++/// <c>Version</c> is an optimistic-concurrency token: it starts at 1 on create/seed and is
++/// incremented by 1 on every successful update (see <see cref="TaskStore"/>). It is serialized as
++/// <c>version</c> by the API's default (camelCase) JSON policy. Note: the store is in-memory and
++/// non-durable, so the counter resets on process restart (architecture non-goal: persistence).
++/// </para>
++/// </summary>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    int Version);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..92254eb 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -2,6 +2,27 @@ using System.Collections.Concurrent;
+ 
+ namespace TaskTracker.Api.Domain;
+ 
++/// <summary>The outcome of a <see cref="TaskStore.Update"/> call.</summary>
++public enum TaskUpdateOutcome
++{
++    /// <summary>No task with the given id exists.</summary>
++    NotFound,
++
++    /// <summary>An <c>expectedVersion</c> was supplied and did not match the current version.</summary>
++    Conflict,
++
++    /// <summary>The task was updated and its version incremented.</summary>
++    Updated
++}
++
++/// <summary>
++/// Result of an update attempt: the <see cref="Outcome"/> plus the relevant task.
++/// On <see cref="TaskUpdateOutcome.Updated"/> <see cref="Task"/> is the new version; on
++/// <see cref="TaskUpdateOutcome.Conflict"/> it is the unchanged current task; on
++/// <see cref="TaskUpdateOutcome.NotFound"/> it is <c>null</c>.
++/// </summary>
++public readonly record struct TaskUpdateResult(TaskUpdateOutcome Outcome, TaskItem? Task);
++
+ /// <summary>
+ /// Process-lifetime, in-memory task store. Registered as a singleton, so all requests share
+ /// one instance for the lifetime of the process. Thread-safe for the demo's needs.
+@@ -10,10 +31,14 @@ public class TaskStore
+ {
+     private readonly ConcurrentDictionary<Guid, TaskItem> _tasks = new();
+ 
++    // Serializes the compare-and-increment critical section in Update so two concurrent PUTs with
++    // the same expectedVersion cannot both succeed (no TOCTOU / lost update). Reads stay lock-free.
++    private readonly object _updateLock = new();
++
+     public TaskStore()
+     {
+         // Seed a few tasks (with fixed, realistic timestamps so creation order is stable)
+-        // so GET /tasks returns something on first run.
++        // so GET /tasks returns something on first run. All seeded tasks start at version 1.
+         var seedBase = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+         AddAt("Write the project README", TaskState.Done, TaskPriority.Medium, seedBase);
+         AddAt("Add query-param filters to GET /tasks", TaskState.Open, TaskPriority.High, seedBase.AddHours(2));
+@@ -28,24 +53,45 @@ public class TaskStore
+     public TaskItem? Get(Guid id) =>
+         _tasks.TryGetValue(id, out var task) ? task : null;
+ 
++    /// <summary>Creates a new task at version 1.</summary>
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+ 
+-    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority)
++    /// <summary>
++    /// Optimistic-concurrency update. When <paramref name="expectedVersion"/> is supplied it must
++    /// equal the task's current version or the update is rejected as a <see cref="TaskUpdateOutcome.Conflict"/>
++    /// with the task left unchanged. When it is <c>null</c> the update proceeds unconditionally
++    /// (last-writer-wins). A successful update increments the version by 1. The read-compare-write
++    /// runs inside a lock so the check-and-increment is atomic.
++    /// </summary>
++    public TaskUpdateResult Update(
++        Guid id, string title, TaskState status, TaskPriority priority, int? expectedVersion)
+     {
+-        if (!_tasks.TryGetValue(id, out var existing))
+-            return null;
++        lock (_updateLock)
++        {
++            if (!_tasks.TryGetValue(id, out var existing))
++                return new TaskUpdateResult(TaskUpdateOutcome.NotFound, null);
++
++            if (expectedVersion is int expected && expected != existing.Version)
++                return new TaskUpdateResult(TaskUpdateOutcome.Conflict, existing);
+ 
+-        var updated = existing with { Title = title, Status = status, Priority = priority };
+-        _tasks[id] = updated;
+-        return updated;
++            var updated = existing with
++            {
++                Title = title,
++                Status = status,
++                Priority = priority,
++                Version = existing.Version + 1
++            };
++            _tasks[id] = updated;
++            return new TaskUpdateResult(TaskUpdateOutcome.Updated, updated);
++        }
+     }
+ 
+     public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt);
++        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt, Version: 1);
+         _tasks[task.Id] = task;
+         return task;
+     }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..e00f7af 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -34,15 +34,28 @@ public static class TaskEndpoints
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+ 
+-        // PUT /tasks/{id}
++        // PUT /tasks/{id} — optimistic-concurrency update.
++        // If the body carries expectedVersion and it does not match the task's current version,
++        // the write is rejected with 409 Conflict and the task is left unchanged. Otherwise the
++        // update proceeds and the version is incremented. The version check is domain-owned; here
++        // we only map the domain outcome to a status code.
+         group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store) =>
+         {
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+-                ? Results.Ok(updated)
+-                : Results.NotFound();
++            var result = store.Update(id, request.Title, request.Status, request.Priority, request.ExpectedVersion);
++            return result.Outcome switch
++            {
++                TaskUpdateOutcome.Updated => Results.Ok(result.Task),
++                TaskUpdateOutcome.Conflict => Results.Conflict(new
++                {
++                    error = "Version conflict: the task was modified by someone else.",
++                    expectedVersion = request.ExpectedVersion,
++                    currentVersion = result.Task!.Version
++                }),
++                _ => Results.NotFound()
++            };
+         });
+ 
+         // DELETE /tasks/{id}
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..3f6288e 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,97 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    // --- Optimistic concurrency (version + expectedVersion) ---
++
++    [Fact]
++    public async Task Post_creates_a_task_at_version_1()
++    {
++        var client = _factory.CreateClient();
++
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Versioned", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        Assert.Equal(1, created!.Version);
++    }
++
++    [Fact]
++    public async Task Seeded_tasks_start_at_version_1()
++    {
++        var client = _factory.CreateClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.NotNull(tasks);
++        // A seeded task never mutated by another test is still at version 1.
++        Assert.Contains(tasks!, t => t.Title == "Write the project README" && t.Version == 1);
++    }
++
++    [Fact]
++    public async Task Put_without_expected_version_increments_version()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(1, created!.Version);
++
++        // No expectedVersion => backward-compatible unconditional update, version still increments.
++        var updated = await (await client.PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Draft v2", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        Assert.Equal(2, updated!.Version);
++        Assert.Equal("Draft v2", updated.Title);
++    }
++
++    [Fact]
++    public async Task Put_with_matching_expected_version_succeeds_and_increments()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Doc", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}",
++            new { title = "Doc final", status = "Done", priority = "Medium", expectedVersion = 1 });
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++
++        var updated = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(2, updated!.Version);
++        Assert.Equal("Doc final", updated.Title);
++        Assert.Equal("Done", updated.Status);
++    }
++
++    [Fact]
++    public async Task Put_with_stale_expected_version_conflicts_and_leaves_task_unchanged()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Race", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        // First writer holds the fresh version (1) and succeeds: 1 -> 2.
++        var first = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}",
++            new { title = "Race by A", status = "InProgress", priority = "Medium", expectedVersion = 1 });
++        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
++
++        // Second writer holds a stale version (1) and must be rejected without touching the task.
++        var second = await client.PutAsJsonAsync(
++            $"/tasks/{created.Id}",
++            new { title = "Race by B", status = "Done", priority = "High", expectedVersion = 1 });
++        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
++
++        // The task is exactly the first writer's result: no field changed, version not bumped.
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Race by A", fetched!.Title);
++        Assert.Equal("InProgress", fetched.Status);
++        Assert.Equal("Medium", fetched.Priority);
++        Assert.Equal(2, fetched.Version);
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt, int Version);
+ }
