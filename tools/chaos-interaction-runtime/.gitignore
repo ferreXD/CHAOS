@@ -1,3 +1,5 @@
 node_modules/
 dist/
 *.tsbuildinfo
+# EA-X4 abuse driver default output (published copy lives under .chaos/validation/)
+test/abuse/abuse-run.json
