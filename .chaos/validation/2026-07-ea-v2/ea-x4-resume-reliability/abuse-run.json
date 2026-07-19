@@ -1,0 +1,691 @@
+{
+  "meta": {
+    "experiment": "EA-X4 resume reliability under abuse",
+    "spec": "15-validation-experiments.md §15.2",
+    "generatedBy": "tools/chaos-interaction-runtime/test/abuse/run.ts",
+    "provenance": "Observed (agent-executed, deterministic; no humans)",
+    "runs": 20,
+    "concurrentVariantRuns": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "node": "v24.18.0",
+    "platform": "win32 x64",
+    "thresholds": {
+      "correctContinuation": ">=95%",
+      "corruption": "0"
+    },
+    "seedModel": "per-iteration deterministic seed = iteration index (LCG)"
+  },
+  "aggregate": {
+    "correctContinuation": "12/20",
+    "correctContinuationPct": 60,
+    "corruptionCount": 0,
+    "corruptionPostResumeCount": 0,
+    "killsActuallyLanded": "20/20",
+    "classificationHistogram": {
+      "no-decision": 5,
+      "degraded-createdecision-window": 4,
+      "waiting-answerable": 6,
+      "inconsistent-lost-answer": 4,
+      "ready-answer-committed": 1
+    },
+    "passesCorrectnessThreshold": false,
+    "passesCorruptionThreshold": true,
+    "overallPass": false,
+    "observations": {
+      "nullCapsuleHashGapPresent": true,
+      "orphanTempFileRuns": 8,
+      "missingTrailingNewlineRuns": 0
+    }
+  },
+  "runs": [
+    {
+      "iteration": 1,
+      "seed": 1,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 5,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "no-decision",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": null,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "session=running, no decision committed (re-drivable, nothing lost)"
+      ]
+    },
+    {
+      "iteration": 2,
+      "seed": 2,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 5,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "no-decision",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": null,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "session=running, no decision committed (re-drivable, nothing lost)"
+      ]
+    },
+    {
+      "iteration": 3,
+      "seed": 3,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "degraded-createdecision-window",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          ".locks.json.39564.1784470370815.9e3915e8e843.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=waiting but session=running, activeDecisionIds does NOT reference it; getActiveDecision=ACTIVE_DECISION (scan-discoverable=true); derived active.json stale, session flip + nextStep linkage lost -> auto-resume cannot continue"
+      ]
+    },
+    {
+      "iteration": 4,
+      "seed": 4,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "degraded-createdecision-window",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          ".locks.json.33384.1784470370972.3124b362b64c4.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=waiting but session=running, activeDecisionIds does NOT reference it; getActiveDecision=ACTIVE_DECISION (scan-discoverable=true); derived active.json stale, session flip + nextStep linkage lost -> auto-resume cannot continue"
+      ]
+    },
+    {
+      "iteration": 5,
+      "seed": 5,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "no-decision",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          "decisions/DEC-solo-1/.decision.json.38672.1784470371143.f94b6392103ea8.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": null,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "session=running, no decision committed (re-drivable, nothing lost)"
+      ]
+    },
+    {
+      "iteration": 6,
+      "seed": 6,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 3,
+      "killLanded": true,
+      "lastStepReached": "capsule",
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 7,
+      "seed": 7,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 3,
+      "killLanded": true,
+      "lastStepReached": "capsule",
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 8,
+      "seed": 8,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "mid-op",
+      "jitterMs": 3,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          ".active.json.33920.1784470371829.34cb4e534a0568.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 9,
+      "seed": 9,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 2,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "no-decision",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": null,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "session=running, no decision committed (re-drivable, nothing lost)"
+      ]
+    },
+    {
+      "iteration": 10,
+      "seed": 10,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 2,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "degraded-createdecision-window",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=waiting but session=running, activeDecisionIds does NOT reference it; getActiveDecision=ACTIVE_DECISION (scan-discoverable=true); derived active.json stale, session flip + nextStep linkage lost -> auto-resume cannot continue"
+      ]
+    },
+    {
+      "iteration": 11,
+      "seed": 11,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 1,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "no-decision",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": null,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "session=running, no decision committed (re-drivable, nothing lost)"
+      ]
+    },
+    {
+      "iteration": 12,
+      "seed": 12,
+      "variant": "single",
+      "killAt": "decision",
+      "mechanism": "boundary",
+      "jitterMs": 1,
+      "killLanded": true,
+      "lastStepReached": "decision",
+      "classification": "degraded-createdecision-window",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=waiting but session=running, activeDecisionIds does NOT reference it; getActiveDecision=ACTIVE_DECISION (scan-discoverable=true); derived active.json stale, session flip + nextStep linkage lost -> auto-resume cannot continue"
+      ]
+    },
+    {
+      "iteration": 13,
+      "seed": 13,
+      "variant": "single",
+      "killAt": "capsule",
+      "mechanism": "boundary",
+      "jitterMs": 1,
+      "killLanded": true,
+      "lastStepReached": "capsule",
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 14,
+      "seed": 14,
+      "variant": "single",
+      "killAt": "capsule",
+      "mechanism": "mid-op",
+      "jitterMs": 0,
+      "killLanded": true,
+      "lastStepReached": "capsule",
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": false
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": null,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 15,
+      "seed": 15,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 3,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "waiting-answerable",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          "capsules/.RUN-x4-it15.json.34104.1784470373299.2536f054f64198.tmp",
+          "decisions/DEC-x4-it15/.response.json.30144.1784470373298.f115d3277881f.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    },
+    {
+      "iteration": 16,
+      "seed": 16,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "inconsistent-lost-answer",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          ".index.json.38128.1784470373594.14f9c3e19dc418.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=answered but session=waiting-for-decision (session flip lost); findResumeCandidates=false, getActiveDecision=NO_ACTIVE_DECISION -> not continuable via public API"
+      ]
+    },
+    {
+      "iteration": 17,
+      "seed": 17,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "inconsistent-lost-answer",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          "capsules/.RUN-x4-it17.json.38200.1784470373816.f23db2f3c2f7d.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=answered but session=waiting-for-decision (session flip lost); findResumeCandidates=false, getActiveDecision=NO_ACTIVE_DECISION -> not continuable via public API"
+      ]
+    },
+    {
+      "iteration": 18,
+      "seed": 18,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "inconsistent-lost-answer",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [
+          ".locks.json.42544.1784470374034.70a057098db2.tmp"
+        ],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=answered but session=waiting-for-decision (session flip lost); findResumeCandidates=false, getActiveDecision=NO_ACTIVE_DECISION -> not continuable via public API"
+      ]
+    },
+    {
+      "iteration": 19,
+      "seed": 19,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "inconsistent-lost-answer",
+      "continuedCorrectly": false,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": null,
+      "resumeFoundCandidate": false,
+      "nextStepMatched": null,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": [
+        "decision=answered but session=waiting-for-decision (session flip lost); findResumeCandidates=false, getActiveDecision=NO_ACTIVE_DECISION -> not continuable via public API"
+      ]
+    },
+    {
+      "iteration": 20,
+      "seed": 20,
+      "variant": "concurrent",
+      "killAt": "answer",
+      "mechanism": "concurrent",
+      "jitterMs": 4,
+      "killLanded": true,
+      "lastStepReached": null,
+      "classification": "ready-answer-committed",
+      "continuedCorrectly": true,
+      "corruptionPostKill": false,
+      "corruption": {
+        "corrupted": false,
+        "tornJson": [],
+        "tornAuditLine": [],
+        "schemaInvalid": [],
+        "orphanTemp": [],
+        "missingTrailingNewline": [],
+        "nullCapsuleHash": true
+      },
+      "corruptionPostResume": false,
+      "consumeExactlyOnce": true,
+      "resumeFoundCandidate": true,
+      "nextStepMatched": true,
+      "capsuleUseful": true,
+      "lockAnomaly": null,
+      "workerStderr": "",
+      "notes": []
+    }
+  ]
+}
