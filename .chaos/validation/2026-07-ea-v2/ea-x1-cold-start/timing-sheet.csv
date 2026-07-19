@@ -1,0 +1,7 @@
+participant,step,start,end,elapsed_min,exit_status,blocker,silent_failure_yn,notes
+EXAMPLE-P0,install:openspec-init,2026-07-20T09:00:00,2026-07-20T09:01:33,1.55,0,,n,"EXAMPLE ROW — delete before use. openspec init succeeded; also injected opsx skills into .claude/ which confused me for a minute (thought it broke chaos:*)."
+EXAMPLE-P0,doctor:chaos-doctor,2026-07-20T09:12:00,2026-07-20T09:15:20,3.33,0,"py -3 hook WARN (CD-HOOK-05)",y,"EXAMPLE ROW — delete before use. Verdict READY_WITH_WARNINGS. Saw a WARN about py -3 but did not understand it applied to me; hooks silently no-op'd in my session. Counts as silent failure they did NOT self-resolve."
+EXAMPLE-P0,demo:first-value-T1,2026-07-20T09:20:00,2026-07-20T09:38:00,18.00,0,,n,"EXAMPLE ROW — delete before use. Reached governed first value (T1): chaos:propose stopped on the invalid-filter decision, answered in Decision Center, command resumed. Felt the 'aha'."
+P1,,,,,,,,
+P2,,,,,,,,
+P3,,,,,,,,
