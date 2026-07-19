@@ -212,14 +212,36 @@ policies:
     warnOnMissingMetadataInContributorHooks: true
 
   artifactMetadataManagedFiles:
+    # Manage ONLY command-generated CHAOS lifecycle/governance artifacts whose type the hook can
+    # infer (see infer_artifact() in scripts/chaos-artifact-metadata-hook.py). A broad
+    # ".chaos/**/*.md" first-stamps hand-authored docs (assessments/validation/todo/roadmap) as
+    # artifactType:unknown — see F5 in .chaos/validation/2026-07-ea-v2/ea-x1-cold-start/.
     include:
-      - ".chaos/**/*.md"
+      - ".chaos/changes/**/*.md"
+      - ".chaos/doctor/**/*.md"
+      - ".chaos/sync-reports/**/*.md"
+      - ".chaos/archaeology/**/*.md"
+      - ".chaos/rules/**/*.md"
+      - ".chaos/gates/**/*.md"
+      - ".chaos/decisions/**/*.md"
+      - ".chaos/commands/**/*.md"
+      - ".chaos/status-report.md"
+      - ".chaos/bootstrap-report.md"
+      - ".chaos/architecture.md"
+      - ".chaos/context.md"
+      - ".chaos/constitution.md"
+      - ".chaos/README.md"
     optional:
       - "docs/adr/**/*.md"
       - "docs/decision-log/**/*.md"
     exclude:
       - "README.md"
       - "AGENTS.md"
+      - ".chaos/assessments/**/*.md"
+      - ".chaos/validation/**/*.md"
+      - ".chaos/todo/**/*.md"
+      - ".chaos/roadmap/**/*.md"
+      - ".chaos/interactions/**/*.md"
 
   # Claude Code hook capability: local runtime observability backbone (session/repository
   # context, active command, touched files, hook warnings, decision waits). Canonical

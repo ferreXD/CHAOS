@@ -1,27 +1,3 @@
----
-chaosMetadata:
-  schemaVersion: 1
-  artifactType: unknown
-  artifactScope: unknown
-  changeId: null
-  sourceCommand: "chaos:sync"
-  lastWrittenAt: "2026-07-19T15:02:40+02:00"
-  lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T15:02:40+02:00"
-  lastAuditedBy: Pablo Ferreira
-  repositoryContext:
-    provider: github
-    branch: "{'name': 'main', 'isDefaultBranch': True, 'upstream': 'origin/main', 'mergeBase': '8b751b7880b42286a882f2ecfd68428e72bb55f7', 'confidence': 'MEDIUM'}"
-    reviewRequest: "{'providerType': 'unknown', 'id': '', 'url': '', 'title': '', 'author': '', 'sourceBranch': '', 'targetBranch': '', 'status': 'unknown', 'confidence': 'LOW'}"
-    contextSource: session-context
-    confidence: HIGH
-  metadata:
-    identitySource: git-config
-    timestampSource: local-system
-    confidence: MEDIUM
-    bodyHash: "sha256:3ba09d9715427f98ceb2db5c0d28af92adb2cf5d71df0309e9fb2b13a9790567"
----
-
 # EA-X1 — Recruitment & run protocol (real 3-developer cold-start trial)
 
 > **Status of this document:** *Recommendation / protocol.* This is the kit for the **human**

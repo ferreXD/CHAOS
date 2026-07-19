@@ -1,27 +1,3 @@
----
-chaosMetadata:
-  schemaVersion: 1
-  artifactType: unknown
-  artifactScope: unknown
-  changeId: null
-  sourceCommand: "chaos:sync"
-  lastWrittenAt: "2026-07-19T15:02:40+02:00"
-  lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T15:02:40+02:00"
-  lastAuditedBy: Pablo Ferreira
-  repositoryContext:
-    provider: github
-    branch: "{'name': 'main', 'isDefaultBranch': True, 'upstream': 'origin/main', 'mergeBase': '8b751b7880b42286a882f2ecfd68428e72bb55f7', 'confidence': 'MEDIUM'}"
-    reviewRequest: "{'providerType': 'unknown', 'id': '', 'url': '', 'title': '', 'author': '', 'sourceBranch': '', 'targetBranch': '', 'status': 'unknown', 'confidence': 'LOW'}"
-    contextSource: session-context
-    confidence: HIGH
-  metadata:
-    identitySource: git-config
-    timestampSource: local-system
-    confidence: MEDIUM
-    bodyHash: "sha256:ff078c6b28750d378494c6a074117e085545e0e96ac94b87116ca69adf4e024d"
----
-
 # EA-X1 — Consent & scope note (for participants)
 
 *Give this to each participant before the session; keep a signed/acknowledged copy. This is a
