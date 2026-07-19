@@ -1,27 +1,3 @@
----
-chaosMetadata:
-  schemaVersion: 1
-  artifactType: unknown
-  artifactScope: unknown
-  changeId: null
-  sourceCommand: "chaos:sync"
-  lastWrittenAt: "2026-07-19T15:14:39+02:00"
-  lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T15:14:39+02:00"
-  lastAuditedBy: Pablo Ferreira
-  repositoryContext:
-    provider: github
-    branch: "{'name': 'main', 'isDefaultBranch': True, 'upstream': 'origin/main', 'mergeBase': '8b751b7880b42286a882f2ecfd68428e72bb55f7', 'confidence': 'MEDIUM'}"
-    reviewRequest: "{'providerType': 'unknown', 'id': '', 'url': '', 'title': '', 'author': '', 'sourceBranch': '', 'targetBranch': '', 'status': 'unknown', 'confidence': 'LOW'}"
-    contextSource: session-context
-    confidence: HIGH
-  metadata:
-    identitySource: git-config
-    timestampSource: local-system
-    confidence: MEDIUM
-    bodyHash: "sha256:6af79aa62fad5ad316242dd8c413fe3fcd66bff3bf5c4a53714e82de9dfbeac4"
----
-
 # EA-X1 — Cold-start usability (instrumented probe + recruitment kit)
 
 > This is an **instrumented machine probe**, not the EA-X1 human trial. It validates the
@@ -69,9 +45,9 @@ fixed `main` @ `88954b8` after two fixes were applied.
 - **Fixes applied (commit `88954b8`):** F1 `py -3`→`python` interpreter; F3 untrack
   `.claude/settings.local.json` (already gitignored). Both confirmed resolved by the re-run.
 - **Still open (not silent failures):** F2 `openspec init` dirties 20 tracked files (→ EA-S2 doc
-  gap); F4 declared-but-unwired protected-file guard; **F5** — a side-effect of the F1 fix: the
-  artifact-metadata hook (which never ran under `py -3`) now mass-stamps ~40 managed markdown files
-  repo-wide (→ EA-V3 hardening). All out of scope of the two requested fixes.
+  gap); F4 declared-but-unwired protected-file guard. **F5** — a side-effect of the F1 fix (the
+  artifact-metadata hook's over-broad managed set stamping hand-authored `.chaos` docs) — has since
+  been **fixed** (narrowed managed set + idempotent stamp + scalar serialization).
 - **First-run defects cross-linked to EA-S2** (first-run integrity); hardening to **EA-V3**.
 - **Human time-to-first-value: NOT measured, PENDING** the 3-dev trial (kit above).
 

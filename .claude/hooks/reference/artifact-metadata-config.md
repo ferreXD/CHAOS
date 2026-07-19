@@ -19,17 +19,47 @@ policies:
 
   artifactMetadataManagedFiles:
     include:
-      - ".chaos/**/*.md"
+      - ".chaos/changes/**/*.md"
+      - ".chaos/doctor/**/*.md"
+      - ".chaos/sync-reports/**/*.md"
+      - ".chaos/archaeology/**/*.md"
+      - ".chaos/rules/**/*.md"
+      - ".chaos/gates/**/*.md"
+      - ".chaos/decisions/**/*.md"
+      - ".chaos/commands/**/*.md"
+      - ".chaos/status-report.md"
+      - ".chaos/bootstrap-report.md"
+      - ".chaos/architecture.md"
+      - ".chaos/context.md"
+      - ".chaos/constitution.md"
+      - ".chaos/README.md"
     optional:
       - "docs/adr/**/*.md"
       - "docs/decision-log/**/*.md"
     exclude:
       - "README.md"
       - "AGENTS.md"
+      - ".chaos/assessments/**/*.md"
+      - ".chaos/validation/**/*.md"
+      - ".chaos/todo/**/*.md"
+      - ".chaos/roadmap/**/*.md"
+      - ".chaos/interactions/**/*.md"
 ```
 
 If a repository's `config.yaml` already has a similar section, merge into it — do not
 duplicate `policies.artifactMetadata*` keys.
+
+> **Why `include` is a specific allow-list, not `.chaos/**/*.md`.** The hook can only infer a
+> meaningful `artifactType` for **command-generated** CHAOS lifecycle/governance artifacts (see
+> `infer_artifact()` in `scripts/chaos-artifact-metadata-hook.py`). A broad `.chaos/**/*.md`
+> pattern also sweeps **hand-authored** Markdown under `.chaos/` — assessments, validation
+> evidence, the todo backlog, the roadmap, interaction-runtime READMEs — and on the first
+> `--stamp` sweep it back-fills every one of them with `artifactType: unknown` frontmatter,
+> producing a large, surprising repo-wide diff. The `include` list above enumerates only the
+> paths whose type the hook actually recognizes; the `exclude` list additionally hard-blocks the
+> known hand-authored trees so a future re-broadening of `include` cannot silently re-capture
+> them (`exclude` always wins). Repositories that keep some of those trees as genuinely managed
+> artifacts can move the corresponding pattern into `include`.
 
 ## `include` / `optional` / `exclude` semantics
 

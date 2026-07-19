@@ -1,27 +1,3 @@
----
-chaosMetadata:
-  schemaVersion: 1
-  artifactType: unknown
-  artifactScope: unknown
-  changeId: null
-  sourceCommand: "chaos:doctor"
-  lastWrittenAt: "2026-07-19T15:14:21+02:00"
-  lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T15:14:21+02:00"
-  lastAuditedBy: Pablo Ferreira
-  repositoryContext:
-    provider: github
-    branch: "{'name': 'main', 'isDefaultBranch': True, 'upstream': 'origin/main', 'mergeBase': '8b751b7880b42286a882f2ecfd68428e72bb55f7', 'confidence': 'MEDIUM'}"
-    reviewRequest: "{'providerType': 'unknown', 'id': '', 'url': '', 'title': '', 'author': '', 'sourceBranch': '', 'targetBranch': '', 'status': 'unknown', 'confidence': 'LOW'}"
-    contextSource: session-context
-    confidence: HIGH
-  metadata:
-    identitySource: git-config
-    timestampSource: local-system
-    confidence: MEDIUM
-    bodyHash: "sha256:855fbc54bcbaa8cb3159bf418951b27c69ca175bdea5c295b43db9cfa816aa10"
----
-
 # EA-X1 — Instrumented cold-start probe results (baseline + post-fix re-validation)
 
 > **Honesty legend (used on every line):** **Observed** = directly measured this run ·
@@ -57,10 +33,10 @@ chaosMetadata:
 
 **Bottom line (Observed):** the two requested fixes land the **`0 silent failures` sub-threshold
 clean** on the fixed `main`. The mechanical onboarding path completed in both runs; the only
-silent-failure condition (F1, the `py -3` hooks) is now gone. **Three findings remain open and are
-*not* silent failures:** F2 (`openspec init` dirties 20 tracked files), F4 (a declared-but-unwired
-protected-file guard), and **F5** — a *side-effect of the F1 fix*: activating the hooks turned on
-repo-wide artifact-metadata stamping. All surfaced; all out of scope of the two fixes requested here.
+silent-failure condition (F1, the `py -3` hooks) is now gone. **Two findings remain open and are
+*not* silent failures:** F2 (`openspec init` dirties 20 tracked files) and F4 (a declared-but-unwired
+protected-file guard). **F5** — a *side-effect of the F1 fix* (the artifact-metadata hook's over-broad
+managed set caused a one-time repo-wide stamp) — has since been **fixed** (see the F5 entry below).
 
 ---
 
@@ -83,8 +59,8 @@ for it.
 **Live corroboration (Observed, this session):** after committing the fix, the previously-silent
 `UserPromptSubmit` hooks (`chaos-active-command`, `chaos-session-context`) began reporting
 **success** in the running session — direct confirmation the hooks now execute under `python`.
-(The now-active artifact-metadata hook also stamps `chaosMetadata` frontmatter onto managed
-markdown artifacts, including this file — another visible sign the hooks are live.)
+(Activating the hooks also surfaced **F5** — the artifact-metadata hook's over-broad managed set,
+which briefly stamped hand-authored `.chaos` docs — since **fixed** by narrowing the set; see below.)
 
 Remaining `chaos:doctor` WARNs in Run 2 are optional/expected or probe artifacts: no provider
 (GitHub) MCP configured (optional; `gh` authed covers context), detached HEAD (worktree artifact),
@@ -191,22 +167,26 @@ non-zero exit the onboarding flow swallows/ignores; OR a hang with no guidance.
   enforcement), but the declared protection is not enforced at the hook layer. Low severity;
   governance-integrity backlog note.
 
-### F5 — Fixing F1 activates never-before-run repo-wide artifact-metadata stamping — **OPEN / NEW** — Observed
+### F5 — Fixing F1 activated never-before-run repo-wide artifact-metadata stamping — **RESOLVED** — Observed
 - Because the hooks never ran under `py -3`, `chaos-artifact-metadata-hook.py` had **never stamped**
-  any managed markdown. Fixing F1 (hooks now run under `python`) activated it: on the first hook
-  event it **prepended `chaosMetadata` frontmatter to ~40 tracked `.chaos/assessments/**/*.md`
-  files** (frontmatter-only, +24 lines each, no body change), and it re-stamps managed artifacts on
-  `Stop`/`PostToolUse`.
-- **Two sub-issues:** (a) mass *first-time* stamping = large, surprising repo-wide churn the moment
-  the hooks start working (a maintainer sees ~40 unrelated files change); (b) the stamped
-  `repositoryContext.branch` / `reviewRequest` fields are written as **stringified Python dicts**
-  (`"{'name': 'main', ...}"`) instead of structured YAML — a cosmetic serialization bug.
-- **Handling:** the assessment churn was **reverted, not committed** (out of EA-X1 scope). The
-  validation files in *this* folder do carry the frontmatter (consistent with the now-active convention).
-- **Recommendation (→ EA-V3 hardening):** decide whether managed artifacts should carry
-  `chaosMetadata` repo-wide (then stamp deliberately in one commit) or narrow
-  `policies.artifactMetadataManagedFiles`; make the stamp idempotent (don't churn on unchanged
-  bodies); and fix the branch/reviewRequest serialization.
+  any managed markdown. Fixing F1 (hooks now run under `python`) activated it, and with the shipped
+  `include: ".chaos/**/*.md"` the first `--stamp` sweep **prepended `chaosMetadata` frontmatter to
+  ~40 hand-authored `.chaos` files** (assessments etc.) as `artifactType: unknown` (frontmatter-only,
+  +24 lines each, no body change).
+- **Two sub-issues:** (a) the managed set was over-broad — `.chaos/**/*.md` swept every hand-authored
+  doc (all 128 `.chaos/*.md` on `main`), none of which has an inferable artifact type; (b) the stamped
+  `repositoryContext.branch` / `reviewRequest` were written as **stringified Python dicts**
+  (`"{'name': 'main', ...}"`) instead of scalars.
+- **Fix:** narrowed `policies.artifactMetadataManagedFiles.include` (and the hook's `DEFAULT_MANAGED`)
+  to the command-generated artifact paths `infer_artifact()` recognizes, with an explicit `exclude`
+  for the hand-authored trees (`assessments`, `validation`, `todo`, `roadmap`, `interactions`);
+  coerced `branch`→name / `reviewRequest`→scalar (plus a `_yaml_scalar` JSON safety net). Verified by
+  test: a recognized artifact is stamped once and a second `--stamp` sweep writes nothing (idempotent);
+  the hand-authored trees are left untouched; the managed set on `main` is now empty (0 churn). The
+  orphaned frontmatter these EA-X1 files briefly carried was stripped.
+- **Note:** the stamp was already idempotent by design for *already-stamped* files
+  (`allowAuditOnlyStamp: false`); the churn was purely the one-time first-stamp of over-broadly-included
+  files. See `.claude/hooks/reference/artifact-metadata-config.md`.
 
 ---
 
@@ -259,6 +239,7 @@ artifact per step, **stdin closed**.
 > 0 undetected); **both requested fixes applied on `main` (`88954b8`)** — `py -3`→`python` and
 > untracked `settings.local.json` — and the **re-run confirms silent failures = 0** with
 > `chaos:doctor` **CD-HOOK-05 PASS**. **Still open:** F2 `openspec init` dirties 20 tracked files
-> (→ EA-S2), F4 protected-file guard unwired, F5 the F1 fix activated never-run repo-wide
-> artifact-metadata stamping (~40 files; → EA-V3); plus the Inferred human stall at *governed* first
+> (→ EA-S2), F4 protected-file guard unwired (F5 — the F1 fix's over-broad metadata-hook managed
+> set — has since been **fixed**: narrowed set + idempotent stamp + scalar serialization); plus the
+> Inferred human stall at *governed* first
 > value needing the Decision Center UI. **Human time-to-first-value remains PENDING** (3-dev kit provided).
