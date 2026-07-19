@@ -1,0 +1,8 @@
+===== PAIR2 ARM-A CHAOS (soft-delete) =====
+Passed TaskTracker.Oracle.SoftDeleteOracleTests.Delete_unknown_id_is_404
+Passed TaskTracker.Oracle.SoftDeleteOracleTests.Get_by_id_of_soft_deleted_is_404
+Passed TaskTracker.Oracle.SoftDeleteOracleTests.Delete_soft_deletes_and_row_survives_with_includeDeleted
+Passed TaskTracker.Oracle.SoftDeleteOracleTests.Active_tasks_have_null_deletedAt
+Passed TaskTracker.Oracle.SoftDeleteOracleTests.Default_list_excludes_soft_deleted
+Total tests: 5
+Passed: 5

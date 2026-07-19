@@ -1,0 +1,12 @@
+===== PAIR1 ARM-A CHAOS (auth) =====
+Passed TaskTracker.Oracle.AuthOracleTests.Valid_key_can_create_and_read_back
+Passed TaskTracker.Oracle.AuthOracleTests.Root_health_stays_public
+Passed TaskTracker.Oracle.AuthOracleTests.Valid_key_can_list_tasks
+Passed TaskTracker.Oracle.AuthOracleTests.Delete_without_key_is_401
+Passed TaskTracker.Oracle.AuthOracleTests.Put_without_key_is_401
+Passed TaskTracker.Oracle.AuthOracleTests.Get_by_id_without_key_is_401
+Passed TaskTracker.Oracle.AuthOracleTests.Get_list_without_key_is_401
+Passed TaskTracker.Oracle.AuthOracleTests.Wrong_key_is_401
+Passed TaskTracker.Oracle.AuthOracleTests.Post_without_key_is_401
+Total tests: 9
+Passed: 9
