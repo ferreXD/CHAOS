@@ -53,6 +53,8 @@ async function main(): Promise<void> {
 
   const killsLanded = results.filter((r) => r.killLanded).length;
   const anyNullCapsuleHash = results.some((r) => r.corruption.nullCapsuleHash);
+  const anyCapsuleHashInvalid = results.some((r) => r.corruption.capsuleHashInvalid.length > 0);
+  const capsulesVerified = results.reduce((n, r) => n + r.corruption.capsulesVerified, 0);
   const orphanTempRuns = results.filter((r) => r.corruption.orphanTemp.length > 0).length;
   const missingNewlineRuns = results.filter((r) => r.corruption.missingTrailingNewline.length > 0).length;
 
@@ -81,6 +83,8 @@ async function main(): Promise<void> {
       overallPass: passRate && passCorruption,
       observations: {
         nullCapsuleHashGapPresent: anyNullCapsuleHash,
+        capsuleHashInvalidPresent: anyCapsuleHashInvalid,
+        capsulesIntegrityVerified: capsulesVerified,
         orphanTempFileRuns: orphanTempRuns,
         missingTrailingNewlineRuns: missingNewlineRuns,
       },
@@ -99,7 +103,8 @@ async function main(): Promise<void> {
   process.stdout.write(`corruption (post-kill): ${corruptionCount}          threshold 0     -> ${passCorruption ? "PASS" : "FAIL"}\n`);
   process.stdout.write(`corruption (post-resume): ${postResumeCorrupt}\n`);
   process.stdout.write(`classification:       ${JSON.stringify(classification)}\n`);
-  process.stdout.write(`observations:         nullCapsuleHash=${anyNullCapsuleHash} orphanTempRuns=${orphanTempRuns} missingNewlineRuns=${missingNewlineRuns}\n`);
+  process.stdout.write(`capsule integrity:    verified=${capsulesVerified} nullHash=${anyNullCapsuleHash} invalidHash=${anyCapsuleHashInvalid}\n`);
+  process.stdout.write(`observations:         orphanTempRuns=${orphanTempRuns} missingNewlineRuns=${missingNewlineRuns}\n`);
   process.stdout.write(`wrote:                ${outPath}\n`);
   process.stdout.write(`OVERALL:              ${payload.aggregate.overallPass ? "PASS" : "FAIL (routes to EA-V3)"}\n`);
 

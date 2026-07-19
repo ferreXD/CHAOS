@@ -35,9 +35,11 @@ import {
   validateAgainstSchemaFile,
   SchemaValidationError,
   SCHEMA_FILES,
+  verifyCapsuleIntegrity,
   type Clock,
   type IdFactory,
 } from "../../src/index.ts";
+import type { ResumeCapsule } from "../../src/index.ts";
 import { Prng } from "./prng.ts";
 
 // --------------------------------------------------------------------------
@@ -118,7 +120,9 @@ export interface CorruptionReport {
   schemaInvalid: string[];     // persisted records that violate their schema
   orphanTemp: string[];        // leftover atomic-write .tmp files
   missingTrailingNewline: string[]; // *.jsonl not ending in '\n' (soft signal)
-  nullCapsuleHash: boolean;    // known gap: capsules carry no integrity hash
+  nullCapsuleHash: boolean;    // any capsule lacking a metadata.contentHash (EA-I09 gap)
+  capsuleHashInvalid: string[]; // capsule whose stored hash does not match its content (corruption)
+  capsulesVerified: number;    // capsules with a present, valid integrity hash
 }
 
 function walk(dir: string): string[] {
@@ -152,6 +156,8 @@ export function corruptionAudit(root: string): CorruptionReport {
     orphanTemp: [],
     missingTrailingNewline: [],
     nullCapsuleHash: false,
+    capsuleHashInvalid: [],
+    capsulesVerified: 0,
   };
   const rel = (p: string) => path.relative(root, p).split(path.sep).join("/");
 
@@ -200,9 +206,17 @@ export function corruptionAudit(root: string): CorruptionReport {
       else if (relPath.endsWith("/response.json")) err = validateRecord(`response ${relPath}`, SCHEMA_FILES.response, parsed);
       else if (relPath.startsWith("capsules/")) {
         err = validateRecord(`capsule ${relPath}`, SCHEMA_FILES.resumeCapsule, parsed);
-        // Known gap: a resume capsule carries no integrity hash to detect tamper/torn-content.
-        if (parsed && typeof parsed === "object" && !("contentHash" in (parsed as object)) && !("hash" in (parsed as object))) {
+        // EA-I09: a resume capsule now carries a metadata.contentHash integrity
+        // check. Missing => the null-hash gap; present-but-mismatched => the
+        // capsule content was torn/tampered (counts as corruption).
+        const capsule = parsed as ResumeCapsule;
+        const stored = (capsule.metadata as Record<string, unknown> | undefined)?.["contentHash"];
+        if (typeof stored !== "string" || stored.length === 0) {
           rep.nullCapsuleHash = true;
+        } else if (verifyCapsuleIntegrity(capsule)) {
+          rep.capsulesVerified++;
+        } else {
+          rep.capsuleHashInvalid.push(relPath);
         }
       } else if (relPath === "locks.json") {
         const locks = (parsed as { locks?: unknown[] }).locks ?? [];
@@ -216,7 +230,11 @@ export function corruptionAudit(root: string): CorruptionReport {
     }
   }
 
-  rep.corrupted = rep.tornJson.length > 0 || rep.tornAuditLine.length > 0 || rep.schemaInvalid.length > 0;
+  rep.corrupted =
+    rep.tornJson.length > 0 ||
+    rep.tornAuditLine.length > 0 ||
+    rep.schemaInvalid.length > 0 ||
+    rep.capsuleHashInvalid.length > 0;
   return rep;
 }
 
@@ -273,6 +291,14 @@ export function resumeOracle(root: string, exp: ResumeExpectation): ResumeResult
   };
 
   try {
+    // Self-heal: the fixed runtime reconciles partial/raced state on every resume
+    // entry point (beginCommand / findResumeCandidates / getActiveDecision). Invoke
+    // it explicitly here so the oracle measures the runtime's actual resume path.
+    // (No-op on a healthy store; on the pre-fix runtime this method does not exist
+    // and the harness measured the raw, un-healed state — see the pre-fix results.)
+    if (typeof (rt as unknown as { reconcile?: unknown }).reconcile === "function") {
+      (rt as unknown as { reconcile: () => void }).reconcile();
+    }
     const session = rt.getSession(exp.runId);
     const decision = rt.getDecision(exp.decisionId);
     const capsule = rt.getResumeCapsule(exp.runId);

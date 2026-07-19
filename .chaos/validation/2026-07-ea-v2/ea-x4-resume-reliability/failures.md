@@ -1,5 +1,11 @@
 # EA-X4 — Failures (repros + EA-V3 / EA-I09 cross-links)
 
+> **✅ ALL RESOLVED (EA-V3 hardening, 2026-07-19).** F1, F2, O1, O2 below were fixed in the
+> runtime; the same abuse suite now re-validates at **20/20 = 100%, 0 corruption, capsule
+> integrity verified**. Fix + proof: [`post-fix-revalidation.md`](post-fix-revalidation.md).
+> Per-issue resolution is noted inline (**RESOLVED →**). This document is retained as the
+> original finding record with concrete repros.
+
 Threshold **not met**: 12/20 (60%) correct continuation vs **≥95%**; corruption **0/20**.
 Per the spec, this routes to hardening. Two reproducible defect classes + two observations.
 All are **Observed** (agent-executed, deterministic stimulus, 2026-07-19, Node v24.18.0 / win32).
@@ -17,6 +23,10 @@ Routing targets:
 
 **Class:** `degraded-createdecision-window` · **Hits:** 4/20 (runs 3, 4, 10, 12) · **Severity:**
 High (governed decision becomes undiscoverable to the resume path) · **Corruption:** none.
+
+**RESOLVED →** `reconcile()` re-flips the session from the durable waiting decision and recovers
+`nextStep` from `decision.metadata.resumeHints`; wired into `beginCommand`/`findResumeCandidates`/
+`getActiveDecision`. Unit test: `hardening.test.ts` "reconcile heals F1". Re-validated 100%.
 
 ### What happens
 `InteractionRuntime.createDecision` persists the decision file **before** it flips the owning
@@ -66,6 +76,11 @@ re-derives `activeDecisionIds` + session state from decision files and rebuilds 
 **Class:** `inconsistent-lost-answer` · **Hits:** 4/20 (runs 16, 17, 18, 19 — all concurrent) ·
 **Severity:** High (answered work is silently stranded) · **Corruption:** none.
 
+**RESOLVED →** global re-entrant write lock serialises the panel+runner writes (root cause);
+`createResumeCapsule` re-reads the freshest session before writing (residual window); `reconcile()`
+flips an answered-but-not-flipped session to ready-to-resume + rebuilds the capsule (crash
+backstop). Unit test: `hardening.test.ts` "reconcile heals F2" + lock tests. Re-validated 100%.
+
 ### What happens
 Two processes read-modify-write the **same** `sessions/<run>.json` with no cross-writer lock:
 - **panel** `answerDecision` → reads session (`waiting-for-decision`), computes
@@ -112,6 +127,10 @@ cannot be content-verified — recovery relies solely on schema validity + atomi
 in this run (`observations.nullCapsuleHashGapPresent = true`). This is the EA-I09 "capsule
 integrity + quality gate" item; EA-X4 confirms the gap empirically.
 
+**RESOLVED →** capsules now carry a sha256 `metadata.contentHash`; `verifyResumeCapsule()` returns
+`valid`/`tampered`/`missing`. Post-fix audit: `verified=6, nullHash=false, invalidHash=false`.
+Unit test: `hardening.test.ts` capsule-integrity (valid + tampered). (Closes EA-I09.)
+
 ## Observation O2 — orphan atomic-write temp files (→ EA-V3 / EA-I08)
 
 **Observed.** 8/20 runs left an interrupted atomic-write temp file (e.g.
@@ -119,6 +138,11 @@ integrity + quality gate" item; EA-X4 confirms the gap empirically.
 is atomic, the **target file is intact** — this is *not* corruption — but there is no
 garbage-collection of these temps, so they accumulate across crashes. A cleanup/GC pass (sweep
 `.*.tmp` on runtime init or `chaos:doctor`) belongs in the hardening pass.
+
+**RESOLVED →** `sweepStaleTempFiles()` runs on runtime init, age-gated (30s) so it never deletes
+an in-flight write. Unit test: `hardening.test.ts` "sweepStaleTempFiles ... aged ... but keeps
+fresh". (The abuse suite still reports a few *fresh* temps by design — resume happens ms after
+the kill; they are GC'd on the next runtime start past the threshold.)
 
 ---
 

@@ -1,5 +1,11 @@
 # EA-X4 — Resume reliability under abuse (results)
 
+> **⚠️ This is the BASELINE (pre-fix) result: 12/20 = 60% correct, FAIL.** The two defect
+> classes below were subsequently **fixed in the runtime (EA-V3 hardening)** and the same abuse
+> suite now passes **20/20 = 100%, 0 corruption, capsule integrity verified**. See
+> [`post-fix-revalidation.md`](post-fix-revalidation.md). This document is retained unchanged as
+> the honest record of what EA-X4 originally found.
+
 **Experiment:** EA-X4 (kill/resume abuse suite ×20, incl. concurrent panel+runner writes)
 **Spec:** `15-validation-experiments.md` §15.2 · **Hypothesis:** *pause/resume is trustworthy under abuse.*
 **Provenance:** **Observed** — agent-executed, deterministic, no humans. This experiment is
