@@ -75,6 +75,45 @@ export function fileExists(filePath: string): boolean {
   return fs.existsSync(filePath);
 }
 
+/** Matches the temp files produced by {@link atomicWriteFile}: `.<name>.<pid>.<ts>.<rand>.tmp`. */
+const TEMP_FILE_RE = /^\..*\.tmp$/;
+
+/**
+ * Best-effort GC of orphaned atomic-write temp files (`.*.tmp`) older than
+ * `olderThanMs`, recursively under `dir`. A live atomic write holds its temp for
+ * microseconds, so the age threshold avoids racing an in-flight (or just-crashed)
+ * writer while still cleaning temps left behind by a hard-killed process
+ * (EA-X4 orphan-temp cleanup). Returns the paths removed. Never throws.
+ */
+export function sweepStaleTempFiles(dir: string, olderThanMs = 30_000, nowMs = Date.now()): string[] {
+  const removed: string[] = [];
+  let entries: fs.Dirent[];
+  try {
+    if (!fs.existsSync(dir)) return removed;
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return removed;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removed.push(...sweepStaleTempFiles(full, olderThanMs, nowMs));
+      continue;
+    }
+    if (!TEMP_FILE_RE.test(entry.name)) continue;
+    try {
+      const stat = fs.statSync(full);
+      if (nowMs - stat.mtimeMs >= olderThanMs) {
+        fs.rmSync(full, { force: true });
+        removed.push(full);
+      }
+    } catch {
+      /* ignore a temp that vanished or is locked */
+    }
+  }
+  return removed;
+}
+
 /**
  * Read + parse JSON. Missing file returns `undefined`. Corrupt JSON throws a
  * MalformedStateError (fail-safe: the file is never deleted or overwritten).

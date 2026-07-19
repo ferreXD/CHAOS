@@ -11,7 +11,7 @@
 
 import * as path from "node:path";
 import type { Adapter, CommandSession, RequestedMode } from "../model/commandSession.ts";
-import { isTerminalSessionState } from "../model/commandSession.ts";
+import { canTransitionSession, isTerminalSessionState } from "../model/commandSession.ts";
 import type { Decision, DecisionOption, InteractionType } from "../model/decision.ts";
 import type { AuditEvent, AuditEventType, AuditSource } from "../model/auditEvent.ts";
 import type { ChangeLock } from "../model/lock.ts";
@@ -24,8 +24,11 @@ import type {
   ListCapsulesFilter,
   FindResumeCandidatesFilter,
 } from "../model/resumeCapsule.ts";
+import * as nodePath from "node:path";
 import { InteractionStore } from "../store/interactionStore.ts";
 import { PathResolver } from "../store/pathResolver.ts";
+import { sweepStaleTempFiles } from "../store/atomicWrite.ts";
+import { withFileLock } from "../store/writeLock.ts";
 import {
   addUnique,
   buildSession,
@@ -46,6 +49,7 @@ import {
 } from "./lockService.ts";
 import {
   buildResumeCapsule,
+  verifyCapsuleIntegrity,
   type CapsuleOverrides,
 } from "./resumeCapsuleService.ts";
 import {
@@ -240,21 +244,72 @@ export interface LockView extends ChangeLock {
   staleReason?: string;
 }
 
+/** Order-insensitive equality of two string id lists (as sets). */
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = new Set(a);
+  for (const v of b) if (!sa.has(v)) return false;
+  return true;
+}
+
+/** Read a decision's durable resume hint (nextStep) stashed at creation, if any. */
+function resumeHintNextStep(decision: Decision): string | null {
+  const hints = (decision.metadata as Record<string, unknown> | undefined)?.["resumeHints"];
+  if (hints && typeof hints === "object") {
+    const ns = (hints as Record<string, unknown>)["nextStep"];
+    if (typeof ns === "string" && ns.length > 0) return ns;
+  }
+  return null;
+}
+
 export class InteractionRuntime {
   readonly paths: PathResolver;
   readonly store: InteractionStore;
   private readonly clock: Clock;
   private readonly ids: IdFactory;
+  /** Re-entrancy depth for the cross-process write lock (0 = not held). */
+  private lockDepth = 0;
 
   constructor(options: RuntimeOptions) {
     this.paths = new PathResolver(options.root, options.schemaDir);
     this.store = new InteractionStore(this.paths, options.validate ?? true);
     this.clock = options.clock ?? systemClock;
     this.ids = options.idFactory ?? createIdFactory(this.clock);
+    // Best-effort GC of temp files orphaned by a hard-killed prior process. Age
+    // threshold (default 30s) protects any in-flight atomic write (EA-X4).
+    try {
+      sweepStaleTempFiles(this.paths.root);
+    } catch {
+      /* never let cleanup break construction */
+    }
   }
 
   private iso(): string {
     return this.clock.now().toISOString();
+  }
+
+  /**
+   * Run `fn` while holding the store-wide write lock, serialising mutations
+   * across processes. Re-entrant within a single runtime instance (nested
+   * mutating calls, e.g. beginCommand -> reconcile, do not re-acquire).
+   */
+  private withLock<T>(fn: () => T): T {
+    if (this.lockDepth > 0) {
+      this.lockDepth++;
+      try {
+        return fn();
+      } finally {
+        this.lockDepth--;
+      }
+    }
+    return withFileLock(nodePath.join(this.paths.root, ".runtime.lock"), () => {
+      this.lockDepth = 1;
+      try {
+        return fn();
+      } finally {
+        this.lockDepth = 0;
+      }
+    });
   }
 
   private audit(event: {
@@ -287,7 +342,14 @@ export class InteractionRuntime {
   // 1. beginCommand
   // ---------------------------------------------------------------------------
   beginCommand(input: BeginCommandInput): BeginResult {
+    return this.withLock(() => this.beginCommandImpl(input));
+  }
+
+  private beginCommandImpl(input: BeginCommandInput): BeginResult {
     const now = this.iso();
+    // Self-heal any partial/raced state before evaluating re-entry, resumability,
+    // or locks, so a crash-interrupted prior run is continued, not stranded.
+    this.reconcile(now);
     const changeId = input.changeId ?? null;
     const adapter: Adapter = input.adapter ?? "unknown";
 
@@ -428,6 +490,10 @@ export class InteractionRuntime {
   // 2. createDecision
   // ---------------------------------------------------------------------------
   createDecision(args: CreateDecisionArgs): CreateDecisionResult {
+    return this.withLock(() => this.createDecisionImpl(args));
+  }
+
+  private createDecisionImpl(args: CreateDecisionArgs): CreateDecisionResult {
     const now = this.iso();
     const session = this.store.sessions.read(args.commandRunId);
     if (!session) throw new NotFoundError("session", args.commandRunId);
@@ -478,7 +544,17 @@ export class InteractionRuntime {
       independent: args.independent ?? false,
       expiresAt: args.expiresAt ?? null,
       createdBy: args.createdBy ?? sourceCommand,
-      metadata: args.metadata ?? {},
+      // Stash the resume hints durably ON the decision (which is written first and
+      // atomically), so a crash before the session write can still recover the
+      // correct nextStep/lastCompletedStep during reconcile. Schema allows
+      // additional metadata properties, so this needs no schema change.
+      metadata: {
+        ...(args.metadata ?? {}),
+        resumeHints: {
+          nextStep: args.nextStep ?? null,
+          lastCompletedStep: args.lastCompletedStep ?? null,
+        },
+      },
       now,
     };
     // buildDecision validates the payload (duplicate/invalid option ids, etc.).
@@ -559,6 +635,10 @@ export class InteractionRuntime {
   // 3. answerDecision
   // ---------------------------------------------------------------------------
   answerDecision(args: AnswerDecisionArgs): AnswerResult {
+    return this.withLock(() => this.answerDecisionImpl(args));
+  }
+
+  private answerDecisionImpl(args: AnswerDecisionArgs): AnswerResult {
     const now = this.iso();
     const decision = this.store.decisions.readDecision(args.decisionId);
     if (!decision) throw new NotFoundError("decision", args.decisionId);
@@ -674,6 +754,7 @@ export class InteractionRuntime {
   // 4. getActiveDecision
   // ---------------------------------------------------------------------------
   getActiveDecision(filter: { changeId?: string | null; commandRunId?: string } = {}): ActiveDecisionResult {
+    this.reconcile(); // surface decisions stranded by a partial createDecision (no-op if healthy)
     let pending = this.store.decisions.list().filter((d) => d.state === "waiting");
     if (filter.commandRunId) pending = pending.filter((d) => d.commandRunId === filter.commandRunId);
     if (filter.changeId !== undefined && filter.changeId !== null) {
@@ -708,6 +789,10 @@ export class InteractionRuntime {
   // 6. markDecisionConsumed
   // ---------------------------------------------------------------------------
   markDecisionConsumed(decisionId: string): { status: "CONSUMED"; decisionId: string; commandRunId: string } {
+    return this.withLock(() => this.markDecisionConsumedImpl(decisionId));
+  }
+
+  private markDecisionConsumedImpl(decisionId: string): { status: "CONSUMED"; decisionId: string; commandRunId: string } {
     const now = this.iso();
     const decision = this.store.decisions.readDecision(decisionId);
     if (!decision) throw new NotFoundError("decision", decisionId);
@@ -739,6 +824,10 @@ export class InteractionRuntime {
   // 7. completeCommand
   // ---------------------------------------------------------------------------
   completeCommand(commandRunId: string): { status: "COMPLETED"; commandRunId: string; releasedLockIds: string[] } {
+    return this.withLock(() => this.completeCommandImpl(commandRunId));
+  }
+
+  private completeCommandImpl(commandRunId: string): { status: "COMPLETED"; commandRunId: string; releasedLockIds: string[] } {
     const now = this.iso();
     const session = this.store.sessions.read(commandRunId);
     if (!session) throw new NotFoundError("session", commandRunId);
@@ -761,6 +850,12 @@ export class InteractionRuntime {
   // 8. cancelCommand
   // ---------------------------------------------------------------------------
   cancelCommand(
+    commandRunId: string,
+  ): { status: "CANCELLED"; commandRunId: string; releasedLockIds: string[]; cancelledDecisionIds: string[] } {
+    return this.withLock(() => this.cancelCommandImpl(commandRunId));
+  }
+
+  private cancelCommandImpl(
     commandRunId: string,
   ): { status: "CANCELLED"; commandRunId: string; releasedLockIds: string[]; cancelledDecisionIds: string[] } {
     const now = this.iso();
@@ -859,6 +954,13 @@ export class InteractionRuntime {
     commandRunId: string,
     overrides: CapsuleOverrides = {},
   ): { status: "CAPSULE_CREATED"; commandRunId: string; path: string; capsule: ResumeCapsule } {
+    return this.withLock(() => this.createResumeCapsuleImpl(commandRunId, overrides));
+  }
+
+  private createResumeCapsuleImpl(
+    commandRunId: string,
+    overrides: CapsuleOverrides = {},
+  ): { status: "CAPSULE_CREATED"; commandRunId: string; path: string; capsule: ResumeCapsule } {
     const now = this.iso();
     const session = this.store.sessions.read(commandRunId);
     if (!session) throw new NotFoundError("session", commandRunId);
@@ -866,7 +968,12 @@ export class InteractionRuntime {
     const capsule = buildResumeCapsule(session, now, overrides, existing);
     this.store.capsules.write(capsule);
     const relPath = this.paths.relative(this.paths.capsule(commandRunId));
-    this.store.sessions.write({ ...session, resumeCapsulePath: relPath, lastSeenAt: now });
+    // Re-read the freshest session immediately before writing and patch only the
+    // capsule-pointer fields, so a concurrent writer (e.g. the panel answering a
+    // decision) does not have its session-state flip clobbered by this write
+    // (EA-X4 F2 mitigation; combined with the global write lock + reconcile).
+    const fresh = this.store.sessions.read(commandRunId) ?? session;
+    this.store.sessions.write({ ...fresh, resumeCapsulePath: relPath, lastSeenAt: now });
     this.audit({
       eventType: "capsule-created",
       message: `Resume capsule created for ${commandRunId}.`,
@@ -892,6 +999,14 @@ export class InteractionRuntime {
    * untouched; this only advances the session state machine.
    */
   resumeCommand(commandRunId: string): {
+    status: "RESUMED";
+    commandRunId: string;
+    sessionState: CommandSession["state"];
+  } {
+    return this.withLock(() => this.resumeCommandImpl(commandRunId));
+  }
+
+  private resumeCommandImpl(commandRunId: string): {
     status: "RESUMED";
     commandRunId: string;
     sessionState: CommandSession["state"];
@@ -926,12 +1041,131 @@ export class InteractionRuntime {
   }
 
   // ---------------------------------------------------------------------------
+  // reconcile — self-heal partial/torn/raced state from the source of truth.
+  // ---------------------------------------------------------------------------
+  /**
+   * Recompute each non-terminal session's decision buckets and lifecycle state
+   * from the authoritative decision + response files, and rebuild the derived
+   * pointers. This is the crash-consistency backstop for the runtime's
+   * non-atomic multi-file mutations (EA-X4): it heals
+   *   - F1: a decision was persisted but the session never flipped to
+   *     `waiting-for-decision` (kill mid-`createDecision`) — the decision would
+   *     otherwise be invisible to the resume path.
+   *   - F2: a decision was answered/consumed but the session flip to
+   *     `ready-to-resume` was lost (kill mid-`answerDecision`, or a concurrent
+   *     panel+runner lost update) — the run would otherwise be frozen.
+   *
+   * Idempotent and a strict no-op when state is already consistent (so read-path
+   * callers do not mutate a healthy store). Returns the runs it repaired.
+   */
+  reconcile(nowArg?: string): { repaired: string[] } {
+    return this.withLock(() => this.reconcileImpl(nowArg));
+  }
+
+  private reconcileImpl(nowArg?: string): { repaired: string[] } {
+    // Lazily materialise a timestamp only when a repair actually writes, so a
+    // no-op reconcile on a healthy store has zero side effects (no clock tick).
+    let cachedNow = nowArg;
+    const now = (): string => (cachedNow ??= this.iso());
+    const repaired: string[] = [];
+    const allDecisions = this.store.decisions.list();
+
+    for (const session of this.store.sessions.list()) {
+      if (isTerminalSessionState(session.state)) continue;
+      const decisions = allDecisions.filter((d) => d.commandRunId === session.commandRunId);
+      if (decisions.length === 0) continue;
+
+      const waiting = decisions.filter((d) => d.state === "waiting").map((d) => d.decisionId);
+      const answered = decisions.filter((d) => d.state === "answered").map((d) => d.decisionId);
+      const consumed = decisions.filter((d) => d.state === "consumed").map((d) => d.decisionId);
+
+      let updated: CommandSession = { ...session };
+      let changed = false;
+
+      // Rebuild the id buckets from decision truth (order-insensitive).
+      if (!sameSet(updated.activeDecisionIds, waiting)) { updated = { ...updated, activeDecisionIds: [...waiting] }; changed = true; }
+      if (!sameSet(updated.answeredDecisionIds, answered)) { updated = { ...updated, answeredDecisionIds: [...answered] }; changed = true; }
+      if (!sameSet(updated.consumedDecisionIds, consumed)) { updated = { ...updated, consumedDecisionIds: [...consumed] }; changed = true; }
+
+      // Recover a lost nextStep from a decision's durable resume hint.
+      if (!updated.nextStep) {
+        const hinted = decisions.map((d) => resumeHintNextStep(d)).find((s): s is string => !!s);
+        if (hinted) { updated = { ...updated, nextStep: hinted }; changed = true; }
+      }
+
+      // Repair lifecycle state to match the decisions.
+      let flippedToReady = false;
+      if (waiting.length > 0) {
+        // An unanswered decision exists -> the session must be waiting-for-decision.
+        if (updated.state !== "waiting-for-decision" && canTransitionSession(updated.state, "waiting-for-decision")) {
+          updated = transitionSession(updated, "waiting-for-decision", now());
+          changed = true;
+        }
+      } else if (answered.length > 0 && updated.state === "waiting-for-decision") {
+        // All blocking decisions answered but the flip was lost -> ready-to-resume.
+        updated = transitionSession(updated, "ready-to-resume", now());
+        changed = true;
+        flippedToReady = true;
+      }
+
+      if (!changed) continue;
+      updated = { ...updated, lastSeenAt: now() };
+
+      if (flippedToReady) {
+        const capsule = buildResumeCapsule(updated, now(), {}, this.store.capsules.read(updated.commandRunId));
+        this.store.capsules.write(capsule);
+        updated = { ...updated, resumeCapsulePath: this.paths.relative(this.paths.capsule(updated.commandRunId)) };
+        if (updated.changeId) {
+          const file = this.store.locks.read();
+          const lock = file.locks.find(
+            (l) => l.state === "active" && l.lockedByCommandRunId === updated.commandRunId,
+          );
+          if (lock) { lock.reason = "ready-to-resume"; file.updatedAt = now(); this.store.locks.write(file); }
+        }
+        this.audit({
+          eventType: "capsule-created",
+          message: `Resume capsule rebuilt during reconcile for ${updated.commandRunId}.`,
+          commandRunId: updated.commandRunId,
+          changeId: updated.changeId,
+          data: { path: updated.resumeCapsulePath, reconciled: true },
+        });
+      }
+
+      this.store.sessions.write(updated);
+      this.audit({
+        eventType: "runtime-warning",
+        message: `Reconciled inconsistent session ${updated.commandRunId}: ${session.state} -> ${updated.state}.`,
+        commandRunId: updated.commandRunId,
+        changeId: updated.changeId,
+        data: { fromState: session.state, toState: updated.state },
+      });
+      repaired.push(updated.commandRunId);
+    }
+
+    if (repaired.length > 0) this.store.refreshDerived(now());
+    return { repaired };
+  }
+
+  // ---------------------------------------------------------------------------
   // Resume capsule discovery (read-only; added in Iteration 4).
   // ---------------------------------------------------------------------------
 
   /** Full resume capsule for a run, or null. */
   getResumeCapsule(commandRunId: string): ResumeCapsule | null {
     return this.store.capsules.read(commandRunId) ?? null;
+  }
+
+  /**
+   * Verify a resume capsule's integrity against its stored `metadata.contentHash`
+   * (EA-I09). Returns `"valid"`, `"tampered"` (hash present but mismatched), or
+   * `"missing"` (no hash / no capsule).
+   */
+  verifyResumeCapsule(commandRunId: string): "valid" | "tampered" | "missing" {
+    const capsule = this.store.capsules.read(commandRunId);
+    if (!capsule) return "missing";
+    const stored = (capsule.metadata as Record<string, unknown> | undefined)?.["contentHash"];
+    if (typeof stored !== "string" || stored.length === 0) return "missing";
+    return verifyCapsuleIntegrity(capsule) ? "valid" : "tampered";
   }
 
   /** Compact summaries of all capsules matching the filter. Read-only. */
@@ -959,6 +1193,7 @@ export class InteractionRuntime {
    * `latest: true`, collapses to the single most-recently-seen candidate.
    */
   findResumeCandidates(filter: FindResumeCandidatesFilter = {}): ResumeCandidate[] {
+    this.reconcile(); // heal answered-but-not-flipped runs so they appear as candidates (no-op if healthy)
     const capsulesByRun = new Map(this.store.capsules.list().map((c) => [c.commandRunId, c] as const));
     let sessions = this.store.sessions.list().filter((s) => s.state === "ready-to-resume");
 
