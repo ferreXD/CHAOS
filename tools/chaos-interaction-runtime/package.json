@@ -14,7 +14,8 @@
     "chaos-interaction-runtime": "./src/cli/chaos-interaction-runtime.ts"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "test:abuse": "node test/abuse/run.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
     "cli": "node src/cli/chaos-interaction-runtime.ts"
