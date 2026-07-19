@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:02+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:02+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:60025d383211b571c64f8e35160491381090b0c7b2db160ca862674a4d78e9e7"
+---
+
 # 07 — Reclassification protocol and Decision Center presentation
 
 Part of the CHAOS two-axis classification design · commit `6421feb` · 2026-07-18 · [Index](README.md)

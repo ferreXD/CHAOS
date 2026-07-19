@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:01+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:01+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:db6461d02f34465be829d8d574faf2c24f6d0383598a9dc0c79cdaa442aacd02"
+---
+
 # 01 — Problem, terminology, dimensions, levels, modifiers
 
 Part of the CHAOS two-axis classification design (companion to the [public-alpha assessment](../2026-07-18-public-alpha-assessment/README.md) and [improvement landscape](../2026-07-18-improvement-landscape/README.md)) · commit `6421feb` · 2026-07-18 · [Index](README.md)

@@ -134,6 +134,17 @@ governance wrapped around it.
   the [demo walkthrough](docs/demo/README.md).
 - **Where this is going:** [project roadmap](.chaos/roadmap/roadmap.md)
 
+## Governance (CHAOS workspace)
+
+This repository is itself run under CHAOS. The agent-facing entrypoint is
+[`AGENTS.md`](AGENTS.md), and the governance workspace lives in [`.chaos/`](.chaos/):
+the [constitution](.chaos/constitution.md) (principles + confidence doctrine),
+[context](.chaos/context.md) and [architecture](.chaos/architecture.md) for the governed
+subject, the [decisions](.chaos/decisions/index.md), [rules](.chaos/rules/index.md),
+[gates](.chaos/gates/index.md), and [commands](.chaos/commands/index.md) indexes, and the
+[bootstrap report](.chaos/bootstrap-report.md) recording how the workspace was generated.
+The team collaboration model is in [`.chaos/changes/README.md`](.chaos/changes/README.md).
+
 ## Contributing
 
 CHAOS is public alpha and contributions are welcome. Contributing is a normal pull-request

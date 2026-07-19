@@ -465,3 +465,92 @@ test("createDecision still rejects empty options for non-freeform types", () => 
     cleanup();
   }
 });
+
+// --- pruneCapsule (stale-capsule maintenance path) -------------------------
+
+/** Drive a change through to a completed session that owns a resume capsule. */
+function completedRunWithCapsule(runtime: ReturnType<typeof makeRuntime>["runtime"], changeId: string) {
+  const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId });
+  const dec = runtime.createDecision({
+    commandRunId: begin.commandRunId!,
+    title: "Pick",
+    context: "ctx",
+    options: SAMPLE_OPTIONS,
+  });
+  runtime.answerDecision({ decisionId: dec.decisionId, selectedOptionId: "stop", selectedBy: "ferrexd" });
+  runtime.completeCommand(begin.commandRunId!);
+  return begin.commandRunId!;
+}
+
+test("pruneCapsule retires a terminal session's capsule and preserves the audit trail", () => {
+  const { runtime, root, cleanup } = makeRuntime();
+  try {
+    const runId = completedRunWithCapsule(runtime, "c1");
+    assert.ok(fs.existsSync(`${root}/capsules/${runId}.json`));
+    assert.ok(runtime.getSession(runId)!.resumeCapsulePath);
+
+    const result = runtime.pruneCapsule(runId, { reason: "stale", actor: "ferrexd" });
+    assert.equal(result.status, "CAPSULE_PRUNED");
+    assert.equal(result.sessionState, "completed");
+    assert.ok(result.prunedPath);
+
+    // Capsule file removed; session preserved with pointer cleared.
+    assert.equal(fs.existsSync(`${root}/capsules/${runId}.json`), false);
+    assert.equal(runtime.getResumeCapsule(runId), null);
+    const session = runtime.getSession(runId)!;
+    assert.equal(session.state, "completed");
+    assert.equal(session.resumeCapsulePath, null);
+
+    // Audit trail preserved: a capsule-pruned event was appended.
+    const pruned = runtime.store.audit
+      .readRepositoryAudit()
+      .filter((e) => e.eventType === "capsule-pruned" && e.commandRunId === runId);
+    assert.equal(pruned.length, 1);
+    assert.equal(pruned[0]!.actor, "ferrexd");
+  } finally {
+    cleanup();
+  }
+});
+
+test("pruneCapsule is idempotent when no capsule exists", () => {
+  const { runtime, cleanup } = makeRuntime();
+  try {
+    const runId = completedRunWithCapsule(runtime, "c1");
+    runtime.pruneCapsule(runId);
+    const second = runtime.pruneCapsule(runId);
+    assert.equal(second.status, "NO_CAPSULE");
+    assert.equal(second.prunedPath, null);
+  } finally {
+    cleanup();
+  }
+});
+
+test("pruneCapsule refuses a live (non-terminal) session unless forced", () => {
+  const { runtime, root, cleanup } = makeRuntime();
+  try {
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const dec = runtime.createDecision({
+      commandRunId: begin.commandRunId!,
+      title: "Pick",
+      context: "ctx",
+      options: SAMPLE_OPTIONS,
+    });
+    runtime.answerDecision({ decisionId: dec.decisionId, selectedOptionId: "stop", selectedBy: "ferrexd" });
+    // Session is now ready-to-resume (non-terminal) and genuinely resumable.
+    assert.equal(runtime.getSession(begin.commandRunId!)!.state, "ready-to-resume");
+
+    assert.throws(
+      () => runtime.pruneCapsule(begin.commandRunId!),
+      /CAPSULE_IN_USE|not terminal/i,
+    );
+    // Capsule still present (fail-safe, no deletion).
+    assert.ok(fs.existsSync(`${root}/capsules/${begin.commandRunId!}.json`));
+
+    // force overrides the guard.
+    const forced = runtime.pruneCapsule(begin.commandRunId!, { force: true });
+    assert.equal(forced.status, "CAPSULE_PRUNED");
+    assert.equal(fs.existsSync(`${root}/capsules/${begin.commandRunId!}.json`), false);
+  } finally {
+    cleanup();
+  }
+});

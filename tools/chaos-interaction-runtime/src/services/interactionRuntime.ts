@@ -879,6 +879,77 @@ export class InteractionRuntime {
   }
 
   // ---------------------------------------------------------------------------
+  // 10b. pruneCapsule — retire a stale/orphaned resume capsule.
+  // ---------------------------------------------------------------------------
+  /**
+   * Delete a resume capsule that can never be resumed and clear the session's
+   * capsule pointer. This is the sanctioned runtime maintenance path for the
+   * stale-capsule diagnostics that `chaos:doctor` reports: it removes only the
+   * resume payload while preserving the session record and the append-only audit
+   * log (a `capsule-pruned` event is recorded), so the decision/lifecycle audit
+   * trail stays intact.
+   *
+   * Safety: refuses to prune a capsule whose owning session is still live
+   * (non-terminal) unless `force` is set — a resumable session needs its capsule.
+   * Orphaned capsules (no owning session) and capsules for terminal sessions
+   * (completed/cancelled/expired/failed) are safe to prune. Idempotent: a run
+   * with no capsule returns `NO_CAPSULE` rather than throwing.
+   */
+  pruneCapsule(
+    commandRunId: string,
+    opts: { reason?: string | null; actor?: string | null; force?: boolean } = {},
+  ): {
+    status: "CAPSULE_PRUNED" | "NO_CAPSULE";
+    commandRunId: string;
+    prunedPath: string | null;
+    sessionState: CommandSession["state"] | null;
+  } {
+    const now = this.iso();
+    const session = this.store.sessions.read(commandRunId);
+    const capsule = this.store.capsules.read(commandRunId);
+    const sessionState = session?.state ?? null;
+
+    if (!capsule) {
+      return { status: "NO_CAPSULE", commandRunId, prunedPath: null, sessionState };
+    }
+
+    if (session && !isTerminalSessionState(session.state) && !opts.force) {
+      throw new RuntimeError(
+        "CAPSULE_IN_USE",
+        `Refusing to prune the resume capsule for ${commandRunId}: session is ${session.state} (not terminal). ` +
+          `Complete or cancel the session first, or pass force to override.`,
+      );
+    }
+
+    const prunedPath = this.paths.relative(this.paths.capsule(commandRunId));
+    this.store.capsules.delete(commandRunId);
+
+    // Detach the now-dangling pointer; keep the session as an audit stub.
+    if (session && session.resumeCapsulePath !== null) {
+      this.store.sessions.write({ ...session, resumeCapsulePath: null, lastSeenAt: now });
+    }
+
+    this.audit({
+      eventType: "capsule-pruned",
+      message: `Resume capsule pruned for ${commandRunId}${opts.reason ? `: ${opts.reason}` : "."}`,
+      commandRunId,
+      changeId: session?.changeId ?? capsule.changeId ?? null,
+      actor: opts.actor ?? null,
+      source: "mcp",
+      data: {
+        path: prunedPath,
+        reason: opts.reason ?? null,
+        sessionState,
+        forced: opts.force ?? false,
+        orphaned: session === undefined,
+      },
+    });
+
+    this.store.refreshDerived(now);
+    return { status: "CAPSULE_PRUNED", commandRunId, prunedPath, sessionState };
+  }
+
+  // ---------------------------------------------------------------------------
   // 11. resumeCommand (added in Iteration 5 for the live auto-resume runner)
   // ---------------------------------------------------------------------------
   /**

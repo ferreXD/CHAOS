@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:01+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:01+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:a8b3159a5238f29abe04224dc91e717c6009ae2dfb2200067e3950621300c086"
+---
+
 # 10 — Adoption analysis and open-source readiness
 
 Part of the CHAOS public-alpha external assessment · assessed commit `6421feb` · 2026-07-18 · [Index](README.md)

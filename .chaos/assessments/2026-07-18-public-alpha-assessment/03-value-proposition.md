@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:00+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:00+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:a049ce412e843a8ba52ea484aa3a72cb8e0e7f3332182c00c5a495d5430d02ba"
+---
+
 # 03 — Core problem and value proposition
 
 Part of the CHAOS public-alpha external assessment · assessed commit `6421feb` · 2026-07-18 · [Index](README.md)

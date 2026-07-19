@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:01:59+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:01:59+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:55e302f636350817121900a6a3ba0f29ebba0d17ef58d7b6e2e2dc6025c95070"
+---
+
 # 05 — Command portfolio review
 
 Part of the CHAOS improvement-landscape assessment · commit `6421feb` · 2026-07-18 · [Index](README.md)

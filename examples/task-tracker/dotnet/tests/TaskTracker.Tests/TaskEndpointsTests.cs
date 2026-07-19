@@ -90,6 +90,96 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Get_tasks_filtered_by_status_returns_only_matching_tasks()
+    {
+        var client = _factory.CreateClient();
+
+        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=open");
+
+        Assert.NotNull(tasks);
+        Assert.All(tasks!, t => Assert.Equal("Open", t.Status));
+        // "Clean up sample data" is a stable Open seed that no other test mutates.
+        Assert.Contains(tasks!, t => t.Title == "Clean up sample data");
+    }
+
+    [Fact]
+    public async Task Get_tasks_filtered_by_priority_returns_only_matching_tasks()
+    {
+        var client = _factory.CreateClient();
+
+        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=high");
+
+        Assert.NotNull(tasks);
+        Assert.All(tasks!, t => Assert.Equal("High", t.Priority));
+        // "Review the CHAOS proposal" is a stable High seed that no other test mutates.
+        Assert.Contains(tasks!, t => t.Title == "Review the CHAOS proposal");
+    }
+
+    [Fact]
+    public async Task Get_tasks_filtered_by_status_and_priority_combines_with_and()
+    {
+        var client = _factory.CreateClient();
+
+        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=inprogress&priority=high");
+
+        Assert.NotNull(tasks);
+        Assert.All(tasks!, t =>
+        {
+            Assert.Equal("InProgress", t.Status);
+            Assert.Equal("High", t.Priority);
+        });
+        // Stable seed that is both InProgress and High.
+        Assert.Contains(tasks!, t => t.Title == "Review the CHAOS proposal");
+    }
+
+    [Fact]
+    public async Task Get_tasks_with_invalid_status_returns_bad_request()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/tasks?status=banana");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_tasks_with_invalid_priority_returns_bad_request()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/tasks?priority=banana");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_tasks_with_numeric_out_of_range_status_returns_bad_request()
+    {
+        var client = _factory.CreateClient();
+
+        // "99" is not a defined TaskState; an unrecognized value must be rejected, not
+        // silently coerced into an undefined enum value (APP-DEC-002).
+        var response = await client.GetAsync("/tasks?status=99");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_tasks_unfiltered_still_returns_all_tasks()
+    {
+        var client = _factory.CreateClient();
+
+        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
+
+        Assert.NotNull(tasks);
+        Assert.NotEmpty(tasks!);
+        // Every seeded task, across both statuses and priorities, is present when unfiltered.
+        Assert.Contains(tasks!, t => t.Title == "Clean up sample data");
+        Assert.Contains(tasks!, t => t.Title == "Review the CHAOS proposal");
+        Assert.Contains(tasks!, t => t.Title == "Write the project README");
+    }
+
     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
 }

@@ -2,8 +2,11 @@ version: 0.1
 
 project:
   name: "CHAOS"
-  type: node
-  primaryLanguage: typescript
+  # Governed subject: the .NET Task Tracker API (chaos:init --guided Decision #1,
+  # 2026-07-19). Reconciled node/typescript -> dotnet/csharp so validation
+  # (dotnet build/test) is consistent with the governed subject. Repo name kept "CHAOS".
+  type: dotnet
+  primaryLanguage: csharp
   specEngine: openspec
 
 paths:
@@ -94,6 +97,10 @@ policies:
     writeRequiresConfirmation: true
     skipIfUpToDate: true
 
+  # Policy KEPT per chaos:init --guided config-reconciliation decision 2/2 =
+  # "keep-current-policy" (2026-07-19): AGENTS.md and root README.md remain editable by
+  # status/sync, guarded by requirePatchPreview=true (edits require a shown patch preview +
+  # confirmation; never a silent write).
   protectedFiles:
     agentsMd:
       path: AGENTS.md

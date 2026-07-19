@@ -12,6 +12,7 @@ import { getDecisionResponseTool } from "../src/tools/getDecisionResponse.ts";
 import { answerDecisionTool } from "../src/tools/answerDecision.ts";
 import { markDecisionConsumedTool } from "../src/tools/markDecisionConsumed.ts";
 import { createResumeCapsuleTool } from "../src/tools/createResumeCapsule.ts";
+import { pruneCapsuleTool } from "../src/tools/pruneCapsule.ts";
 import { getResumeCapsuleTool } from "../src/tools/getResumeCapsule.ts";
 import { completeCommandTool } from "../src/tools/completeCommand.ts";
 import { cancelCommandTool } from "../src/tools/cancelCommand.ts";
@@ -25,6 +26,7 @@ const REQUIRED_TOOLS = [
   "chaos_answer_decision",
   "chaos_mark_decision_consumed",
   "chaos_create_resume_capsule",
+  "chaos_prune_capsule",
   "chaos_get_resume_capsule",
   "chaos_find_resume_candidates",
   "chaos_complete_command",
@@ -350,6 +352,49 @@ test("create_decision rejects an unknown interactionType", () => {
     });
     assert.equal(r.ok, false);
     assert.equal(r.status, "VALIDATION_ERROR");
+  } finally {
+    t.cleanup();
+  }
+});
+
+test("prune_capsule retires a completed session's capsule; idempotent second call", () => {
+  const t = makeCtx();
+  try {
+    const runId = begin(t);
+    const dec = t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
+    t.run(answerDecisionTool, { decisionId: dec.data["decisionId"], selectedOptionId: "stop", selectedBy: "u" });
+    t.run(completeCommandTool, { commandRunId: runId });
+    assert.ok(fs.existsSync(`${t.root}/capsules/${runId}.json`));
+
+    const pruned = t.run(pruneCapsuleTool, { commandRunId: runId, reason: "stale after archive", actor: "ferrexd" });
+    assert.equal(pruned.ok, true);
+    assert.equal(pruned.status, "CAPSULE_PRUNED");
+    assert.equal(pruned.mustStop, false);
+    assert.equal(pruned.data["sessionState"], "completed");
+    assert.equal(fs.existsSync(`${t.root}/capsules/${runId}.json`), false);
+
+    const again = t.run(pruneCapsuleTool, { commandRunId: runId });
+    assert.equal(again.status, "NO_CAPSULE");
+  } finally {
+    t.cleanup();
+  }
+});
+
+test("prune_capsule refuses a ready-to-resume session (CAPSULE_IN_USE) without force", () => {
+  const t = makeCtx();
+  try {
+    const runId = begin(t);
+    const dec = t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
+    t.run(answerDecisionTool, { decisionId: dec.data["decisionId"], selectedOptionId: "stop", selectedBy: "u" });
+    // Session is ready-to-resume (resumable) — pruning must be refused.
+    const refused = t.run(pruneCapsuleTool, { commandRunId: runId });
+    assert.equal(refused.ok, false);
+    assert.equal(refused.status, "CAPSULE_IN_USE");
+    assert.ok(fs.existsSync(`${t.root}/capsules/${runId}.json`));
+
+    const forced = t.run(pruneCapsuleTool, { commandRunId: runId, force: true });
+    assert.equal(forced.status, "CAPSULE_PRUNED");
+    assert.equal(fs.existsSync(`${t.root}/capsules/${runId}.json`), false);
   } finally {
     t.cleanup();
   }

@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:02+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:02+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:736a4e2537c2a92306d4a0d2316f3949af028a9272fbdfba3e883c551ed3953c"
+---
+
 # CHAOS Two-Axis Classification & Adaptive Workflow Selection — 2026-07-18
 
 Third companion assessment (with the [public-alpha assessment](../2026-07-18-public-alpha-assessment/README.md) and the [improvement landscape](../2026-07-18-improvement-landscape/README.md); same commit `6421feb`, same conventions). This is the full design for the improvement both prior assessments ranked as the highest-leverage workflow change (**IL-WF1 / EA-B1**): separating *how dangerous a change is* from *how much workflow it deserves*.

@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:00+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:00+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:06eb26672728bc2fe5614709a3582e27b8b58529dac374d26c8ae70e44285d5a"
+---
+
 # CHAOS Improvement Landscape & Greenfield Foundation — 2026-07-18
 
 Companion to the [public-alpha external assessment](../2026-07-18-public-alpha-assessment/README.md) (same commit `6421feb`, same day, same evidence base and conventions). Two mandatory exercises: **(A)** a systematic improvement landscape across the whole product, and **(B)** the Greenfield Foundation Discovery design for `chaos:init`. Ends with an integrated prioritization and a roadmap delta that the first assessment's roadmap now references.
