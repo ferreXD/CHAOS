@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: chaos:todo
-  lastWrittenAt: "2026-07-18T12:00:00+02:00"
+  lastWrittenAt: "2026-07-19T13:35:48+02:00"
   lastWrittenBy: vscode-user
-  lastAuditedAt: "2026-07-18T12:00:00+02:00"
+  lastAuditedAt: "2026-07-19T13:35:48+02:00"
   lastAuditedBy: vscode-user
   repositoryContext:
     provider: github
@@ -23,7 +23,7 @@ chaosMetadata:
 todo:
   id: TODO-2026-07-18-ea-s4-security-md-demo-reframing
   title: "EA-S4 — SECURITY.md + honest demo reframing"
-  status: open
+  status: done
   priority: BLOCKER
   target: h0-stabilization
   type: documentation
@@ -45,8 +45,8 @@ todo:
   knowledgeType: RECOMMENDATION
   confidence: HIGH
   createdAt: "2026-07-18T12:00:00+02:00"
-  lastSeenAt: "2026-07-18T12:00:00+02:00"
-  closedAt: null
+  lastSeenAt: "2026-07-19T13:35:48+02:00"
+  closedAt: "2026-07-19T13:35:48+02:00"
 ---
 
 # TODO — EA-S4 — SECURITY.md + honest demo reframing
@@ -75,3 +75,6 @@ No specific CHAOS command required.
 ## History
 
 - 2026-07-18 — Created from the public-alpha assessment roadmap (14-roadmap.md) during roadmap-view generation. Roadmap-scoped: not imported into the main backlog.
+- 2026-07-19 — Closed as **done** on direct maintainer instruction. Both closure criteria met on `main`:
+  1. **SECURITY.md policy published** — [`SECURITY.md`](../../../../../SECURITY.md) at repo root: supported-versions table (alpha = `main` only), private disclosure via GitHub private vulnerability reporting (`/security/advisories/new` — no personal email exposed, chosen over public issues), what-to-include + best-effort response expectations, and an explicit in-scope/out-of-scope split (tooling in scope; the illustrative example project and third-party deps out).
+  2. **Demo labeled illustrative pending EA-V1** — [`docs/demo/README.md`](../../../../../docs/demo/README.md) now opens with a callout distinguishing the *illustrative* walkthrough (real runnable starting code, but hand-authored artifact excerpts) from the **real captured trail**. Since EA-V1 is already done, the label points to the verifiable golden trail on the [`demo/dotnet` branch](https://github.com/ferreXD/CHAOS/tree/demo/dotnet) rather than "coming later." The same pointer was added to the root [`README.md`](../../../../../README.md) worked-example bullet and the [example project README](../../../../../examples/task-tracker/dotnet/README.md). Roadmap file (`14-roadmap.md`) is not mutated — this closure is the record of completion (per todo↔roadmap bridge).

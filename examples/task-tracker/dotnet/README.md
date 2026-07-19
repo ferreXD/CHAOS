@@ -96,5 +96,6 @@ GET /tasks?status=inprogress&priority=high     # combine → AND
 
 The interesting part isn't the ~12 lines of LINQ — it's the **governed** questions: what does
 the code do today, what should an *invalid* filter value do, who decided, and where is that
-written down? Walk it end-to-end (with real CHAOS artifact excerpts) in
-[**docs/demo/README.md**](../../../docs/demo/README.md).
+written down? Walk it end-to-end (an illustrative guided tour) in
+[**docs/demo/README.md**](../../../docs/demo/README.md) — or read the **real, captured lifecycle**
+of this exact change on the [`demo/dotnet` branch](https://github.com/ferreXD/CHAOS/tree/demo/dotnet).
