@@ -1,0 +1,33 @@
+@host = http://localhost:5080
+
+### Health check
+GET {{host}}/
+
+### List all tasks  (no filtering yet — the CHAOS demo adds ?status= / ?priority=)
+GET {{host}}/tasks
+
+### Get one task (paste an id from the list above)
+GET {{host}}/tasks/00000000-0000-0000-0000-000000000000
+
+### Create a task
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Try the Task Tracker API",
+  "status": "Open",
+  "priority": "High"
+}
+
+### Update a task
+PUT {{host}}/tasks/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "title": "Try the Task Tracker API (updated)",
+  "status": "InProgress",
+  "priority": "Medium"
+}
+
+### Delete a task
+DELETE {{host}}/tasks/00000000-0000-0000-0000-000000000000

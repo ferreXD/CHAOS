@@ -38,6 +38,7 @@ Authoritative sources:
 | `chaos_answer_decision` | `answerDecision` | **Manual/dev/test bridge** (see caveat). |
 | `chaos_mark_decision_consumed` | `markDecisionConsumed` | answered → consumed; preserves response. |
 | `chaos_create_resume_capsule` | `createResumeCapsule` | Compact; references artifacts by path. |
+| `chaos_prune_capsule` | `pruneCapsule` | Retires a stale/orphaned capsule for a terminal session; preserves the session record + audit log (`capsule-pruned`); refuses live sessions unless `force`; idempotent (`NO_CAPSULE`). |
 | `chaos_get_resume_capsule` | `getResumeCapsule` / `listCapsules` | FOUND / NOT_FOUND / MULTIPLE_FOUND; by run/change/`latest`. |
 | `chaos_find_resume_candidates` | `findResumeCandidates` | NOT_FOUND / FOUND / MULTIPLE_FOUND ready-to-resume sessions for `chaos:resume`. |
 | `chaos_complete_command` | `completeCommand` | Distinguishes administrative terminalization (see below). |

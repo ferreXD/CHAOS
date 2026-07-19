@@ -17,8 +17,33 @@ public static class TaskEndpoints
     {
         var group = app.MapGroup("/tasks");
 
-        // GET /tasks — returns every task in the store. No filtering (yet).
-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+        // GET /tasks — optional ?status= and ?priority= filters (AND-combined when both are
+        // supplied). The endpoint only binds/parses/validates; the filtering itself is
+        // domain-owned (TaskStore.Query). An unrecognized value is rejected with 400 (PROP-DEC-001).
+        group.MapGet("/", (string? status, string? priority, TaskStore store) =>
+        {
+            TaskState? statusFilter = null;
+            if (status is not null)
+            {
+                // IsDefined rejects numeric-but-out-of-range input (e.g. "99"), which
+                // TryParse alone would accept as an undefined enum value (APP-DEC-002).
+                if (!Enum.TryParse<TaskState>(status, ignoreCase: true, out var parsedStatus)
+                    || !Enum.IsDefined(typeof(TaskState), parsedStatus))
+                    return Results.BadRequest(new { error = $"Unknown status value: '{status}'." });
+                statusFilter = parsedStatus;
+            }
+
+            TaskPriority? priorityFilter = null;
+            if (priority is not null)
+            {
+                if (!Enum.TryParse<TaskPriority>(priority, ignoreCase: true, out var parsedPriority)
+                    || !Enum.IsDefined(typeof(TaskPriority), parsedPriority))
+                    return Results.BadRequest(new { error = $"Unknown priority value: '{priority}'." });
+                priorityFilter = parsedPriority;
+            }
+
+            return Results.Ok(store.Query(statusFilter, priorityFilter));
+        });
 
         // GET /tasks/{id}
         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>

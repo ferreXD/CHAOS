@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:01:58+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:01:58+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:0d2e3d99c59975f6a79405e6153016d432dab86fa8440d95bae17f856ac796b1"
+---
+
 # 01 — Improvement-area taxonomy
 
 Part of the CHAOS improvement-landscape assessment (companion to [2026-07-18-public-alpha-assessment](../2026-07-18-public-alpha-assessment/README.md)) · commit `6421feb` · 2026-07-18 · [Index](README.md)

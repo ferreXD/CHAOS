@@ -25,6 +25,18 @@ public class TaskStore
     public IReadOnlyList<TaskItem> All() =>
         _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
 
+    /// <summary>
+    /// Tasks matching the optional <paramref name="status"/> and <paramref name="priority"/>
+    /// filters, in creation order. A null filter is ignored; supplied filters combine with
+    /// logical AND. Passing both as null is equivalent to <see cref="All"/>.
+    /// </summary>
+    public IReadOnlyList<TaskItem> Query(TaskState? status, TaskPriority? priority) =>
+        _tasks.Values
+            .Where(t => (status is null || t.Status == status)
+                     && (priority is null || t.Priority == priority))
+            .OrderBy(t => t.CreatedAt)
+            .ToList();
+
     public TaskItem? Get(Guid id) =>
         _tasks.TryGetValue(id, out var task) ? task : null;
 

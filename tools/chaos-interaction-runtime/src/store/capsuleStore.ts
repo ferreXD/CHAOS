@@ -31,6 +31,18 @@ export class CapsuleStore {
   }
 
   /**
+   * Remove a resume capsule file. Returns true if a file was deleted, false if
+   * none existed (idempotent). The session record and append-only audit log are
+   * left untouched — only the resume payload is retired.
+   */
+  delete(commandRunId: string): boolean {
+    const file = this.paths.capsule(commandRunId);
+    if (!fs.existsSync(file)) return false;
+    fs.rmSync(file, { force: true });
+    return true;
+  }
+
+  /**
    * Enumerate all resume capsules. Read-only. Malformed capsule files are
    * skipped (not thrown) so discovery never crashes on a single bad file.
    */

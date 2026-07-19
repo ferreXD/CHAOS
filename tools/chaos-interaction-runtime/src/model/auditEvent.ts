@@ -13,6 +13,7 @@ export type AuditEventType =
   | "decision-expired"
   | "decision-consumed"
   | "capsule-created"
+  | "capsule-pruned"
   | "lock-acquired"
   | "lock-released"
   | "command-completed"

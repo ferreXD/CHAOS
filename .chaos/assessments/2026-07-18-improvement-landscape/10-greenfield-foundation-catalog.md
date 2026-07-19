@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:01:59+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:01:59+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:e579b9cb5cf95453235c2461ff0820d90cd6ef9f7dfca07bb1c398adb3de6c63"
+---
+
 # 10 — Greenfield foundation catalog v1
 
 Part of the CHAOS improvement-landscape assessment · 2026-07-18 · [Index](README.md) · Design: [09-greenfield-foundation-design.md](09-greenfield-foundation-design.md)

@@ -1,3 +1,27 @@
+---
+chaosMetadata:
+  schemaVersion: 1
+  artifactType: unknown
+  artifactScope: unknown
+  changeId: null
+  sourceCommand: unknown
+  lastWrittenAt: "2026-07-19T11:02:01+02:00"
+  lastWrittenBy: Pablo Ferreira
+  lastAuditedAt: "2026-07-19T11:02:01+02:00"
+  lastAuditedBy: Pablo Ferreira
+  repositoryContext:
+    provider: github
+    branch: chaos/dotnet/demo
+    reviewRequest: null
+    contextSource: git
+    confidence: MEDIUM
+  metadata:
+    identitySource: git-config
+    timestampSource: local-system
+    confidence: LOW
+    bodyHash: "sha256:b42d0ee0ce04921d79052d711fa18daee96418dfb1b32833df608a612c31c8ce"
+---
+
 # CHAOS Public-Alpha External Assessment — 2026-07-18
 
 **Verdict: Continue with a narrower focus** — elevate the interaction runtime to the product's center, compress the methodology around it, stabilize before expanding.
