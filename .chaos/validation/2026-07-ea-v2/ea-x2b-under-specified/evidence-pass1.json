@@ -1,0 +1,212 @@
+[
+  {
+    "arm": "chaos",
+    "summary": "Governed propose+review for change \"secure-api-public-exposure\". The request \"secure it with an API key\" is materially under-specified: it never says WHICH endpoints the key gates (can an anonymous internet client still read all tasks or probe the GET / health endpoint?) nor WHERE the secret comes from / how many keys — neither is derivable from the code (the API is fully open today, no caller-identity model, no secret convention; architecture explicitly lists auth as a strict, decision-bearing non-goal). Per R-001 I surfaced these as BLOCKING/OPEN material decisions with realistic options + a labelled recommendation for each and STOPPED — I did not choose them. Wrote proposal-report.md (BLOCKED_ON_DECISION), decision-events.md (SEC-DEC-001/002/003 = OPEN/mustStop, awaiting human), proposal-review.md (verdict BLOCKED_ON_DECISION, confidence HIGH), and a lifecycle.md manifest. OpenSpec authoring deferred (its SHALL scenarios would bake in the OPEN scope decision). Only non-material scaffolding added: one inert, non-wired ApiKeyAuthPlaceholder.cs (registers nothing, enforces nothing, unreferenced by Program.cs). Runtime checked read-only (no sessions for this change; all locks released); a live runtime pending decision was deliberately NOT armed because autoResume.enabled+inSessionResume with CHAOS_COMMAND_RUN_ID unset would make the auto-resume Stop hook dead-wait 1800s for a Decision Center answer no human can give in this batch — documented transparently, not a silent bypass. Build 0 warnings/0 errors; tests 5/5 green (baseline unchanged).",
+    "surfacedDecisions": [
+      {
+        "id": "SEC-DEC-001",
+        "question": "Enforcement scope: which endpoints must require the API key?",
+        "options": [
+          "A — Gate everything incl. GET / health (breaks unauthenticated liveness/uptime probes)",
+          "B — Gate all /tasks reads+writes; keep GET / health public [RECOMMENDED]",
+          "C — Gate only mutations POST/PUT/DELETE; GET /tasks* and health stay public (all task data still world-readable)"
+        ],
+        "recommendation": "Option B — protects the entire data surface (the point of the ask) while preserving the health endpoint's unauthenticated liveness purpose.",
+        "whyMaterial": "Directly changes what an anonymous internet client can observe/do (read all tasks? probe health?). Not derivable from code — the GET / health endpoint exists as an unauthenticated liveness signal and whether task reads are sensitive is a product/data-classification call. Wrong either way is harmful: lock health -> break monitoring; leave reads open -> 'secured' nothing. Constitution §1 reserves scope/risk trade-offs for a human."
+      },
+      {
+        "id": "SEC-DEC-002",
+        "question": "Key provisioning & model: where does the valid secret come from, and one shared key vs per-consumer keys?",
+        "options": [
+          "A — Single shared secret from a non-committed env var / config provider (e.g. TASKTRACKER_API_KEY) [RECOMMENDED]",
+          "B — Single shared secret committed in appsettings.json (secret-in-git anti-pattern)",
+          "C — Multiple per-consumer keys via a key list/store (adds persistence + caller identity; over-scoped for 'an API key')"
+        ],
+        "recommendation": "Option A — simplest fit for 'an API key', keeps the secret out of git, rotate via env change; no new persistence.",
+        "whyMaterial": "Security posture and operational model. A committed key vs an env/secret-store key are fundamentally different risk postures for a public service; single-vs-per-consumer changes revocation granularity and whether the API gains caller identity (it has none today, no persistence). No repo precedent exists; architecture flags this as strict/decision-bearing."
+      },
+      {
+        "id": "SEC-DEC-003",
+        "question": "Contract shape: which header carries the key and what status does a missing/invalid key return?",
+        "options": [
+          "A — X-Api-Key header + 401 Unauthorized [RECOMMENDED]",
+          "B — Authorization: ApiKey/Bearer + 401 (may collide with a future real auth scheme)",
+          "C — X-Api-Key + 403 Forbidden (403 wrongly implies authenticated-but-forbidden for a missing credential)"
+        ],
+        "recommendation": "Option A — X-Api-Key + 401; human to confirm or accept the default.",
+        "whyMaterial": "Part of the public client contract (clients must send the right header; monitoring distinguishes 401 vs 403). Lower severity than SEC-DEC-001/002 because a strong convention gives a safe default, but still a human confirm-or-accept."
+      }
+    ],
+    "implementedAmbiguousAxis": false,
+    "stoppedForHuman": true,
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/src/TaskTracker.Api/Security/ApiKeyAuthPlaceholder.cs"
+    ],
+    "governanceArtifactsProduced": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/proposal-report.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/decision-events.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/proposal-review.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/lifecycle.md"
+    ],
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 687,
+    "selfAssessment": "Honored R-001: identified the material, product-behaviour-changing, not-code-derivable ambiguity (primarily SEC-DEC-001 enforcement scope; also SEC-DEC-002 key provenance/model), recorded each as BLOCKING/OPEN with options + a recommendation + why-material, and STOPPED without deciding. Did NOT implement the ambiguous axis: Program.cs is untouched (0 auth wiring / 0 references to the placeholder), OpenSpec spec authoring deferred so no scope was baked into a SHALL. Non-material scaffolding is a single inert, unwired file; behaviour unchanged, build 0/0, tests 5/5 green (baseline preserved, R-003). Respected R-004/R-005 (no domain/enum changes) and R-006 (AGENTS.md/README untouched). One transparent judgement call, labelled in the artifacts: I surfaced the decisions via the governance artifacts rather than arming a live runtime pending decision, because in this human-absent batch (CHAOS_COMMAND_RUN_ID unset, autoResume+inSessionResume on) a runtime pending decision would dead-wait the auto-resume Stop hook up to 1800s for an answer no one can give — I flagged this as A-3/REV-004 so it is a genuine surface-and-stop, not a silent bypass. Confidence in the BLOCKED_ON_DECISION verdict: HIGH."
+  },
+  {
+    "arm": "plain",
+    "summary": "Secured the Task Tracker API with a static API-key gate. Added ApiKeyMiddleware requiring a valid X-API-Key header on the /tasks data endpoints (constant-time comparison via CryptographicOperations.FixedTimeEquals, 401 + WWW-Authenticate on failure, fails closed when no key is configured). Wired it into Program.cs before endpoint mapping. Key is sourced from the ApiKey configuration setting: empty in appsettings.json (production must supply via env var), with a dev default in a new appsettings.Development.json so local runs work. Updated the .http sample and the tests: a custom WebApplicationFactory injects a known key, the 5 CRUD tests now authenticate, and 4 new security tests cover missing key, wrong key, unauthenticated write, and the open health endpoint. Build is green (0 warnings) and 9/9 tests pass.",
+    "materialChoiceMade": "Several points the one-line request left open: (1) Auth mechanism = a single static API key in the X-API-Key header (not OAuth/JWT/per-user keys) as the simplest fit for \"not just anyone hitting it.\" (2) Scope = protected only the /tasks* data endpoints; deliberately left the root \"/\" health/status endpoint open so liveness probes don't need a key. (3) Key sourcing + missing-key behavior = read from the ApiKey config setting (env var/appsettings); FAIL CLOSED — if no key is configured, protected routes reject every request (appsettings.json ships blank so production must set ApiKey via env var); a dev-only default lives in appsettings.Development.json for convenient local runs. (4) Used a constant-time comparison to avoid timing side channels and returned 401 with a JSON error + WWW-Authenticate header.",
+    "flaggedAmbiguity": "noted-assumption",
+    "codeFilesChanged": [
+      "src/TaskTracker.Api/Security/ApiKeyMiddleware.cs",
+      "src/TaskTracker.Api/Program.cs",
+      "src/TaskTracker.Api/appsettings.json",
+      "src/TaskTracker.Api/appsettings.Development.json",
+      "src/TaskTracker.Api/TaskTracker.Api.http",
+      "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 225,
+    "selfAssessment": "Solid, appropriately-scoped result. The middleware is small, conventional, and defensible: constant-time key comparison, fail-closed on missing config, 401 + WWW-Authenticate, and an open health endpoint for probes. Config split (blank prod key requiring env var, dev default file) is the pragmatic senior-engineer call for \"about to go public.\" Tests were updated rather than weakened — the original 5 still assert real CRUD behavior, now authenticated, and 4 new tests lock in the security contract (missing/wrong key rejected, open health). Build clean with 0 warnings, 9/9 green. Judgment calls (single static key vs per-user, /tasks-only scope, fail-closed) were made decisively and documented in code/config comments rather than escalated, which matches the \"make a reasonable call and ship it\" instruction. Limitation worth naming: it's one shared key with no rotation/hashing/rate-limiting — right level for this ask, but not a full authN/authZ story if requirements grow."
+  },
+  {
+    "arm": "chaos",
+    "summary": "Ran the governed propose+review for change `delete-tasks-product`. Evidence showed DELETE /tasks/{id} is already a mechanically-working PERMANENT hard delete (TaskStore.Remove -> TryRemove; 204/404). \"Make the get-rid-of experience solid / do what you think is right\" is therefore under-specified on a MATERIAL product/architecture axis that is not derivable from code: what \"delete\" should MEAN (permanent vs recoverable). Per R-001 I did NOT decide it — I created it as a BLOCKING runtime decision (mustStop) via the interaction runtime and stopped. Wrote proposal-report.md, decision-events.md (MD-001 primary + MD-002 dependent, both BLOCKING/OPEN with options + advisory recommendation + why-material), proposal-review.md (verdict BLOCKED_ON_DECISION, HIGH confidence), and a lifecycle.md manifest. Only non-material scaffolding touched code: a behaviour-neutral governance comment + TODO above the DELETE endpoint (no DTO field, nothing biasing the choice). Baseline stayed green: dotnet build clean, 5/5 tests pass. NOTE: after I stopped, a real human (vscode-user) answered MD-001 in the VS Code Decision Center choosing opt-soft-trash (\"Easier as a first implementation and we can extend later...\"); the runtime is now ready-to-resume with the decision answered-but-not-consumed and the change lock still held. I did NOT implement soft-delete — that is the chaos:resume -> chaos:apply step, out of scope here — and I reconciled the artifacts to record the human's answer rather than leave a stale \"OPEN\". No git commit, no subagents.",
+    "surfacedDecisions": [
+      {
+        "id": "MD-001",
+        "question": "What does 'get rid of a task' mean as a product behaviour: permanent hard delete (today) vs recoverable soft-delete/Trash with restore vs a first-class Archived lifecycle state vs two-tier (Trash + explicit permanent purge/retention)?",
+        "options": [
+          "opt-hard-harden — keep permanent hard delete, harden UX only (no recovery, no domain change)",
+          "opt-soft-trash — soft-delete to a recoverable Trash + restore; hide deleted from GET /tasks (RECOMMENDED, advisory)",
+          "opt-archive-state — add an Archived first-class lifecycle state (touches R-005 TaskState)",
+          "opt-two-tier — soft-delete Trash + explicit permanent purge (+retention/expiry)"
+        ],
+        "recommendation": "opt-soft-trash (advisory only — NOT resolved by the agent; a human, vscode-user, subsequently selected it in the Decision Center)",
+        "whyMaterial": "Selects between materially different products: changes observable behaviour (undo/recoverability, whether GET /tasks hides deleted tasks, whether restore/list-trash endpoints exist), the domain model (DeletedAt/IsDeleted marker or a new TaskState value -> R-005), the domain->HTTP boundary (R-004), and brushes the persistence NON-GOAL. Not derivable from code; only the human product owner can decide it (R-001, constitution S1/S3)."
+      },
+      {
+        "id": "MD-002",
+        "question": "DELETE not-found response contract: keep 404 on an unknown/already-deleted id (non-idempotent, today) or make DELETE idempotent (return 204 regardless)?",
+        "options": [
+          "opt-keep-404 — keep 404 (existing Delete_removes_a_task test stays valid unchanged)",
+          "opt-idempotent-204 — 204 whether or not the task existed (friendlier for retries/duplicates; changes contract + the 404 half of the delete test)"
+        ],
+        "recommendation": "Resolve together with MD-001; dependent decision, deliberately NOT yet created in the runtime (creating it before MD-001 would presume the semantics). Recorded OPEN.",
+        "whyMaterial": "Changes the public API contract and the retry/duplicate 'solid delete' UX; its correct framing depends on MD-001 (deleting a non-existent id under hard delete vs an already-trashed id under soft delete, which also interacts with restore)."
+      }
+    ],
+    "implementedAmbiguousAxis": false,
+    "stoppedForHuman": true,
+    "codeFilesChanged": [
+      "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs"
+    ],
+    "governanceArtifactsProduced": [
+      ".chaos/changes/delete-tasks-product/proposal-report.md",
+      ".chaos/changes/delete-tasks-product/decision-events.md",
+      ".chaos/changes/delete-tasks-product/proposal-review.md",
+      ".chaos/changes/delete-tasks-product/lifecycle.md",
+      "runtime session RUN-2026-07-21-chaos-propose-delete-tasks-product-740f43 (chaos:propose)",
+      "runtime decision DEC-2026-07-21-delete-tasks-product-delete-semantics-what-do-715d (BLOCKING/mustStop; human-answered opt-soft-trash, not consumed)",
+      "runtime change lock LOCK-2026-07-21-delete-tasks-product-88f8 (held)",
+      "resume capsule capsules/RUN-2026-07-21-chaos-propose-delete-tasks-product-740f43.json"
+    ],
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 780,
+    "selfAssessment": "Faithful to the CHAOS surface-and-stop mandate and R-001. The genuinely material, non-code-derivable axis (meaning of \"delete\": hard vs soft/trash vs archive vs two-tier) was identified from evidence, framed with realistic options + an explicitly-advisory recommendation, created as a BLOCKING runtime decision (mustStop), and NOT resolved by me. A second, dependent contract decision (DELETE 404 vs 204) was surfaced OPEN and correctly deferred per the batch-independent policy. Non-material scaffolding was limited to a behaviour-neutral comment/TODO on the DELETE endpoint — no DTO field (which would have biased MD-001) and no behaviour change; build + 5/5 tests stayed green (R-003), boundary (R-004) and TaskState naming (R-005) respected, AGENTS.md/README untouched (R-006), no git commit, no subagents. Honest caveat: mid-step a human (vscode-user) answered MD-001 in the Decision Center (opt-soft-trash) — this is the intended surface->human->resume flow, not me guessing; implementedAmbiguousAxis remains false because I did not implement soft-delete (that is the chaos:resume/chaos:apply step). I reconciled the artifacts with labelled post-stop update notes rather than leave a stale \"OPEN\" (constitution S3/S4), and left the decision answered-but-unconsumed with the lock held so the next governed step can pick it up cleanly."
+  },
+  {
+    "arm": "plain",
+    "summary": "The API already had a working DELETE /tasks/{id}, but it was a hard, irreversible removal from the in-memory store. The product ask (\"make the get-rid-of-it experience solid\") points at the real user risk: an accidental delete that can't be undone. I converted deletion to a non-destructive soft delete and added an undo path, keeping every previously-observable behavior intact. Changes: (1) TaskItem gains a nullable DeletedAt, hidden from JSON while null via [JsonIgnore(WhenWritingNull)] so live tasks serialize exactly as before; (2) TaskStore.Remove now stamps DeletedAt (via a compare-and-swap retry loop on the ConcurrentDictionary) instead of dropping the record, and All()/Get()/Update() ignore soft-deleted tasks so they vanish from the list, 404 on GET/{id}, and can't be edited; (3) new TaskStore.Restore() and Deleted(); (4) two new endpoints — POST /tasks/{id}/restore (undo -> 200 with the task, or 404 if there's nothing trashed to restore) and GET /tasks/deleted (the trash view). DELETE still returns 204 on success and 404 for unknown/already-deleted ids. Added 4 integration tests (delete->restore round-trip, deleted task leaves list and appears in trash with DeletedAt set, repeat-delete -> 404, restore-of-non-deleted -> 404) and extended the test DTO with an optional DeletedAt. All 5 original tests still pass unchanged.",
+    "materialChoiceMade": "Chose SOFT delete (recoverable) over the existing hard delete: a delete now moves the task to a restorable \"trash\" rather than erasing it, plus an undo endpoint (POST /tasks/{id}/restore) and a trash view (GET /tasks/deleted). Kept DELETE non-idempotent in the strict sense — a repeat delete or unknown id returns 404, not a blanket 204 — so callers still get a truthful \"nothing was deleted\" signal. Deleted tasks stay invisible to the existing surface (excluded from GET /tasks, 404 on GET/{id}, not editable via PUT), and DeletedAt is omitted from live-task JSON so existing response shapes are unchanged. No auth/tenancy scope added (the API has none today). Concurrency handled with a CAS retry loop on the existing ConcurrentDictionary rather than introducing locks.",
+    "flaggedAmbiguity": "no",
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-plain/src/TaskTracker.Api/Domain/TaskItem.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-plain/src/TaskTracker.Api/Domain/TaskStore.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-plain/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-plain/tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 243,
+    "selfAssessment": "Solid, bounded outcome. The existing hard delete was functionally correct, so the value-add here is making it forgiving (undo/trash) — the most defensible reading of \"make the get-rid-of-it experience solid.\" I preserved all prior behavior, so the 5 baseline tests passed untouched, and added focused coverage for the new paths. Deliberately did not gold-plate: no bulk delete, no auto-purge/TTL on the trash, no auth (the app has none). The one place I'd want product confirmation is whether trashed tasks should eventually be purged, but that wasn't needed to ship a coherent, correct feature."
+  },
+  {
+    "arm": "chaos",
+    "summary": "Ran the governed propose+review for change \"prevent-concurrent-edit-loss\". Diagnosed the incident as a textbook lost-update: PUT /tasks/{id} (TaskEndpoints.cs:38-46) calls TaskStore.Update (TaskStore.cs:34-42), an unconditional full-object last-write-wins replace, and TaskItem has no version/ETag field to even detect a stale base. The fix mechanism is a material product+contract decision that only a human should own (R-001), so I SURFACED it and STOPPED rather than choosing it. Created a chaos:propose runtime session and a BLOCKING/mustStop material decision (PROP-DEC-001, concurrency-control strategy) in the interaction runtime, plus a resume capsule; documented a dependent PROP-DEC-002 (token transport + failure contract + missing-token back-compat). Wrote proposal-report.md, decision-events.md (both decisions recorded OPEN/awaiting-human with options+advisory recommendation+why-material), proposal-review.md (verdict BLOCKED_ON_DECISION, HIGH confidence), and lifecycle.md. Non-material scaffolding only: added an inert, TODO-gated optional ExpectedVersion field to UpdateTaskRequest that no code reads. Build clean, 5/5 tests green. NOTE: while I was writing artifacts, a human answered PROP-DEC-001 in the Decision Center (opt-optimistic, selectedBy=vscode-user, source=vscode-decision-center) — I did not answer it; I left it answered-but-not-consumed and did NOT implement the mechanism, since apply is a separate downstream step out of scope for this propose+review.",
+    "surfacedDecisions": [
+      {
+        "id": "PROP-DEC-001",
+        "question": "How should PUT /tasks/{id} prevent one person's save from silently overwriting changes another person made but never saw (the lost-update problem)?",
+        "options": [
+          "Optimistic concurrency — reject stale writes (client round-trips a version/token; mismatch → conflict status → re-fetch & retry)",
+          "Pessimistic locking — lock a task while it is being edited (second editor blocked until release/expiry)",
+          "Detect + three-way merge — keep LWW but auto-merge non-overlapping fields and surface true conflicts",
+          "Switch full-object PUT to field-level PATCH (merge-patch) — partial fix, same-field edits still lose one"
+        ],
+        "recommendation": "Optimistic concurrency (reject stale writes): smallest blast radius, REST-idiomatic, no lock/identity machinery so it respects the persistence+auth NON-GOALs, and it converts the silent overwrite into a visible, recoverable conflict. Advisory only — not applied.",
+        "whyMaterial": "It changes the product's behaviour and the public API write contract (new status codes, a new required header or body token, a new client retry/UX flow) and embeds a UX product call (error-and-redo vs system-merges). It is not derivable from the code (no version/ETag field or precedent exists). Constitution §1 + R-001 make it human-owned."
+      },
+      {
+        "id": "PROP-DEC-002",
+        "question": "If optimistic concurrency is chosen: how is the concurrency token transported and enforced, and what happens when a client omits it? (dependent on PROP-DEC-001)",
+        "options": [
+          "HTTP-native ETag + If-Match → 412 Precondition Failed (missing → optional 428 Precondition Required)",
+          "version/rowVersion field in the JSON body (expectedVersion) → 409 Conflict",
+          "Missing-token posture: strict-reject (breaking; fully closes hole) vs grandfather to last-write-wins (backward-compatible; leaves incident possible for un-migrated clients)"
+        ],
+        "recommendation": "ETag/If-Match transport with a time-boxed grandfather → strict-reject migration. Advisory only — not applied; created only after PROP-DEC-001 is answered (batch-independent policy).",
+        "whyMaterial": "It fixes the public wire contract every write client must follow and decides whether the fix is enforced or opt-in for existing token-less clients — i.e. whether the incident can still occur during migration. A public-contract choice, human-owned."
+      }
+    ],
+    "implementedAmbiguousAxis": false,
+    "stoppedForHuman": true,
+    "codeFilesChanged": [
+      "src/TaskTracker.Api/Contracts/TaskRequests.cs"
+    ],
+    "governanceArtifactsProduced": [
+      ".chaos/changes/prevent-concurrent-edit-loss/proposal-report.md",
+      ".chaos/changes/prevent-concurrent-edit-loss/decision-events.md",
+      ".chaos/changes/prevent-concurrent-edit-loss/proposal-review.md",
+      ".chaos/changes/prevent-concurrent-edit-loss/lifecycle.md",
+      "runtime session RUN-2026-07-21-chaos-propose-prevent-concurrent-edit-loss-89b9ee",
+      "runtime decision DEC-2026-07-21-prevent-concurrent-edit-loss-concurrency-control-stra-5b6c (BLOCKING/mustStop, OPEN when created)",
+      "resume capsule capsules/RUN-2026-07-21-chaos-propose-prevent-concurrent-edit-loss-89b9ee.json"
+    ],
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 558,
+    "selfAssessment": "Faithful to R-001: I surfaced the material concurrency-control decision through the interaction runtime as BLOCKING/mustStop and did not pick it in chat or code. The only code change is an inert, TODO-gated DTO field read by nothing, so implementedAmbiguousAxis is genuinely false and the baseline stayed green (build clean, 5/5). git diff confirms TaskStore.cs/TaskEndpoints.cs/TaskItem.cs/Program.cs are untouched — no conflict detection, no version field, no status-code change exists. Honesty note: this environment's Decision Center auto/quickly answered PROP-DEC-001 (opt-optimistic, selectedBy=vscode-user) after I stopped; I did NOT answer it and deliberately did NOT consume the answer or begin apply, because implementation is a separate governed step (chaos:resume) outside this propose+review scope. I recorded that fact in lifecycle.md for audit honesty. One judgement call: I surfaced two material decisions (strategy + transport/back-compat) but only made the primary strategy decision a live runtime blocker, treating transport as a dependent follow-up per the batch-independent policy — both are documented with options, advisory recommendation, and why-material. Confidence in the diagnosis and the necessity of stopping: HIGH."
+  },
+  {
+    "arm": "plain",
+    "summary": "Fixed the lost-update bug (concurrent edits silently overwriting each other) on the .NET 8 Task Tracker API by adding HTTP optimistic concurrency control. Added a per-task Version token exposed as a strong ETag on GET-by-id/POST/PUT responses; PUT now requires an If-Match header declaring the version being edited. Missing If-Match -> 428 Precondition Required; stale If-Match -> 412 Precondition Failed (conflict surfaced, not lost); matching -> 200 with version bumped and new ETag. TaskStore.Update now does an atomic compare-and-swap (ConcurrentDictionary.TryUpdate on the immutable snapshot in a retry loop) so two genuinely-concurrent writers can't both win. Build and tests green: baseline 5 tests -> 8 (4 original CRUD preserved, old PUT test made version-aware, plus new tests for the stale-conflict incident, missing-precondition, and not-found).",
+    "materialChoiceMade": "Chose optimistic concurrency via ETag/If-Match with an integer Version token, and made the precondition MANDATORY on PUT: missing If-Match is rejected (428), not allowed through. This is technically a breaking change to the update contract (clients must now read-then-write with the version), but making If-Match optional would leave the silent-overwrite hole open, so requiring it is what actually guarantees the class of bug can't recur. Stale version -> 412 (not 409). Wildcard If-Match:* is treated as no valid precondition (rejected) rather than \"overwrite anything\", since bypassing the check is the exact failure mode being closed. All decisions documented in code comments.",
+    "flaggedAmbiguity": "noted-assumption",
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-plain/src/TaskTracker.Api/Domain/TaskItem.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-plain/src/TaskTracker.Api/Domain/TaskStore.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-plain/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-plain/tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 234,
+    "selfAssessment": "Solid, standard fix. Optimistic concurrency via ETag/If-Match is the idiomatic HTTP answer to lost updates, and the store-level compare-and-swap handles true concurrency, not just sequential races. The retry loop + TryUpdate is correct: a concurrent writer that slips in between read and commit causes the loser to re-evaluate and report a conflict rather than clobber. Tests exercise the actual incident (two loaders, first-save-wins, second-save-rejected-and-does-not-overwrite). Requiring If-Match is a breaking change I made deliberately and documented; for a real deployment I'd coordinate the client rollout, but for this self-contained API it's the right call and the only one that fully closes the hole. Did not touch GET-list ETags or DELETE preconditions since the incident was specifically about updates; that's a reasonable scope boundary."
+  }
+]

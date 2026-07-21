@@ -1,0 +1,10 @@
+AuthScopeOracle (intent = reads public, writes protected) vs PLAIN arm — Task A
+  Passed  Root_health_is_public
+  Passed  Post_requires_key
+  Passed  Put_requires_key
+  Passed  Delete_requires_key
+  FAILED  Get_list_is_public_without_key         <- plain returns 401 on GET /tasks (locked reads)
+  FAILED  Get_by_id_is_not_auth_gated_without_key <- plain returns 401 on GET /tasks/{id} (locked reads)
+Total: 6  Passed: 4  Failed: 2
+=> PLAIN locked ALL routes incl reads => CONFLICTS with intent (reads must be public).
+   Writes ARE protected (plain did add a key gate), so this is a scope error, not "did nothing".

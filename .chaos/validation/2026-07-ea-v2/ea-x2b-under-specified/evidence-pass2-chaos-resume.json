@@ -1,0 +1,78 @@
+[
+  {
+    "arm": "chaos",
+    "changeId": "secure-api-public-exposure",
+    "summary": "Resumed the paused CHAOS change after the maintainer answered the enforcement-scope decision. Implemented reads-public / writes-protected: GET /, GET /tasks, GET /tasks/{id} stay public (no key); POST/PUT/DELETE now require a valid X-Api-Key or return 401. Valid key read from config key 'ApiKey', defaulting to 'test-secret-key' when unset. Enforcement is a per-route IEndpointFilter (ApiKeyEndpointFilter) attached only to the three write routes; the inert pass-1 placeholder was removed. decision-events.md marked RESOLVED (human-answered), and apply-report.md + verification.md written. Build clean (0 warnings), tests 12/12 green (5 originals updated + 7 new covering the full access-control matrix). R-003/R-004/R-005/R-006 all hold; changes left uncommitted in the working tree.",
+    "decisionAnswered": "SEC-DEC-001 answered by the maintainer as Option C (reads-public / writes-protected): protect ONLY writes — POST/PUT/DELETE on /tasks require a valid API key in the X-Api-Key header (else 401 Unauthorized); GET /tasks, GET /tasks/{id}, and the GET / health endpoint stay public with no key. Key read from configuration key 'ApiKey', defaulting to 'test-secret-key' when unset. This differs from and overrides my pass-1 recommendation (Option B, gate all /tasks); the human answer was implemented verbatim as authoritative per R-001.",
+    "implementedMatchesAnswer": true,
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/src/TaskTracker.Api/Security/ApiKeyAuthPlaceholder.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "governanceArtifactsProduced": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/decision-events.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/apply-report.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/verification.md",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tA-chaos/.chaos/changes/secure-api-public-exposure/lifecycle.md"
+    ],
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 417,
+    "selfAssessment": "High confidence. The human answer is mechanically unambiguous and I encoded it as a per-route endpoint filter on POST/PUT/DELETE only, leaving all GET routes and the root health endpoint public — a direct 1:1 mapping to \"reads-public / writes-protected\". Every access-control cell (public reads, 401 on missing key, 401 on wrong key, 2xx with valid key for each write verb, 400 blank-title reachable past the filter) is covered by a passing test, so the contract is test-pinned rather than asserted. I intentionally implemented the maintainer's Option C over my pass-1 Option-B recommendation per R-001, and recorded that override explicitly in decision-events.md. Rule checks verified by inspection/grep: domain layer is HTTP-free (R-004), TaskState naming untouched (R-005), protected files untouched (R-006), and the green baseline grew from 5/5 to 12/12 (R-003). One deliberate judgement call: I left 'ApiKey' unset in committed appsettings.json so the documented default applies and no secret is committed — noted in the artifacts and reversible via config. Not done (correctly deferred, non-blocking): OpenSpec spec delta authoring and the CREATE_ADR sync action for the auth boundary, routed to chaos:sync/archive. Changes left uncommitted in the working tree as instructed."
+  },
+  {
+    "arm": "chaos",
+    "changeId": "delete-tasks-product",
+    "summary": "Resumed the paused CHAOS change after the maintainer answered MD-001 = opt-soft-trash in the Decision Center. Marked MD-001 RESOLVED (human-answered) in decision-events.md, then implemented soft-delete-to-recoverable-Trash semantics exactly: a user-facing DELETE now soft-deletes (stamps TaskItem.DeletedAt) instead of hard-removing, the task is retained but hidden from the normal list (GET /tasks -> active-only, GET /tasks/{id} 404s a trashed id), a new GET /tasks/trash lists trashed tasks, and a new POST /tasks/{id}/restore recovers them. Modeled the state as a nullable DeletedAt marker (not a new TaskState value) so status/priority survive delete->restore and R-005 is untouched; all soft-delete logic lives in the domain TaskStore (R-004). Build succeeded 0/0; test suite 9/9 (5 pre-existing baseline tests unchanged and green + 4 new). Wrote apply-report.md and verification.md (VERIFIED, HIGH) and refreshed lifecycle.md. MD-002 (DELETE idempotency) was NOT covered by the human answer, so the existing non-idempotent 404 contract was preserved rather than agent-resolved. Changes left in the working tree, not committed.",
+    "decisionAnswered": "MD-001 = opt-soft-trash: a delete must NOT permanently remove a task; it moves the task to a recoverable/soft-deleted Trash state (retained, hidden from the normal task list) with a way to RESTORE it; nothing is permanently destroyed by the user-facing delete; existing seeded tasks remain active; build and tests stay green.",
+    "implementedMatchesAnswer": true,
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/src/TaskTracker.Api/Domain/TaskItem.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/src/TaskTracker.Api/Domain/TaskStore.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "governanceArtifactsProduced": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/.chaos/changes/delete-tasks-product/decision-events.md (updated: MD-001 RESOLVED human-answered, MD-002 kept OPEN, APP-DEC-001 recorded)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/.chaos/changes/delete-tasks-product/apply-report.md (new: APPLIED, requirement->code traceability)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/.chaos/changes/delete-tasks-product/verification.md (new: VERIFIED, HIGH, dashboard)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tB-chaos/.chaos/changes/delete-tasks-product/lifecycle.md (updated: apply+verify complete)"
+    ],
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 557,
+    "selfAssessment": "High confidence. The implementation matches the authoritative human answer (opt-soft-trash) point-for-point, verified by a requirement->code->test traceability matrix: soft delete never destroys (uses SoftDelete/DeletedAt, not Remove), tasks are retained and hidden from the normal list, restore exists and preserves status/priority, seeded tasks stay active. Rules honoured: R-003 (baseline 5 tests unchanged + green, 9/9 total), R-004 (all soft-delete logic in domain TaskStore; grep confirms no HTTP types in Domain/**), R-005 (DeletedAt marker instead of a new TaskState value; no TaskStatus). R-001 honoured end-to-end: the human decided MD-001, the agent only implemented it, and MD-002 (idempotency), which the human did NOT answer, was deliberately left OPEN with the existing 404 contract preserved rather than silently resolved. One judgment call worth flagging: GET /tasks/{id} returns 404 for a trashed id (treating single-item fetch as part of the 'normal list' that hides trash), which also keeps the pre-existing Delete_removes_a_task test green unchanged; trashed items remain discoverable via GET /tasks/trash. Changes left uncommitted in the worktree as instructed; no subagents spawned. Governance metadata bodyHash fields left as 'pending'/prior values (normally stamped by the metadata hook on commit)."
+  },
+  {
+    "arm": "chaos",
+    "changeId": "prevent-concurrent-edit-loss",
+    "summary": "Resumed the paused CHAOS lifecycle after the maintainer answered PROP-DEC-001 = opt-optimistic. Implemented optimistic concurrency in src/TaskTracker.Api: added a long Version token to TaskItem (starts at 1, increments on each successful update); TaskStore.Update now takes an optional expectedVersion, does an atomic compare-and-swap (ConcurrentDictionary.TryUpdate retry loop), and returns a pure-domain UpdateResult/UpdateOutcome (Updated/NotFound/VersionConflict) — keeping the conflict decision in the domain (R-004). The PUT endpoint maps VersionConflict to 409 Conflict, leaving the task unchanged; a version-less PUT keeps the backward-compatible last-write-wins path. Added 5 tests (10/10 green). Marked decision-events.md RESOLVED (human-answered) and wrote apply-report.md + verification.md (PASS). No git commit; changes left in the working tree.",
+    "decisionAnswered": "opt-optimistic — OPTIMISTIC concurrency, reject stale writes: tasks carry a version token starting at 1 that increments on each successful update; a PUT carrying a stale/expected version that no longer matches is rejected with 409 Conflict and leaves the task unchanged (client must refetch and retry); the version-less update path keeps working for backward compatibility; build and tests stay green.",
+    "implementedMatchesAnswer": true,
+    "codeFilesChanged": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/src/TaskTracker.Api/Domain/TaskItem.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/src/TaskTracker.Api/Domain/TaskStore.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/src/TaskTracker.Api/Contracts/TaskRequests.cs",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+    ],
+    "testsPassed": 10,
+    "testsFailed": 0,
+    "testsGreen": true,
+    "buildOk": true,
+    "wallTimeSeconds": 392,
+    "governanceArtifactsProduced": [
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/.chaos/changes/prevent-concurrent-edit-loss/decision-events.md (updated: RESOLVED human-answered)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/.chaos/changes/prevent-concurrent-edit-loss/apply-report.md (new)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/.chaos/changes/prevent-concurrent-edit-loss/verification.md (new)",
+      "C:/Users/monch/AppData/Local/Temp/claude/d--Proyectos-CHAOS-CHAOS/57f356d4-0970-4af5-8709-f88c657d4b9f/scratchpad/us/wt/tC-chaos/.chaos/changes/prevent-concurrent-edit-loss/lifecycle.md (updated: apply+verify complete)"
+    ],
+    "selfAssessment": "Confidence HIGH. The implementation is a direct, mechanical realization of the explicit human answer, confirmed by build (0 warn/0 err) and 10/10 tests including a stale-write→409 regression test that asserts the first writer's edit survives and the task version is unchanged by the rejected write. Rules honored and independently checked: R-001 (strategy was the maintainer's choice; agent only executed it), R-003 (5 pre-existing tests still green + 5 new), R-004 (grep confirms no HTTP/AspNetCore refs in Domain/**; the 409 mapping lives solely in the endpoint via a pure-domain UpdateResult/UpdateOutcome), R-005 (no TaskStatus reintroduced). REV-004 correctness note discharged via an atomic TryUpdate compare-and-swap loop. One deliberate residual, per the maintainer's own instruction: the missing-token posture is grandfather, so a version-less PUT is still last-write-wins — an un-migrated client can still overwrite; that is an explicitly chosen, accepted transition posture, not a defect, and is flagged in verification.md. Scope was clean: exactly 5 tracked code files changed, no git commit, changes left in the working tree. The maintainer's answer also subsumed the dependent PROP-DEC-002 (body version token / 409 / grandfather), which I recorded as RESOLVED rather than re-surfacing. OpenSpec spec authoring and chaos:sync CREATE_DECISION_LOG were intentionally left as documented follow-ups, out of scope for this apply+verify resume."
+  }
+]

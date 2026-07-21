@@ -1,0 +1,2 @@
+DECISION: Delete semantics — what does "get rid of a task" mean?
+ANSWER (maintainer): Selected option opt-soft-trash — SOFT delete to a recoverable Trash. A delete must NOT permanently remove the task; it moves the task to a recoverable/soft-deleted state (retained, hidden from the normal task list) and there must be a way to RESTORE it. Nothing is permanently destroyed by the user-facing delete. Existing seeded tasks remain active. Keep the build and tests green.
