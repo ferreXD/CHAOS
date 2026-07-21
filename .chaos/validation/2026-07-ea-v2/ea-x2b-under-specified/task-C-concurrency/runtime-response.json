@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "DEC-2026-07-21-prevent-concurrent-edit-loss-concurrency-control-stra-5b6c",
+  "commandRunId": "RUN-2026-07-21-chaos-propose-prevent-concurrent-edit-loss-89b9ee",
+  "selectedOptionId": "opt-optimistic",
+  "selectedOptionIds": [],
+  "freeformValue": null,
+  "rationale": "Best option here",
+  "selectedBy": "vscode-user",
+  "selectedAt": "2026-07-21T20:35:47.056Z",
+  "source": "vscode-decision-center",
+  "validatesAgainstDecisionHash": null,
+  "metadata": {}
+}

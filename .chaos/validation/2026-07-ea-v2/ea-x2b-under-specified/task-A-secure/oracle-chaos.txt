@@ -1,0 +1,7 @@
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Root_health_is_public
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Put_requires_key
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Get_list_is_public_without_key
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Post_requires_key
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Get_by_id_is_not_auth_gated_without_key
+Passed TaskTracker.Oracle.AuthScopeOracleTests.Delete_requires_key
+Total tests: 6

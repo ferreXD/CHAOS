@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "DEC-2026-07-21-delete-tasks-product-delete-semantics-what-do-715d",
+  "commandRunId": "RUN-2026-07-21-chaos-propose-delete-tasks-product-740f43",
+  "changeId": "delete-tasks-product",
+  "sourceCommand": "chaos:propose",
+  "interactionType": "single-choice-decision",
+  "state": "answered",
+  "title": "Delete semantics: what does \"get rid of a task\" mean for users?",
+  "context": "The request asks to make deleting tasks \"solid\" for users but does not say WHAT deletion should mean. Today DELETE /tasks/{id} is a PERMANENT hard delete (TaskStore.Remove -> ConcurrentDictionary.TryRemove): the task is gone irrecoverably, returns 204, or 404 if unknown. \"Users keep asking to get rid of tasks they don't need\" + \"make the get-rid-of experience solid\" + \"do what you think is right\" is a PRODUCT/ARCHITECTURE decision only a human should own (constitution S1, rule R-001). It is NOT derivable from the code (the code merely shows today's hard delete). The choice changes observable behaviour (undo/recoverability, whether GET /tasks hides deleted items, whether restore/list-trash endpoints exist), the domain model (a DeletedAt/IsDeleted marker or a new lifecycle state — touching R-005 TaskState naming if a new enum value is added), and the domain->HTTP boundary (R-004). It is deliberately NOT being decided by the agent; surfaced for a human. Recommendation is advisory only and does not pre-answer the decision.",
+  "recommendation": null,
+  "recommendedOptionId": "opt-soft-trash",
+  "options": [
+    {
+      "id": "opt-hard-harden",
+      "label": "Keep permanent hard delete; harden UX only",
+      "description": "Deletion stays irreversible. Improve robustness only: make DELETE idempotent/clear, keep 204, no recovery. Smallest change, no domain-model change.",
+      "consequence": "No undo. A user who deletes the wrong task loses it permanently; matches today's behaviour but does not address the 'solid experience / regret' motivation.",
+      "risk": "LOW effort / HIGH product risk if users expected recoverability.",
+      "recommended": false
+    },
+    {
+      "id": "opt-soft-trash",
+      "label": "Soft-delete to a recoverable Trash (with restore)",
+      "description": "DELETE marks the task deleted (DeletedAt/IsDeleted) and hides it from GET /tasks; add restore (undo) and optionally list-trash. Task data retained in-memory until purged.",
+      "consequence": "Users can undo an accidental delete — the 'solid get-rid-of experience' most consistent with users repeatedly asking to remove tasks. Requires GET /tasks to filter out deleted items, new restore endpoint(s), and a domain marker.",
+      "risk": "MEDIUM effort; changes GET /tasks contract + domain model. Best fit for stated intent (RECOMMENDED, advisory only).",
+      "recommended": false
+    },
+    {
+      "id": "opt-archive-state",
+      "label": "Archive as a first-class lifecycle state",
+      "description": "Add an 'Archived' concept to the task lifecycle (new TaskState value or separate flag). 'Get rid of' = archive, not destroy; archived tasks filterable, never lost.",
+      "consequence": "Semantically 'done with it' rather than 'trash'. Cleaner if the product wants archived work to remain reportable, but a new TaskState value touches R-005 naming and enum semantics repo-wide.",
+      "risk": "MEDIUM effort; enum/state change (R-005); may over-model if users truly want deletion, not archival.",
+      "recommended": false
+    },
+    {
+      "id": "opt-two-tier",
+      "label": "Two-tier: soft-delete Trash + explicit permanent purge",
+      "description": "Soft-delete to trash (undo) PLUS an explicit permanent-delete/purge endpoint and/or retention auto-expiry.",
+      "consequence": "Most complete UX (undo + true removal) but the largest surface: two delete semantics, purge endpoint, retention policy — retention/expiry brushes against the persistence NON-GOAL.",
+      "risk": "HIGH effort/scope; likely beyond a single change. Consider phasing after opt-soft-trash.",
+      "recommended": false
+    }
+  ],
+  "requiresRationale": true,
+  "independent": false,
+  "blocks": [],
+  "unlocksOn": {},
+  "createdAt": "2026-07-21T20:15:12.952Z",
+  "expiresAt": null,
+  "createdBy": "chaos:propose",
+  "metadata": {
+    "materiality": "primary",
+    "rule": "R-001",
+    "axis": "delete-semantics",
+    "recommendationIsAdvisoryOnly": true,
+    "resumeHints": {
+      "nextStep": null,
+      "lastCompletedStep": null
+    }
+  }
+}

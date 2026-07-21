@@ -54,6 +54,11 @@ defect traps. That oracle is what makes "later-found defects" **objective** rath
   arms' code diffs, oracle results, conformance scores, time, tokens, artifacts-read.
 - [`results.md`](results.md) — the scorecard vs thresholds (material catches/CHAOS run,
   time ratio), per pair and aggregate, with the mechanized-counterfactual caveat repeated.
+- [`harness/`](harness/) — the **durable, re-runnable kit** (workflow scripts, oracle scorer,
+  worktree setup, `RUNKIT.md` with the frozen baseline). Re-run after CHAOS performance fixes to
+  check whether the cost ratio (3.94× time / 4.75× tokens) improves. The **value**-focused
+  follow-up that fixes this harness's contract-pinning blind spot is
+  [`../ea-x2b-under-specified/`](../ea-x2b-under-specified/).
 
 ## Provenance of every number (read before trusting a metric)
 

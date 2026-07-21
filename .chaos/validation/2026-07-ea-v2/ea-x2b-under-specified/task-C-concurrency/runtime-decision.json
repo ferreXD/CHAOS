@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "DEC-2026-07-21-prevent-concurrent-edit-loss-concurrency-control-stra-5b6c",
+  "commandRunId": "RUN-2026-07-21-chaos-propose-prevent-concurrent-edit-loss-89b9ee",
+  "changeId": "prevent-concurrent-edit-loss",
+  "sourceCommand": "chaos:propose",
+  "interactionType": "single-choice-decision",
+  "state": "answered",
+  "title": "Concurrency-control strategy for task updates (how a lost edit is prevented)",
+  "context": "Incident: two people opened the same task, both saved via PUT /tasks/{id}, and the second save silently overwrote the first (a manager's status update was wiped, causing a missed handoff). Evidence (FACT): PUT /tasks/{id} in Endpoints/TaskEndpoints.cs (lines 38-46) calls TaskStore.Update (Domain/TaskStore.cs lines 34-42), which does a blind full-object replace via `existing with {...}` with NO concurrency check — classic last-write-wins / lost-update. Closing this requires choosing HOW updates detect/prevent an overwrite of unseen changes. This changes the PRODUCT's behaviour and the public API contract (new status codes, possibly a new required header or body field, and a new client retry/UX flow); it is not derivable from the code. Per constitution 1 and R-001 this is a human-owned material decision. NON-GOALS from architecture.md (persistence, auth) remain out of scope; note pessimistic locking implies server-side lock state that leans toward the persistence non-goal. Recommendation: Optimistic concurrency (reject stale writes) — REST-idiomatic, smallest blast radius, no lock lifecycle, directly makes the silent overwrite impossible by turning it into a visible conflict the loser must resolve. This decision must be answered by a human in the Decision Center before design/apply proceeds.",
+  "recommendation": null,
+  "recommendedOptionId": "opt-optimistic",
+  "options": [
+    {
+      "id": "opt-optimistic",
+      "label": "Optimistic concurrency — reject stale writes",
+      "description": "Each task carries a version/token the client reads. On update the client sends the version it saw; if it no longer matches, the server rejects the write with a conflict status and the client must re-fetch and retry. Makes the silent overwrite impossible by turning it into a visible, recoverable conflict.",
+      "consequence": "New conflict status code on PUT; clients must round-trip the version and handle 'someone else changed this, retry'. Smallest blast radius; no server lock lifecycle. Transport (ETag/If-Match header vs body version field) and the missing-token back-compat posture are a dependent follow-up decision.",
+      "risk": "LOW-MEDIUM: existing clients that do not send the token need a defined posture (reject vs grandfather).",
+      "recommended": true
+    },
+    {
+      "id": "opt-pessimistic",
+      "label": "Pessimistic locking — lock a task while it is being edited",
+      "description": "When a user opens a task to edit, the server grants an exclusive edit lock; a second editor cannot save (or cannot open) until the lock releases or its lease expires.",
+      "consequence": "Requires lock acquire/release/lease-expiry endpoints and server-side lock state, a lock-ownership/break-lock UX, and stale-lock handling. Larger surface; leans toward the persistence NON-GOAL (durable lock state) in architecture.md.",
+      "risk": "MEDIUM-HIGH: lock lifecycle, orphaned locks, and new UX; biggest behaviour change.",
+      "recommended": false
+    },
+    {
+      "id": "opt-merge",
+      "label": "Keep last-write-wins but detect and merge/surface conflicts",
+      "description": "Detect that the base version changed and perform a three-way merge: auto-merge non-overlapping field edits, and surface only genuinely conflicting fields for the user to resolve.",
+      "consequence": "Best UX (fewest rejected saves) but most complex: needs a merge engine, per-field base tracking, and a conflict-resolution UI/contract.",
+      "risk": "MEDIUM-HIGH: merge correctness is subtle; highest implementation cost.",
+      "recommended": false
+    },
+    {
+      "id": "opt-patch",
+      "label": "Switch full-object PUT to field-level PATCH (merge-patch)",
+      "description": "Replace the whole-object PUT with a partial PATCH so a save only writes the fields the user actually changed; non-overlapping edits no longer clobber each other.",
+      "consequence": "Reduces lost updates to the same-field case only — it does NOT fully close the hole (two people editing the same field still lose one). Changes the update verb/contract.",
+      "risk": "MEDIUM: partial fix; may give false confidence that the class of bug is gone when same-field edits still silently lose.",
+      "recommended": false
+    }
+  ],
+  "requiresRationale": true,
+  "independent": true,
+  "blocks": [],
+  "unlocksOn": {},
+  "createdAt": "2026-07-21T20:34:14.203Z",
+  "expiresAt": null,
+  "createdBy": "chaos:propose",
+  "metadata": {
+    "changeId": "prevent-concurrent-edit-loss",
+    "decisionRef": "PROP-DEC-001",
+    "rule": "R-001",
+    "knowledgeType": "FACT",
+    "evidence": [
+      "Endpoints/TaskEndpoints.cs:38-46",
+      "Domain/TaskStore.cs:34-42"
+    ],
+    "resumeHints": {
+      "nextStep": null,
+      "lastCompletedStep": null
+    }
+  }
+}

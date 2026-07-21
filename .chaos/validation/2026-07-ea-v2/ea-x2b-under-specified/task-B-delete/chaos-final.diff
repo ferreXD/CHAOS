@@ -1,0 +1,245 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..1130eda 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -21,9 +21,22 @@ public enum TaskPriority
+ }
+ 
+ /// <summary>An immutable task record held in the in-memory store.</summary>
++/// <remarks>
++/// <see cref="DeletedAt"/> is the soft-delete marker (change: delete-tasks-product, MD-001 =
++/// <c>opt-soft-trash</c>). A user-facing delete does NOT remove the record; it stamps
++/// <see cref="DeletedAt"/> so the task moves to a recoverable Trash (hidden from the normal
++/// list, restorable). <c>null</c> = active. Deliberately a separate marker rather than a new
++/// <see cref="TaskState"/> value, so the work-item status (Open/InProgress/Done) is preserved
++/// across delete→restore and R-005 (<c>TaskState</c> naming) is untouched.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    DateTimeOffset? DeletedAt = null)
++{
++    /// <summary><c>true</c> when the task is soft-deleted (in the recoverable Trash).</summary>
++    public bool IsDeleted => DeletedAt is not null;
++}
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..84d627c 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -21,12 +21,24 @@ public class TaskStore
+         AddAt("Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2));
+     }
+ 
+-    /// <summary>All tasks, in creation order.</summary>
++    /// <summary>Every task regardless of soft-delete state, in creation order.</summary>
+     public IReadOnlyList<TaskItem> All() =>
+         _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
+ 
++    /// <summary>
++    /// Active (not soft-deleted) tasks, in creation order. This is the "normal task list";
++    /// soft-deleted tasks live in <see cref="Trashed"/> and are hidden here.
++    /// </summary>
++    public IReadOnlyList<TaskItem> Active() =>
++        _tasks.Values.Where(t => !t.IsDeleted).OrderBy(t => t.CreatedAt).ToList();
++
++    /// <summary>Soft-deleted (recoverable) tasks — the Trash — most-recently-deleted first.</summary>
++    public IReadOnlyList<TaskItem> Trashed() =>
++        _tasks.Values.Where(t => t.IsDeleted).OrderByDescending(t => t.DeletedAt).ToList();
++
++    /// <summary>An active task by id. Soft-deleted tasks are hidden (returns <c>null</c>).</summary>
+     public TaskItem? Get(Guid id) =>
+-        _tasks.TryGetValue(id, out var task) ? task : null;
++        _tasks.TryGetValue(id, out var task) && !task.IsDeleted ? task : null;
+ 
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+@@ -41,6 +53,39 @@ public class TaskStore
+         return updated;
+     }
+ 
++    /// <summary>
++    /// Soft-delete: move a live task to the recoverable Trash by stamping <c>DeletedAt</c>.
++    /// The record is NEVER destroyed. Returns <c>true</c> when a live task was moved to Trash;
++    /// <c>false</c> if the id is unknown or the task is already trashed (nothing to do).
++    /// </summary>
++    public bool SoftDelete(Guid id)
++    {
++        if (!_tasks.TryGetValue(id, out var existing) || existing.IsDeleted)
++            return false;
++
++        _tasks[id] = existing with { DeletedAt = DateTimeOffset.UtcNow };
++        return true;
++    }
++
++    /// <summary>
++    /// Restore a soft-deleted task from the Trash (clears <c>DeletedAt</c>), preserving its
++    /// status/priority/title. Returns the restored task, or <c>null</c> if the id is unknown
++    /// or the task is not currently trashed.
++    /// </summary>
++    public TaskItem? Restore(Guid id)
++    {
++        if (!_tasks.TryGetValue(id, out var existing) || !existing.IsDeleted)
++            return null;
++
++        var restored = existing with { DeletedAt = null };
++        _tasks[id] = restored;
++        return restored;
++    }
++
++    /// <summary>
++    /// Permanent hard delete. Retained for internal/administrative use only — it is NOT wired to
++    /// the user-facing <c>DELETE</c> endpoint, which now soft-deletes (MD-001 = opt-soft-trash).
++    /// </summary>
+     public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..4ef7398 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -17,10 +17,15 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks — the normal task list: active tasks only. Soft-deleted tasks live in the
++        // recoverable Trash (GET /tasks/trash) and are hidden here (change: delete-tasks-product).
++        group.MapGet("/", (TaskStore store) => Results.Ok(store.Active()));
+ 
+-        // GET /tasks/{id}
++        // GET /tasks/trash — the recoverable Trash: soft-deleted tasks, restorable via POST .../restore.
++        // (Literal segment; the {id:guid} route below cannot match "trash".)
++        group.MapGet("/trash", (TaskStore store) => Results.Ok(store.Trashed()));
++
++        // GET /tasks/{id} — active tasks only; a trashed (or unknown) id returns 404.
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+             store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
+ 
+@@ -45,9 +50,18 @@ public static class TaskEndpoints
+                 : Results.NotFound();
+         });
+ 
+-        // DELETE /tasks/{id}
++        // DELETE /tasks/{id} — SOFT delete (change: delete-tasks-product; MD-001 = opt-soft-trash,
++        // human-answered 2026-07-21). "Get rid of it" moves the task to the recoverable Trash
++        // (marks DeletedAt, hides it from the normal list) — it is NEVER permanently destroyed.
++        // 204 when a live task is trashed; 404 for an unknown or already-trashed id (the existing
++        // non-idempotent 404 contract is preserved — MD-002 remains an open, deferred decision).
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Remove(id) ? Results.NoContent() : Results.NotFound());
++            store.SoftDelete(id) ? Results.NoContent() : Results.NotFound());
++
++        // POST /tasks/{id}/restore — recover a soft-deleted task from the Trash (the "undo").
++        // 200 with the restored task; 404 if the id is unknown or not currently trashed.
++        group.MapPost("/{id:guid}/restore", (Guid id, TaskStore store) =>
++            store.Restore(id) is { } restored ? Results.Ok(restored) : Results.NotFound());
+ 
+         return app;
+     }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..e869360 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -79,6 +79,83 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+     }
+ 
++    // --- Soft-delete / recoverable Trash (change: delete-tasks-product; MD-001 = opt-soft-trash) ---
++
++    [Fact]
++    public async Task Delete_soft_deletes_task_hiding_it_from_the_list_but_keeping_it_in_trash()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Soft-delete me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
++        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
++
++        // Hidden from the normal list...
++        var active = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(active!, t => t.Id == created.Id);
++
++        // ...but NOT destroyed — it is retained in the recoverable Trash, with DeletedAt stamped.
++        var trash = await client.GetFromJsonAsync<List<TaskDto>>("/tasks/trash");
++        var trashed = Assert.Single(trash!, t => t.Id == created.Id);
++        Assert.NotNull(trashed.DeletedAt);
++    }
++
++    [Fact]
++    public async Task Deleted_task_can_be_restored_from_trash()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Restore me", status = "InProgress", priority = "High" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        await client.DeleteAsync($"/tasks/{created!.Id}");
++
++        var restore = await client.PostAsync($"/tasks/{created.Id}/restore", content: null);
++        Assert.Equal(HttpStatusCode.OK, restore.StatusCode);
++
++        var restored = await restore.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.NotNull(restored);
++        Assert.Null(restored!.DeletedAt);
++        // Status/priority survive the delete→restore round-trip.
++        Assert.Equal("InProgress", restored.Status);
++        Assert.Equal("High", restored.Priority);
++
++        // Back in the normal list and reachable by id; no longer in the Trash.
++        var getAfter = await client.GetAsync($"/tasks/{created.Id}");
++        Assert.Equal(HttpStatusCode.OK, getAfter.StatusCode);
++
++        var active = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.Contains(active!, t => t.Id == created.Id);
++
++        var trash = await client.GetFromJsonAsync<List<TaskDto>>("/tasks/trash");
++        Assert.DoesNotContain(trash!, t => t.Id == created.Id);
++    }
++
++    [Fact]
++    public async Task Restore_unknown_task_returns_not_found()
++    {
++        var client = _factory.CreateClient();
++
++        var restore = await client.PostAsync($"/tasks/{Guid.NewGuid()}/restore", content: null);
++
++        Assert.Equal(HttpStatusCode.NotFound, restore.StatusCode);
++    }
++
++    [Fact]
++    public async Task Seeded_tasks_remain_active_and_trash_starts_empty_of_them()
++    {
++        var client = _factory.CreateClient();
++
++        var active = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.Contains(active!, t => t.Title == "Add query-param filters to GET /tasks");
++
++        // No seeded task is trashed on startup — seeded tasks remain active.
++        var trash = await client.GetFromJsonAsync<List<TaskDto>>("/tasks/trash");
++        Assert.DoesNotContain(trash!, t => t.Title == "Add query-param filters to GET /tasks");
++    }
++
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+@@ -90,6 +167,11 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
+-    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    /// <summary>
++    /// Mirror of the API's task shape; enums arrive as strings ("Open", "High"). <c>DeletedAt</c>
++    /// is the soft-delete marker (null = active, set = in the recoverable Trash).
++    /// </summary>
++    private record TaskDto(
++        Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt,
++        DateTimeOffset? DeletedAt = null);
+ }

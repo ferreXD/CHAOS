@@ -1,0 +1,224 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..9e0edb5 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -1,3 +1,5 @@
++using System.Text.Json.Serialization;
++
+ namespace TaskTracker.Api.Domain;
+ 
+ /// <summary>
+@@ -21,9 +23,16 @@ public enum TaskPriority
+ }
+ 
+ /// <summary>An immutable task record held in the in-memory store.</summary>
++/// <remarks>
++/// Deletion is soft: <see cref="DeletedAt"/> is stamped instead of dropping the record, so an
++/// accidental delete can be undone via <c>POST /tasks/{id}/restore</c>. The field is omitted from
++/// JSON while null, so live tasks serialize exactly as before; only trashed tasks carry it.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
++    DateTimeOffset? DeletedAt = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..b187cae 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -21,19 +21,23 @@ public class TaskStore
+         AddAt("Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2));
+     }
+ 
+-    /// <summary>All tasks, in creation order.</summary>
++    /// <summary>All live (non-deleted) tasks, in creation order.</summary>
+     public IReadOnlyList<TaskItem> All() =>
+-        _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
++        _tasks.Values.Where(t => t.DeletedAt is null).OrderBy(t => t.CreatedAt).ToList();
++
++    /// <summary>Soft-deleted tasks (the "trash"), most-recently-deleted first.</summary>
++    public IReadOnlyList<TaskItem> Deleted() =>
++        _tasks.Values.Where(t => t.DeletedAt is not null).OrderByDescending(t => t.DeletedAt).ToList();
+ 
+     public TaskItem? Get(Guid id) =>
+-        _tasks.TryGetValue(id, out var task) ? task : null;
++        _tasks.TryGetValue(id, out var task) && task.DeletedAt is null ? task : null;
+ 
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+ 
+     public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority)
+     {
+-        if (!_tasks.TryGetValue(id, out var existing))
++        if (!_tasks.TryGetValue(id, out var existing) || existing.DeletedAt is not null)
+             return null;
+ 
+         var updated = existing with { Title = title, Status = status, Priority = priority };
+@@ -41,7 +45,42 @@ public class TaskStore
+         return updated;
+     }
+ 
+-    public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
++    /// <summary>
++    /// Soft-deletes a task: stamps <see cref="TaskItem.DeletedAt"/> instead of dropping the record,
++    /// so it can be restored. Returns <c>true</c> only when a live task was moved to the trash;
++    /// <c>false</c> for an unknown id or one that was already deleted (so a repeat delete is a no-op).
++    /// </summary>
++    public bool Remove(Guid id)
++    {
++        while (true)
++        {
++            if (!_tasks.TryGetValue(id, out var existing) || existing.DeletedAt is not null)
++                return false;
++
++            var deleted = existing with { DeletedAt = DateTimeOffset.UtcNow };
++            if (_tasks.TryUpdate(id, deleted, existing))
++                return true;
++            // Lost a race with a concurrent writer; re-read and retry.
++        }
++    }
++
++    /// <summary>
++    /// Undoes a soft delete, bringing a task back to the live list. Returns the restored task, or
++    /// <c>null</c> if no trashed task with that id exists (nothing to undo).
++    /// </summary>
++    public TaskItem? Restore(Guid id)
++    {
++        while (true)
++        {
++            if (!_tasks.TryGetValue(id, out var existing) || existing.DeletedAt is null)
++                return null;
++
++            var restored = existing with { DeletedAt = null };
++            if (_tasks.TryUpdate(id, restored, existing))
++                return restored;
++            // Lost a race with a concurrent writer; re-read and retry.
++        }
++    }
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..4202cc0 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -45,10 +45,21 @@ public static class TaskEndpoints
+                 : Results.NotFound();
+         });
+ 
+-        // DELETE /tasks/{id}
++        // GET /tasks/deleted — the "trash": soft-deleted tasks that can still be restored.
++        // Declared before the "/{id:guid}" route; "deleted" fails the guid constraint, so there's
++        // no ambiguity, but keeping it adjacent to DELETE/restore keeps the delete story together.
++        group.MapGet("/deleted", (TaskStore store) => Results.Ok(store.Deleted()));
++
++        // DELETE /tasks/{id} — soft delete. The task moves to the trash and disappears from GET
++        // /tasks and GET /tasks/{id}, but can be brought back via the restore endpoint below.
++        // 204 when a live task was deleted; 404 for an unknown or already-deleted id.
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+             store.Remove(id) ? Results.NoContent() : Results.NotFound());
+ 
++        // POST /tasks/{id}/restore — undo a delete, bringing the task back to the live list.
++        group.MapPost("/{id:guid}/restore", (Guid id, TaskStore store) =>
++            store.Restore(id) is { } restored ? Results.Ok(restored) : Results.NotFound());
++
+         return app;
+     }
+ }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..4c97ff3 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -79,6 +79,78 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Delete_then_restore_brings_the_task_back()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Undo me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
++        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
++
++        // Gone from the live view while trashed.
++        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/tasks/{created.Id}")).StatusCode);
++
++        var restore = await client.PostAsync($"/tasks/{created.Id}/restore", content: null);
++        Assert.Equal(HttpStatusCode.OK, restore.StatusCode);
++        var restored = await restore.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal("Undo me", restored!.Title);
++        Assert.Null(restored.DeletedAt);
++
++        // Back in the live view, fetchable again.
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Undo me", fetched!.Title);
++    }
++
++    [Fact]
++    public async Task Deleted_task_leaves_the_list_and_shows_up_in_the_trash()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Trash me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        await client.DeleteAsync($"/tasks/{created!.Id}");
++
++        var live = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(live!, t => t.Id == created.Id);
++
++        var trash = await client.GetFromJsonAsync<List<TaskDto>>("/tasks/deleted");
++        var trashed = Assert.Single(trash!, t => t.Id == created.Id);
++        Assert.NotNull(trashed.DeletedAt);
++    }
++
++    [Fact]
++    public async Task Deleting_an_already_deleted_task_returns_not_found()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Twice", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/tasks/{created!.Id}")).StatusCode);
++        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"/tasks/{created.Id}")).StatusCode);
++    }
++
++    [Fact]
++    public async Task Restoring_something_that_was_not_deleted_returns_not_found()
++    {
++        var client = _factory.CreateClient();
++
++        // Unknown id.
++        Assert.Equal(HttpStatusCode.NotFound,
++            (await client.PostAsync($"/tasks/{Guid.NewGuid()}/restore", content: null)).StatusCode);
++
++        // A live task that is not in the trash.
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Still here", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(HttpStatusCode.NotFound,
++            (await client.PostAsync($"/tasks/{created!.Id}/restore", content: null)).StatusCode);
++    }
++
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+@@ -91,5 +163,8 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     }
+ 
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    /// <remarks><c>DeletedAt</c> is present only for trashed tasks; null/absent for live ones.</remarks>
++    private record TaskDto(
++        Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt,
++        DateTimeOffset? DeletedAt = null);
+ }

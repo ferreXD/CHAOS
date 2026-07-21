@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "DEC-2026-07-21-delete-tasks-product-delete-semantics-what-do-715d",
+  "commandRunId": "RUN-2026-07-21-chaos-propose-delete-tasks-product-740f43",
+  "selectedOptionId": "opt-soft-trash",
+  "selectedOptionIds": [],
+  "freeformValue": null,
+  "rationale": "Easier as a first implementation and we an extend later on if needed with options 3 or 4",
+  "selectedBy": "vscode-user",
+  "selectedAt": "2026-07-21T20:18:10.999Z",
+  "source": "vscode-decision-center",
+  "validatesAgainstDecisionHash": null,
+  "metadata": {}
+}

@@ -1,0 +1,337 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..e53947c 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -21,9 +21,16 @@ public enum TaskPriority
+ }
+ 
+ /// <summary>An immutable task record held in the in-memory store.</summary>
++/// <remarks>
++/// <see cref="Version"/> is a monotonically increasing concurrency token: it starts at 1 when
++/// the task is created and is bumped on every successful update. It powers optimistic
++/// concurrency control — the ETag / <c>If-Match</c> mechanism on PUT — so that two people
++/// editing the same task can't silently overwrite each other.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    long Version = 1);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..e859248 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -31,14 +31,39 @@ public class TaskStore
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+ 
+-    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority)
++    /// <summary>
++    /// Applies an optimistic-concurrency update. The caller must supply the
++    /// <paramref name="expectedVersion"/> it last observed; the write only lands if it still
++    /// matches the stored version. This turns a stale, would-be-silent overwrite into a
++    /// detectable <see cref="UpdateOutcome.VersionConflict"/> instead of clobbering the store.
++    /// </summary>
++    public UpdateResult Update(Guid id, string title, TaskState status, TaskPriority priority, long expectedVersion)
+     {
+-        if (!_tasks.TryGetValue(id, out var existing))
+-            return null;
++        // Retry loop guards the read-check-write against a concurrent writer slipping in between
++        // our version check and our commit. TryUpdate is an atomic compare-and-swap on the
++        // (immutable) existing snapshot, so the loser of a race re-evaluates the version and
++        // ultimately reports a conflict rather than winning by luck.
++        while (true)
++        {
++            if (!_tasks.TryGetValue(id, out var existing))
++                return new UpdateResult(UpdateOutcome.NotFound, null);
+ 
+-        var updated = existing with { Title = title, Status = status, Priority = priority };
+-        _tasks[id] = updated;
+-        return updated;
++            if (existing.Version != expectedVersion)
++                return new UpdateResult(UpdateOutcome.VersionConflict, existing);
++
++            var updated = existing with
++            {
++                Title = title,
++                Status = status,
++                Priority = priority,
++                Version = existing.Version + 1
++            };
++
++            if (_tasks.TryUpdate(id, updated, existing))
++                return new UpdateResult(UpdateOutcome.Updated, updated);
++
++            // A concurrent update changed the entry after our read; loop and re-check the version.
++        }
+     }
+ 
+     public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
+@@ -50,3 +75,23 @@ public class TaskStore
+         return task;
+     }
+ }
++
++/// <summary>Outcome of an optimistic-concurrency <see cref="TaskStore.Update"/>.</summary>
++public enum UpdateOutcome
++{
++    /// <summary>The task existed, the expected version matched, and the update was applied.</summary>
++    Updated,
++
++    /// <summary>No task with the given id exists.</summary>
++    NotFound,
++
++    /// <summary>The task exists but the expected version is stale — another edit landed first.</summary>
++    VersionConflict
++}
++
++/// <summary>
++/// Result of an update attempt. On <see cref="UpdateOutcome.Updated"/> <see cref="Task"/> is the
++/// new state; on <see cref="UpdateOutcome.VersionConflict"/> it is the current (winning) state so
++/// the caller can surface the up-to-date version; on <see cref="UpdateOutcome.NotFound"/> it is null.
++/// </summary>
++public readonly record struct UpdateResult(UpdateOutcome Outcome, TaskItem? Task);
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..aeb9686 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -1,3 +1,5 @@
++using System.Globalization;
++using Microsoft.Net.Http.Headers;
+ using TaskTracker.Api.Contracts;
+ using TaskTracker.Api.Domain;
+ 
+@@ -20,29 +22,67 @@ public static class TaskEndpoints
+         // GET /tasks — returns every task in the store. No filtering (yet).
+         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+ 
+-        // GET /tasks/{id}
+-        group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
++        // GET /tasks/{id} — also advertises the current version via a strong ETag so clients
++        // can echo it back on their next PUT (via If-Match).
++        group.MapGet("/{id:guid}", (Guid id, HttpResponse response, TaskStore store) =>
++        {
++            if (store.Get(id) is not { } task)
++                return Results.NotFound();
++
++            SetETag(response, task.Version);
++            return Results.Ok(task);
++        });
+ 
+-        // POST /tasks
+-        group.MapPost("/", (CreateTaskRequest request, TaskStore store) =>
++        // POST /tasks — the created task starts at version 1; return its ETag too.
++        group.MapPost("/", (CreateTaskRequest request, HttpResponse response, TaskStore store) =>
+         {
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+             var task = store.Add(request.Title, request.Status, request.Priority);
++            SetETag(response, task.Version);
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+ 
+-        // PUT /tasks/{id}
+-        group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store) =>
++        // PUT /tasks/{id} — optimistic concurrency. The client MUST declare which version it is
++        // editing via an If-Match header (the ETag it last read). This is what stops the
++        // "two people saved, one edit silently vanished" incident:
++        //   * missing If-Match        -> 428 Precondition Required  (can't blind-write anymore)
++        //   * If-Match is stale        -> 412 Precondition Failed    (someone edited first; caught, not lost)
++        //   * If-Match matches current -> 200 OK, version bumped, new ETag returned
++        group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, HttpRequest httpRequest, HttpResponse response, TaskStore store) =>
+         {
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+-                ? Results.Ok(updated)
+-                : Results.NotFound();
++            if (!TryGetIfMatchVersion(httpRequest, out var expectedVersion))
++            {
++                return Results.Json(
++                    new { error = "An If-Match header carrying the task's current ETag is required to update a task." },
++                    statusCode: StatusCodes.Status428PreconditionRequired);
++            }
++
++            var result = store.Update(id, request.Title, request.Status, request.Priority, expectedVersion);
++            switch (result.Outcome)
++            {
++                case UpdateOutcome.Updated:
++                    SetETag(response, result.Task!.Version);
++                    return Results.Ok(result.Task);
++
++                case UpdateOutcome.VersionConflict:
++                    SetETag(response, result.Task!.Version);
++                    return Results.Json(
++                        new
++                        {
++                            error = "The task was modified by someone else since you loaded it. Re-fetch it, reapply your changes, and try again.",
++                            currentVersion = result.Task!.Version
++                        },
++                        statusCode: StatusCodes.Status412PreconditionFailed);
++
++                case UpdateOutcome.NotFound:
++                default:
++                    return Results.NotFound();
++            }
+         });
+ 
+         // DELETE /tasks/{id}
+@@ -51,4 +91,38 @@ public static class TaskEndpoints
+ 
+         return app;
+     }
++
++    /// <summary>Writes the version as a strong ETag (e.g. <c>"3"</c>) on the response.</summary>
++    private static void SetETag(HttpResponse response, long version) =>
++        response.Headers.ETag = $"\"{version.ToString(CultureInfo.InvariantCulture)}\"";
++
++    /// <summary>
++    /// Parses the version a client is asserting from the <c>If-Match</c> header. Accepts a single
++    /// concrete entity-tag (strong <c>"3"</c> or weak <c>W/"3"</c>). Returns false when the header
++    /// is absent/blank, is a wildcard (<c>*</c>), lists multiple tags, or is otherwise not a
++    /// concrete version — all of which we reject rather than treat as "overwrite anything", since
++    /// bypassing the version check is exactly the failure mode we're closing.
++    /// </summary>
++    private static bool TryGetIfMatchVersion(HttpRequest request, out long version)
++    {
++        version = 0;
++
++        var raw = request.Headers[HeaderNames.IfMatch];
++        if (raw.Count != 1)
++            return false;
++
++        var value = raw.ToString().Trim();
++        if (value.Length == 0 || value == "*")
++            return false;
++
++        // Strip a weak-validator prefix, then the surrounding quotes.
++        if (value.StartsWith("W/", StringComparison.Ordinal))
++            value = value[2..].Trim();
++
++        if (value.Length < 2 || value[0] != '"' || value[^1] != '"')
++            return false;
++
++        var inner = value[1..^1];
++        return long.TryParse(inner, NumberStyles.None, CultureInfo.InvariantCulture, out version);
++    }
+ }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..bedd1ec 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -48,20 +48,99 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     }
+ 
+     [Fact]
+-    public async Task Put_updates_an_existing_task()
++    public async Task Put_with_matching_if_match_updates_the_task_and_bumps_the_version()
+     {
+         var client = _factory.CreateClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(1, created!.Version);
+ 
+-        var update = await client.PutAsJsonAsync(
+-            $"/tasks/{created!.Id}", new { title = "Final", status = "Done", priority = "Medium" });
++        var update = await PutWithIfMatch(
++            client, created.Id, created.Version,
++            new { title = "Final", status = "Done", priority = "Medium" });
+         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+ 
++        var updated = await update.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(2, updated!.Version); // version advances on every successful edit
++        Assert.Equal("\"2\"", update.Headers.ETag!.ToString());
++
+         var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
+         Assert.Equal("Final", fetched!.Title);
+         Assert.Equal("Done", fetched.Status);
++        Assert.Equal(2, fetched.Version);
++    }
++
++    [Fact]
++    public async Task Put_without_if_match_is_rejected_so_updates_cant_blind_write()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        // No If-Match header at all — the pre-fix "just save" behavior — is now refused.
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = "Final", status = "Done", priority = "Medium" });
++        Assert.Equal(HttpStatusCode.PreconditionRequired, update.StatusCode); // 428
++
++        // The task is untouched.
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Draft", fetched!.Title);
++        Assert.Equal(1, fetched.Version);
++    }
++
++    [Fact]
++    public async Task Put_with_stale_if_match_is_rejected_and_does_not_overwrite_the_newer_edit()
++    {
++        // This is the incident: two people load the same task (both see version 1); the first
++        // save wins, the second must NOT silently clobber it.
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Handoff notes", status = "Open", priority = "High" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var versionBothLoaded = created!.Version; // == 1
++
++        // Person A saves first with the version everyone loaded -> succeeds, task is now version 2.
++        var firstSave = await PutWithIfMatch(
++            client, created.Id, versionBothLoaded,
++            new { title = "Handoff notes — status: BLOCKED on infra", status = "InProgress", priority = "High" });
++        Assert.Equal(HttpStatusCode.OK, firstSave.StatusCode);
++
++        // Person B saves using the now-stale version 1 -> conflict, not a silent overwrite.
++        var secondSave = await PutWithIfMatch(
++            client, created.Id, versionBothLoaded,
++            new { title = "Handoff notes — minor typo fix", status = "Open", priority = "High" });
++        Assert.Equal(HttpStatusCode.PreconditionFailed, secondSave.StatusCode); // 412
++
++        // Person A's update survived; Person B's blind overwrite did not land.
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Handoff notes — status: BLOCKED on infra", fetched!.Title);
++        Assert.Equal("InProgress", fetched.Status);
++        Assert.Equal(2, fetched.Version);
++    }
++
++    [Fact]
++    public async Task Put_with_if_match_on_missing_task_returns_not_found()
++    {
++        var client = _factory.CreateClient();
++
++        var update = await PutWithIfMatch(
++            client, Guid.NewGuid(), 1,
++            new { title = "Ghost", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.NotFound, update.StatusCode);
++    }
++
++    private static Task<HttpResponseMessage> PutWithIfMatch(
++        HttpClient client, Guid id, long version, object body)
++    {
++        var request = new HttpRequestMessage(HttpMethod.Put, $"/tasks/{id}")
++        {
++            Content = JsonContent.Create(body)
++        };
++        request.Headers.TryAddWithoutValidation("If-Match", $"\"{version}\"");
++        return client.SendAsync(request);
+     }
+ 
+     [Fact]
+@@ -91,5 +170,5 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     }
+ 
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt, long Version);
+ }

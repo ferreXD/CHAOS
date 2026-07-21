@@ -1,0 +1,326 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..c89dccd 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -1,5 +1,6 @@
+ using TaskTracker.Api.Contracts;
+ using TaskTracker.Api.Domain;
++using TaskTracker.Api.Security;
+ 
+ namespace TaskTracker.Api.Endpoints;
+ 
+@@ -17,6 +18,9 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
++        // --- Reads: PUBLIC (no API key) ---------------------------------------------------------
++        // SEC-DEC-001 (human-answered): reads stay public so the read-only status page keeps working.
++
+         // GET /tasks — returns every task in the store. No filtering (yet).
+         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+ 
+@@ -24,6 +28,10 @@ public static class TaskEndpoints
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+             store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
+ 
++        // --- Writes: PROTECTED (require a valid X-Api-Key) --------------------------------------
++        // SEC-DEC-001/002/003 (human-answered): POST/PUT/DELETE require a valid key in X-Api-Key;
++        // a missing/invalid key returns 401. Enforced by ApiKeyEndpointFilter, attached per-route.
++
+         // POST /tasks
+         group.MapPost("/", (CreateTaskRequest request, TaskStore store) =>
+         {
+@@ -32,7 +40,8 @@ public static class TaskEndpoints
+ 
+             var task = store.Add(request.Title, request.Status, request.Priority);
+             return Results.Created($"/tasks/{task.Id}", task);
+-        });
++        })
++        .AddEndpointFilter<ApiKeyEndpointFilter>();
+ 
+         // PUT /tasks/{id}
+         group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store) =>
+@@ -43,11 +52,13 @@ public static class TaskEndpoints
+             return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+                 ? Results.Ok(updated)
+                 : Results.NotFound();
+-        });
++        })
++        .AddEndpointFilter<ApiKeyEndpointFilter>();
+ 
+         // DELETE /tasks/{id}
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Remove(id) ? Results.NoContent() : Results.NotFound());
++            store.Remove(id) ? Results.NoContent() : Results.NotFound())
++        .AddEndpointFilter<ApiKeyEndpointFilter>();
+ 
+         return app;
+     }
+diff --git a/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+new file mode 100644
+index 0000000..681ce1e
+--- /dev/null
++++ b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+@@ -0,0 +1,54 @@
++namespace TaskTracker.Api.Security;
++
++/// <summary>
++/// Enforces a shared-secret API key on the endpoints it is attached to.
++///
++/// Governance: implements the human-answered decisions for change
++/// <c>secure-api-public-exposure</c> (see
++/// <c>.chaos/changes/secure-api-public-exposure/decision-events.md</c>):
++/// <list type="bullet">
++///   <item>SEC-DEC-001 → <b>reads-public / writes-protected</b>: this filter is applied ONLY to the
++///     write routes (<c>POST</c>/<c>PUT</c>/<c>DELETE</c> on <c>/tasks</c>). <c>GET /tasks</c>,
++///     <c>GET /tasks/{id}</c> and the <c>GET /</c> health endpoint stay public and never see it.</item>
++///   <item>SEC-DEC-002 → single shared secret read from configuration key <c>ApiKey</c>, defaulting
++///     to <c>test-secret-key</c> when unset. No per-consumer identity, no key store.</item>
++///   <item>SEC-DEC-003 → the key travels in the <c>X-Api-Key</c> request header; a missing or invalid
++///     key yields <c>401 Unauthorized</c>.</item>
++/// </list>
++///
++/// This is an HTTP-pipeline concern only: it depends on ASP.NET Core + configuration and never on the
++/// domain layer, preserving the domain→HTTP boundary (R-004).
++/// </summary>
++public sealed class ApiKeyEndpointFilter : IEndpointFilter
++{
++    /// <summary>Request header that carries the API key (SEC-DEC-003).</summary>
++    public const string HeaderName = "X-Api-Key";
++
++    /// <summary>Configuration key the valid secret is read from (SEC-DEC-002).</summary>
++    public const string ConfigKey = "ApiKey";
++
++    /// <summary>Fallback secret used when <see cref="ConfigKey"/> is unset (SEC-DEC-002).</summary>
++    public const string DefaultKey = "test-secret-key";
++
++    private readonly string _validKey;
++
++    public ApiKeyEndpointFilter(IConfiguration configuration)
++    {
++        // Read once from configuration; fall back to the demo default when unset.
++        _validKey = configuration[ConfigKey] ?? DefaultKey;
++    }
++
++    public async ValueTask<object?> InvokeAsync(
++        EndpointFilterInvocationContext context, EndpointFilterDelegate next)
++    {
++        var provided = context.HttpContext.Request.Headers[HeaderName].ToString();
++
++        if (string.IsNullOrEmpty(provided) || !string.Equals(provided, _validKey, StringComparison.Ordinal))
++        {
++            // Missing or invalid credential — reject before the handler runs.
++            return Results.Unauthorized();
++        }
++
++        return await next(context);
++    }
++}
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..2efcbf2 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -7,19 +7,39 @@ namespace TaskTracker.Tests;
+ 
+ /// <summary>
+ /// Integration tests that boot the real API in-memory via <see cref="WebApplicationFactory{T}"/>
+-/// and exercise the CRUD endpoints over HTTP. These lock in the current (pre-filtering) behavior
+-/// and give the CHAOS apply/verify steps a green baseline to build on.
++/// and exercise the CRUD endpoints over HTTP.
++///
++/// Post <c>secure-api-public-exposure</c> (human-answered, reads-public / writes-protected):
++/// GET routes and the <c>GET /</c> health endpoint stay PUBLIC; POST/PUT/DELETE require a valid
++/// <c>X-Api-Key</c> header (default demo key <c>test-secret-key</c>) or return 401. These tests
++/// lock in exactly that contract and keep the CHAOS apply/verify baseline green.
+ /// </summary>
+ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+ {
++    private const string ApiKeyHeader = "X-Api-Key";
++    private const string ValidApiKey = "test-secret-key";
++
+     private readonly WebApplicationFactory<Program> _factory;
+ 
+     public TaskEndpointsTests(WebApplicationFactory<Program> factory) => _factory = factory;
+ 
++    /// <summary>A client with NO credential — used to prove the public (read) surface.</summary>
++    private HttpClient CreatePublicClient() => _factory.CreateClient();
++
++    /// <summary>A client carrying the valid API key — used for the protected (write) surface.</summary>
++    private HttpClient CreateAuthedClient()
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Add(ApiKeyHeader, ValidApiKey);
++        return client;
++    }
++
++    // --- Reads: PUBLIC (no key required) ---------------------------------------------------------
++
+     [Fact]
+     public async Task Get_tasks_returns_the_seeded_tasks()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreatePublicClient();
+ 
+         var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
+ 
+@@ -28,10 +48,47 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Contains(tasks!, t => t.Title == "Add query-param filters to GET /tasks");
+     }
+ 
++    [Fact]
++    public async Task Get_tasks_is_public_without_api_key()
++    {
++        var client = CreatePublicClient();
++
++        var response = await client.GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Get_task_by_id_is_public_without_api_key()
++    {
++        // Create (with key) then read it back with NO key — the read must stay public.
++        var created = await (await CreateAuthedClient().PostAsJsonAsync(
++            "/tasks", new { title = "Publicly readable", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await CreatePublicClient().GetAsync($"/tasks/{created!.Id}");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        var fetched = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal("Publicly readable", fetched!.Title);
++    }
++
++    [Fact]
++    public async Task Root_health_is_public_without_api_key()
++    {
++        var client = CreatePublicClient();
++
++        var response = await client.GetAsync("/");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    // --- Writes: PROTECTED (valid X-Api-Key required) -------------------------------------------
++
+     [Fact]
+     public async Task Post_creates_a_task_and_get_by_id_returns_it()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "Write tests", status = "Open", priority = "High" });
+@@ -41,7 +98,8 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.NotNull(created);
+         Assert.NotEqual(Guid.Empty, created!.Id);
+ 
+-        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        // Read-back over the PUBLIC surface (no key) — reads are open.
++        var fetched = await CreatePublicClient().GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
+         Assert.Equal("Write tests", fetched!.Title);
+         Assert.Equal("Open", fetched.Status);
+         Assert.Equal("High", fetched.Priority);
+@@ -50,7 +108,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Put_updates_an_existing_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -59,7 +117,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+             $"/tasks/{created!.Id}", new { title = "Final", status = "Done", priority = "Medium" });
+         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+ 
+-        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        var fetched = await CreatePublicClient().GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
+         Assert.Equal("Final", fetched!.Title);
+         Assert.Equal("Done", fetched.Status);
+     }
+@@ -67,7 +125,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Delete_removes_a_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Temporary", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -75,14 +133,14 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
+         Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+ 
+-        var getAfter = await client.GetAsync($"/tasks/{created.Id}");
++        var getAfter = await CreatePublicClient().GetAsync($"/tasks/{created.Id}");
+         Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+     }
+ 
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "", status = "Open", priority = "Low" });
+@@ -90,6 +148,57 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    // --- Writes without a valid key: 401 --------------------------------------------------------
++
++    [Fact]
++    public async Task Post_without_api_key_returns_401()
++    {
++        var client = CreatePublicClient();
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = "No key", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Post_with_wrong_api_key_returns_401()
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Add(ApiKeyHeader, "not-the-real-key");
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = "Wrong key", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Put_without_api_key_returns_401()
++    {
++        // Seed a task (with key) so the PUT targets a real id; the unauthenticated PUT must still 401.
++        var created = await (await CreateAuthedClient().PostAsJsonAsync(
++            "/tasks", new { title = "Guarded", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await CreatePublicClient().PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = "Hacked", status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Delete_without_api_key_returns_401()
++    {
++        var created = await (await CreateAuthedClient().PostAsJsonAsync(
++            "/tasks", new { title = "Do not delete", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await CreatePublicClient().DeleteAsync($"/tasks/{created!.Id}");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }
