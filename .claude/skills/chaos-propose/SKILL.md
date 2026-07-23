@@ -60,6 +60,7 @@ Before operating, read the reference files in this skill (and the shared policie
 - `reference/output-contract.md`
 - `reference/change-artifacts-layout.md`
 - `reference/question-bank.md`
+- `.claude/skills/chaos-shared/reference/change-template.md` (universal change artifacts)
 
 ## Workflow
 
@@ -91,6 +92,40 @@ Before operating, read the reference files in this skill (and the shared policie
     Write the proposal report to `.chaos/changes/<change-id>/proposal-report.md`. See
     `reference/change-artifacts-layout.md`.
 12. Recommend `chaos:review <change-id>`.
+
+## Light mode: collapsed FRAME workflow
+
+On `--light`, `chaos:propose` owns **FRAME** of the collapsed two-phase lifecycle
+(FRAME → human answers → `chaos:apply` delivers; design:
+`docs/design/2026-07-24-artifact-model-roadmap.md`). Steps 1–7 above still apply, with the
+evidence scan **scoped**: read only the files/modules the intent names + the rules index + the
+architecture posture. No repo-wide discovery sweeps; no assessments/archaeology unless the change
+touches them. Then, instead of steps 8–12:
+
+1. Run the **hard OpenSpec invocation gate** exactly as step 9 (OpenSpec is unchanged in every
+   mode).
+2. Write the change folder per the light layout (`reference/change-artifacts-layout.md`):
+   `change.md` (intent + contract + review line — formats in
+   `chaos-shared/reference/change-template.md`; **tables/checklists/single lines only, no
+   paragraphs**), lean decision entries, `lifecycle.md` stub. **No `proposal-report.md`, no
+   `proposal-review.md`** — the Review line in `change.md` records the inline self-review
+   (checklist: scope sane / rules mapped / contract testable / decisions complete; failure ⇒
+   escalate, do not iterate).
+3. Surface every material decision to the interaction runtime — **same materiality bar as
+   standard**; light never means fewer decisions. Exactly one entry carries
+   `approves-change: true` (answering it is the approval — no `approval.md`). If no material
+   decision exists, surface the explicit gate decision "Approve contract as framed?" — light's
+   floor is one human stop, never zero.
+4. Create the resume capsule (`nextStep: deliver`, contract hash, scope list, in-scope rule ids)
+   and **STOP** (mustStop). Next command after answers: `chaos:apply` (mode is inferred from
+   `change.md`; `chaos:review` is not part of the light path).
+
+**Auto-escalation valve (one-way, never ask):** escalate to `--standard` when the change crosses
+an architecture non-goal/posture, surfaces more than `modes.light.maxMaterialDecisions` material
+decisions (config, default 2), fails the self-review checklist, or OpenSpec is unavailable
+(degraded mode). Announce it, add the `⚠ escalated` line under the `change.md` H1, set
+`escalatedFrom: light`, append an `ESC-*` entry — then continue on the standard path reusing all
+FRAME output. Never downgrade automatically.
 
 ## UX rule
 

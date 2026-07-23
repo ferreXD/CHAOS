@@ -112,6 +112,15 @@ policies:
     defaultMode: standard
     allowStrictDowngradeWithRationale: true
 
+  # Collapsed light lifecycle (Stage A — docs/design/2026-07-24-artifact-model-roadmap.md).
+  # Light = FRAME (chaos:propose --light) -> human answers -> DELIVER (chaos:apply, mode
+  # inferred from change.md). Same decisions, same human weight; less ceremony.
+  lightMode:
+    collapsedWorkflow: true
+    maxMaterialDecisions: 2       # exceeding this auto-escalates light -> standard
+    autoEscalate: true            # never ask; always announce + record (escalatedFrom, ESC-*)
+    allowStandaloneApplyEntry: true
+
   decisions:
     requireDecisionEvents: true
     requireSyncAction: true

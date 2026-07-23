@@ -1,26 +1,26 @@
 # CHAOS Sync Skill
 
-Use this skill whenever the user invokes `chaos:sync`, `chaos-sync.prompt.md`, or asks to reconcile CHAOS with OpenSpec, ADRs, decisions, rules, gates, reports, or agent instructions.
+Use this skill whenever the user invokes `chaos:sync`, `/chaos-sync`, or asks to reconcile CHAOS with OpenSpec, ADRs, decisions, rules, gates, reports, or agent instructions.
 
 ## Intent
 
-`chaos:sync` is the governance reconciliation command. It detects drift, classifies decisions, promotes lived decisions into durable governance, creates lightweight ADRs/decision logs/rules/gates when selected, updates indexes, reconciles protected documentation (`AGENTS.md` / `AGENT.md` and `README.md`), reconciles Copilot command-suite hardening drift, and writes a sync report.
+`chaos:sync` is the governance reconciliation command. It detects drift, classifies decisions, promotes lived decisions into durable governance, creates lightweight ADRs/decision logs/rules/gates when selected, updates indexes, reconciles protected documentation (`AGENTS.md` / `AGENT.md` and `README.md`), reconciles Claude command-suite hardening drift, and writes a sync report.
 
 ## Model robustness (non-negotiable)
 
-Execute reliably on the weakest supported Copilot model. Obey
+Execute reliably on the weakest supported Claude model. Obey
 `.github/skills/chaos-shared/reference/model-robustness-policy.md` and
 `.github/skills/chaos-shared/reference/interactive-decision-protocol.md`. The `--all`
 maintainer confirmation gate, one-decision-at-a-time reconciliation, and
 stop-after-decision are mandatory and non-inferable.
 
-## Copilot hardening-drift reconciliation
+## Claude hardening-drift reconciliation
 
 When `chaos:status` reports `CS-HARDEN-*` drift (missing command execution contracts,
 missing OpenSpec gate, missing decision-protocol references, missing sync authority prompt,
 missing change-scoped artifact references, missing artifact-naming-policy references),
 `chaos:sync` can reconcile it **one item at a time, with patch preview and confirmation**.
-Never bulk-rewrite command wrappers silently. These edits touch `.github/` contracts only.
+Never bulk-rewrite command wrappers silently. These edits touch `.claude/` contracts only.
 
 ## Repository context (vNext)
 
@@ -57,12 +57,21 @@ confirmation per `mcp-security-policy.md`).
    - `--change <change-id>` is contributor-safe and reconciles only that change folder.
    - `--since/--adrs/--rules/--gates/--agents` are maintainer-level.
    - `--all` is repo-owner-only and requires the maintainer confirmation gate.
-3. Inspect sources.
+3. Inspect sources. For `--all`, resolve repository context and evaluate authority posture
+   before any reconciliation write.
 4. Detect drift.
 5. Build chat-first dashboard.
 6. Print dashboard before any decision loop, including AGENTS/README drift.
-7. For `--all`, ask the maintainer confirmation question before any reconciliation
-   (skip only in `--dry-run`; `--strict` blocks without confirmation).
+7. For `--all`, the maintainer / repo-owner confirmation is a **material decision**. When
+   `policies.interactionRuntime.commands.enabled` is true and the runtime is available, create
+   it **through the runtime** (`chaos_create_decision`) with `interactionType: confirmation`
+   (a yes/no gate — two options, e.g. `confirm-repo-owner` / `not-owner-stop`), receive
+   `mustStop: true`, and **STOP**. It is answered in the Decision
+   Center; `chaos:resume` then continues the sync. Do **not** ask it as an ordinary chat
+   question in this mode. Only when command integration is disabled or the runtime is
+   unavailable, fall back to the in-chat maintainer confirmation
+   (`interactive-decision-protocol.md`). Skip in `--dry-run`; `--strict` blocks without
+   confirmation. Contract: `.github/skills/chaos-interaction-runtime/reference/material-decision-protocol.md`.
 8. Reconcile each decision one by one.
 9. For `--all`, detect and reconcile duplicate sequential index IDs one by one.
 10. Reconcile protected documentation drift one file/issue at a time.
@@ -81,6 +90,10 @@ confirmation per `mcp-security-policy.md`).
 - Do not silently apply semantic governance updates.
 - Do not convert every decision into an ADR.
 - Do not create vague rules or gates.
+- Do not regenerate retired narrative reports for `change.md`-based changes: on such changes
+  (e.g. the collapsed light path — `chaos-shared/reference/change-template.md`) sync keys on
+  `decision-events.md` (anatomy unchanged) plus the `change.md` status/verdict fields, and
+  updates indexes only.
 - Do not edit production code.
 - Do not hide sync debt.
 
@@ -99,18 +112,15 @@ Read the reference files in this folder before executing:
 - `templates.md`
 - `protected-doc-reconciliation.md`
 - `report-template.md`
+- `.github/skills/chaos-shared/reference/repository-context-contract.md`
+- `.github/skills/chaos-shared/reference/repository-context-resolution-policy.md`
+- `.github/skills/chaos-shared/reference/mcp-security-policy.md`
 
 ## Config awareness
 
 Read `.chaos/config.yaml` before source discovery. Use it to resolve paths, protected-file policies, toolchain/validation conventions, generated README policy, and agent locations. Follow `reference/config-awareness.md`.
 
 Unlike most commands, `chaos:sync` may propose updates to `.chaos/config.yaml` when config drift is detected, but only after one-by-one user reconciliation and patch preview.
-
-## Protected documentation reconciliation
-
-`chaos:sync` may update or rewrite `AGENTS.md` / `AGENT.md` and root `README.md` after explicit confirmation and patch preview.
-
-These files are protected, not immutable. If config blocks edits, offer a protected-doc override or config policy update. Record all protected documentation changes in the sync report.
 
 ## Todo Candidates (optional)
 
@@ -119,3 +129,9 @@ reconciliation is deferred (e.g. a drift item the maintainer chose not to fix no
 shared fields in `.github/skills/chaos-todo/reference/todo-candidate-contract.md`. This does
 not replace `chaos:sync`'s own reconciliation, and `chaos:sync` does not create durable todo
 items itself unless it explicitly delegates to `chaos:todo`.
+
+## Protected documentation reconciliation
+
+`chaos:sync` may update or rewrite `AGENTS.md` / `AGENT.md` and root `README.md` after explicit confirmation and patch preview.
+
+These files are protected, not immutable. If config blocks edits, offer a protected-doc override or config policy update. Record all protected documentation changes in the sync report.

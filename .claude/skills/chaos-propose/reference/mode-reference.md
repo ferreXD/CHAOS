@@ -29,6 +29,11 @@ Options:
 
 ## `--light`
 
+**Light is a collapsed path, not relaxed validation** (see "Light mode: collapsed FRAME workflow"
+in `SKILL.md` and `docs/design/2026-07-24-artifact-model-roadmap.md`). It preserves every material
+decision, the human's decision weight, green tests, and the full OpenSpec set; it cuts the
+narrative ceremony (no proposal-report, no separate review/approval artifacts, one human stop).
+
 Use for:
 
 - documentation-only changes;
@@ -38,23 +43,26 @@ Use for:
 
 Behaviour:
 
-- Inspect CHAOS workspace if available.
+- Scoped evidence scan (files the intent names + rules index + architecture posture; no
+  repo-wide sweeps).
 - Ask at most three clarification questions unless the request is unsafe or ambiguous.
-- Produce one recommended approach plus optional alternatives.
-- Approach Alignment Checkpoint is still required, but may be compact.
-- OpenSpec proposal may be minimal.
-- `chaos:review` is recommended but optional unless risk is reclassified above LOW.
+- One recommended approach; compact Approach Alignment Checkpoint.
+- Full OpenSpec set (unchanged in every mode).
+- Output = `change.md` + lean decision entries + `lifecycle.md` stub + capsule
+  (`chaos-shared/reference/change-template.md`), then STOP for the human.
+- `chaos:review` is not part of the light path — the Review line in `change.md` records the
+  inline self-review; next command after answers is `chaos:apply`.
 
-Cannot stay light if the change touches:
+Cannot stay light — **auto-escalate to `--standard` without asking** (announce, `⚠ escalated`
+line, `escalatedFrom` metadata, `ESC-*` entry, reuse all FRAME output) — if the change:
 
-- persisted data;
-- auth/security;
-- external side effects;
-- existing business behaviour;
-- offline/replay/idempotency;
-- deployment/cutover.
+- crosses an architecture non-goal or posture boundary (persisted data, auth/security, external
+  side effects, existing business behaviour, offline/replay/idempotency, deployment/cutover);
+- surfaces more than `modes.light.maxMaterialDecisions` material decisions (config, default 2);
+- fails the inline self-review checklist;
+- hits OpenSpec-unavailable degraded mode.
 
-If such a concern is detected, upgrade to `--standard` or ask the user to confirm staying light with explicit risk.
+Never downgrade automatically.
 
 ## `--standard`
 
@@ -97,12 +105,13 @@ Behaviour:
 
 ## Mode escalation
 
-The command may escalate mode when risk is detected.
-
-Example:
+- **`--light` → `--standard` is automatic** (the valve — see the `--light` section): never ask,
+  always announce and record (`⚠` line, `escalatedFrom`, `ESC-*` entry), reuse all FRAME output.
+- **→ `--strict`** (from light or standard) remains confirm-based when strict-class risk is
+  detected:
 
 ```text
-User invoked --light, but the change touches ERP finalization.
+The change touches ERP finalization (strict-class risk).
 Escalating to --strict is recommended.
 Proceed as strict? [yes/no/waive]
 ```

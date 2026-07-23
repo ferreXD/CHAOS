@@ -90,6 +90,10 @@ confirmation per `mcp-security-policy.md`).
 - Do not silently apply semantic governance updates.
 - Do not convert every decision into an ADR.
 - Do not create vague rules or gates.
+- Do not regenerate retired narrative reports for `change.md`-based changes: on such changes
+  (e.g. the collapsed light path — `chaos-shared/reference/change-template.md`) sync keys on
+  `decision-events.md` (anatomy unchanged) plus the `change.md` status/verdict fields, and
+  updates indexes only.
 - Do not edit production code.
 - Do not hide sync debt.
 

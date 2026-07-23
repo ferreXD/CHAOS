@@ -50,6 +50,12 @@ Read these references before acting:
 
 ## Output
 
+**Universal `change.md` awareness:** a change whose `change.md` frontmatter shows
+`lifecycle.status: Delivered` or `Rejected` (e.g. the collapsed light path) is **already
+terminal** — no per-change archive run is required; the `lifecycle.md` view satisfies the
+existence contract. Repo-wide housekeeping may still index it; do not demand the legacy report
+set for such changes.
+
 Write (v0 change-scoped layout):
 
 ```text

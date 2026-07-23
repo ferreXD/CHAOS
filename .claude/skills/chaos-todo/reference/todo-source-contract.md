@@ -16,7 +16,7 @@ not hardcode paths when config provides alternatives.
 | Roadmap | `.chaos/roadmap/*.md` | Roadmap promotions (`RM-*`) and audit findings (`F-*`). |
 | Sync reports | `.chaos/sync-reports/*.md` + `.chaos/changes/<id>/sync-report.md` | Deferred governance reconciliation debt. |
 | Archaeology reports | `.chaos/archaeology/*.md` | Unresolved unknowns, missing tests/runtime evidence. |
-| Change artifacts | `.chaos/changes/<change-id>/*.md` | Per-change: apply/verify/review/archive/retro/decision-events/waivers/todo-candidates. |
+| Change artifacts | `.chaos/changes/<change-id>/*.md` | Per-change: apply/verify/review/archive/retro/decision-events/waivers/todo-candidates. On `change.md`-based changes (universal layout, `chaos-shared/reference/change-template.md`): §Delivery `deviations:` lines and `⚠ escalated` warnings are candidates. |
 | Runtime hook violations | `.chaos/runtime/hook-violations.jsonl` | Repeated/severe local rule violations (see gating below). |
 | Runtime decision waits | `.chaos/runtime/decision-waits.jsonl` | Unresolved "waiting on a user decision" events. |
 | ADRs | `docs/adr/*.md` | Proposed/deferred architecture decisions needing follow-up. |
