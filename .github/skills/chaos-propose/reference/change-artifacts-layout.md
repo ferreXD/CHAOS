@@ -10,6 +10,8 @@ concurrency policy, sync role model).
 
 When a change id is known (OpenSpec change created or selected), create:
 
+**`--standard` / `--strict`:**
+
 ```text
 .chaos/changes/<change-id>/
   lifecycle.md                # created now, status: Proposed
@@ -17,6 +19,18 @@ When a change id is known (OpenSpec change created or selected), create:
   proposal-report.md          # the full CHAOS proposal report
   pre-proposal-brief.md       # degraded mode only (OpenSpec unavailable/declined)
 ```
+
+**`--light` (collapsed FRAME — formats in `chaos-shared/reference/change-template.md`):**
+
+```text
+.chaos/changes/<change-id>/
+  change.md                   # the story: intent + contract + review line (+ Delivery, by apply)
+  lifecycle.md                # 10-line generated-view stub, status: Framed
+  decision-events.md          # lean append-only entries; one carries approves-change: true
+```
+
+No `proposal-report.md` on light — degraded OpenSpec mode auto-escalates to standard instead of
+writing a brief.
 
 OpenSpec remains the source of truth for `proposal.md`, `design.md`, `specs/`,
 and `tasks.md` under `openspec/changes/<change-id>/`. Do not duplicate them into

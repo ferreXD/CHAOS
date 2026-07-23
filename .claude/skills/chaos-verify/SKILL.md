@@ -62,8 +62,16 @@ No silent amendment of governance artifacts.
 
 ## Output
 
-Read change-folder artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`,
-`decision-events.md`, `waivers.md`) when present. Always produce (v0 change-scoped layout):
+**Universal `change.md` awareness:** when `.chaos/changes/<change-id>/change.md` exists, read it
+first (§Contract + §Delivery + `decision-events.md` + the `lifecycle.md` view) and do **not**
+demand `apply-report.md`/`verification.md` — on such changes (e.g. the collapsed light path,
+where the Delivery dashboard *is* the verification record and verify is post-hoc optional),
+append a compact `## Post-hoc verification` table to `change.md` instead of writing
+`verification.md`. Formats: `chaos-shared/reference/change-template.md`.
+
+Otherwise (legacy layout), read change-folder artifacts (`lifecycle.md`, `apply-report.md`,
+`proposal-review.md`, `decision-events.md`, `waivers.md`) when present. Always produce (v0
+change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/verification.md

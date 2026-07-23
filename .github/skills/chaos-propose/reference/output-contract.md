@@ -2,13 +2,23 @@
 
 ## Required outputs
 
-When successful and OpenSpec is available:
+When successful and OpenSpec is available (**`--standard` / `--strict`**):
 
 ```text
 openspec/changes/<change-id>/...
 .chaos/changes/<change-id>/lifecycle.md
 .chaos/changes/<change-id>/proposal-report.md
 .chaos/changes/<change-id>/decision-events.md   # when PROP-DEC-* recorded
+```
+
+**`--light` (collapsed FRAME)** — no proposal report; the report template below is NOT used
+(formats: `chaos-shared/reference/change-template.md`; degraded OpenSpec auto-escalates):
+
+```text
+openspec/changes/<change-id>/...
+.chaos/changes/<change-id>/change.md            # intent + contract + review line
+.chaos/changes/<change-id>/lifecycle.md         # generated-view stub, status: Framed
+.chaos/changes/<change-id>/decision-events.md   # lean entries; one with approves-change: true
 ```
 
 When OpenSpec is unavailable or the user does not authorize OpenSpec writes, the
