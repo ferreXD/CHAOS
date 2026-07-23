@@ -3,9 +3,11 @@ name: chaos-resume
 description: Resume a paused CHAOS command from interaction-runtime state and resume capsules after human decisions were answered. Resolves candidates, validates capsules/decisions/locks, incorporates answered decisions, and continues the original source command from nextStep. Never resumes from chat memory. Supports --run/--change/--latest and --light/--standard/--strict.
 ---
 
+> Copilot agent skill. Keep this file named `SKILL.md`; supplementary material lives in `reference/`.
+
 # CHAOS Resume Skill
 
-Use this skill when the user invokes `chaos:resume`, `/chaos-resume`, or says
+Use this skill when the user invokes `chaos:resume`, `chaos-resume.prompt.md`, or says
 things like "decisions accepted, continue where you left off", "resume the latest
 CHAOS run", or "continue chaos:apply for <change>".
 
@@ -33,8 +35,10 @@ Read the reference files before acting:
 
 ## Non-negotiable summary
 
-- Read the interaction runtime first; prefer MCP tools, fall back to
-  `.chaos/interactions/` files only if MCP is unavailable (disclose degraded mode).
+- Read the interaction runtime first; prefer the runtime tools (MCP `chaos_*` when the
+  `chaos-interaction` server is wired, else the runtime CLI with `--adapter copilot`),
+  fall back to `.chaos/interactions/` files only if neither is available (disclose
+  degraded mode).
 - Resume only from a valid resume capsule; if fields are missing, STOP and report them.
 - If multiple candidates exist, ask the user to choose and **STOP**.
 - If no candidate exists, do not invent context.
@@ -62,5 +66,6 @@ Read the reference files before acting:
 
 ## Non-goals
 
-No live auto-resume runner, no `chaos:delete`/discard, no production application
-changes, no broad rewrites of other CHAOS commands.
+No live auto-resume runner (Claude-harness only; not wired for Copilot), no
+`chaos:delete`/discard, no production application changes, no broad rewrites of other
+CHAOS commands.

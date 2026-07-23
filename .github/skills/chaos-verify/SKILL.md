@@ -38,16 +38,6 @@ Read these references before executing:
 - `reference/csharp-verification-delegation.md`
 - `reference/report-template.md`
 
-## Repository context (vNext)
-
-`chaos:verify` may enrich the verification report with the provider-neutral repository context
-(`.github/skills/chaos-shared/reference/repository-context-contract.md`), tool profile
-`verify` (least privilege, read-only): changed-files source, review request (PR) / linked
-work item if available, and CI/check status if available. **Do not** require MCP unless
-`--strict` and verification depends on provider-backed CI/check facts. Always retain the local
-build/test status as primary evidence; cap confidence when only local git was available.
-Include the shared **Repository Context** section when context is resolved.
-
 ## Hard rules
 
 ```text
@@ -69,9 +59,8 @@ where the Delivery dashboard *is* the verification record and verify is post-hoc
 append a compact `## Post-hoc verification` table to `change.md` instead of writing
 `verification.md`. Formats: `chaos-shared/reference/change-template.md`.
 
-Otherwise (legacy layout), read change-folder artifacts (`lifecycle.md`, `apply-report.md`,
-`proposal-review.md`, `decision-events.md`, `waivers.md`) when present. Always produce (v0
-change-scoped layout):
+Otherwise (legacy layout), read change-folder artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`,
+`decision-events.md`, `waivers.md`) when present. Always produce (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/verification.md

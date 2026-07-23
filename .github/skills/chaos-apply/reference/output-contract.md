@@ -41,18 +41,6 @@ The report must include:
 - validation attempts/skips
 - next command recommendation
 
-## Closing checklist
-
-Before writing the final apply report, verify that every task in `tasks.md` confirmed complete
-in the Task Execution Log is actually marked `[x]` in `tasks.md` itself — do not rely on archive
-time to catch this. If a task's real-world completion is independently confirmed but its checkbox
-was left unmarked, correct the checkbox as part of closing this apply pass, not as a later
-archive-time correction.
-
-Provenance: `implement-entra-id-authentication` archive (2026-07-03, ARC-DEC-001) — 23 checkboxes
-were never marked `[x]` during apply despite independently-verified completion; caught and fixed
-only at archive. Promoted via `chaos:sync --all`, 2026-07-06.
-
 ## Forbidden output patterns
 
 Do not produce:

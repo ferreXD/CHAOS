@@ -14,7 +14,7 @@ Mandatory for every model (especially weaker ones such as Sonnet). Full rules:
 - Approval is never assumed: do not approve without explicit human confirmation; a displayed verdict is not approval.
 - Patch OpenSpec artefacts only after explicit confirmation; re-read amended artefacts before the final verdict.
 - Record remediation choices as `REV-DEC-*` Decision Events with sync actions.
-- Write the review report under `.chaos/changes/<change-id>/proposal-review.md` (legacy `.chaos/reviews/` is read-only for compat).
+- Write the review report under `.chaos/changes/<change-id>/proposal-review.md` (legacy `.chaos/reviews/` is read-only for compat). **Exception:** `change.md`-based light changes need no review; if invoked anyway, update the `change.md` Review line instead (see the skill's light section).
 - Do not implement code, apply, or archive the change. Route config remediation to `chaos:sync`.
 
 ### Sonnet-safe execution checklist

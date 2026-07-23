@@ -3,6 +3,8 @@ name: chaos-archive
 description: Archive a verified OpenSpec change under CHAOS governance, preserving decision/debt auditability and routing sync/retro follow-up.
 ---
 
+> Copilot agent skill. Keep this file named `SKILL.md`; supplementary material lives in `reference/`.
+
 # CHAOS Archive Skill
 
 Use this skill when the user invokes:
@@ -66,15 +68,6 @@ Update `Status: Archived` and the Archive row in `.chaos/changes/<change-id>/lif
 only with confirmation. The legacy `.chaos/archive-reports/` folder may be READ for
 compatibility but is no longer the preferred output location; do not migrate it. Route
 shared governance closure to `chaos:sync`. See `.chaos/changes/README.md`.
-
-## Repository context (vNext)
-
-The archive report may include repository context
-(`.github/skills/chaos-shared/reference/repository-context-contract.md`), tool profile
-`archive` (least privilege, read-only): branch, review request (PR) / linked work item if
-available, CI status if available, and context confidence. **Do not** require MCP for archive;
-local git fallback is sufficient. Include the shared **Repository Context** section when
-context is resolved.
 
 ## Todo Candidates (optional)
 

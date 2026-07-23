@@ -40,6 +40,9 @@ You may:
 - Write `.chaos/changes/<change-id>/archive-report.md` and update `Status: Archived` in
   `.chaos/changes/<change-id>/lifecycle.md` with confirmation (v0 change-scoped layout; legacy
   `.chaos/archive-reports/` read-only for compat, do not migrate).
+- **Universal `change.md` layout:** a change whose `change.md` frontmatter shows
+  `lifecycle.status: Delivered`/`Rejected` (e.g. collapsed light) is already terminal — no
+  per-change archive run is required; do not demand the legacy report set for it.
 - Ask the user to classify unresolved closure items.
 
 You must not:

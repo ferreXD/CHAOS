@@ -73,6 +73,10 @@ Copilot-specific invocation may be `chaos-review.prompt.md`.
 ## Modes
 
 - `--light`: fast review for low-risk changes; offer fixes for high-impact issues only.
+  **`change.md`-based light changes** (collapsed lifecycle) do not require review at all; if
+  explicitly invoked on one, review the `change.md` contract + `decision-events.md` (never
+  demand `proposal-report.md`) and update the Review line in `change.md` — do not create
+  `proposal-review.md`. Escalated changes (`escalatedFrom: light`) get the standard review.
 - `--standard`: default review; offer guided fixes for all material issues.
 - `--strict`: high-assurance review for brownfield, architecture, data, auth, external side effects, offline/replay, deployment, cutover, or customer-visible changes; blocking/material issues must be fixed or final verdict remains blocked/not ready.
 

@@ -40,6 +40,11 @@ Execute reliably on the weakest supported Copilot model. Obey
   `chaos-csharp-implementation-specialist` in **read-only** mode; it returns
   findings/options/confidence/evidence and must not ask final user decisions.
 - Write verification output under `.chaos/changes/<change-id>/verification.md`.
+  **Exception — universal `change.md` layout:** when `change.md` exists (e.g. the collapsed
+  light path), read it first (§Contract + §Delivery + `decision-events.md` + the `lifecycle.md`
+  view), never demand `apply-report.md`/`proposal-review.md`, and append a compact
+  `## Post-hoc verification` table to `change.md` instead of writing `verification.md`.
+  Formats: `.github/skills/chaos-shared/reference/change-template.md`.
 
 ## Core responsibility
 

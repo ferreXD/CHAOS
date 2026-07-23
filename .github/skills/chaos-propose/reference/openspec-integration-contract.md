@@ -35,8 +35,9 @@ Before manually writing any proposal artifacts, `chaos:propose` MUST:
 - **`--strict`:** if OpenSpec is unavailable or cannot be invoked, **block**.
 - **`--standard`:** ask the user whether to continue in degraded mode, STOP for an explicit
   choice, and cap confidence to MEDIUM.
-- **`--light`:** warn, ask whether the proposal can be sketched without OpenSpec, STOP for an
-  explicit choice, and cap confidence to LOW.
+- **`--light`:** **auto-escalate to `--standard`** (the light valve — announce, record `ESC-*`,
+  set `escalatedFrom: light`; light never skips the spec silently), then apply the standard
+  handling above.
 - Degraded mode must be explicitly recorded as a `PROP-DEC-*` decision event and reflected
   in the OpenSpec Invocation Proof.
 
@@ -159,7 +160,8 @@ OpenSpec artefacts. There is no automatic fallback generation — every degraded
 an explicit, decision-gated choice that is recorded as a `PROP-DEC-*` event:
 
 - **`--strict`:** block. Do not produce ad-hoc artefacts.
-- **`--standard` / `--light`:** ask the user (one decision, then STOP) to choose between:
+- **`--light`:** auto-escalate to `--standard` first (the light valve), then proceed as standard.
+- **`--standard`:** ask the user (one decision, then STOP) to choose between:
   1. initialize OpenSpec first, then re-run the gate;
   2. produce a CHAOS pre-proposal brief only at
      `.chaos/changes/<change-id>/pre-proposal-brief.md` (cap confidence);

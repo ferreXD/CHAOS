@@ -36,6 +36,17 @@ Execute reliably on the weakest supported Copilot model. Obey
   the task boundary you set.
 - Resolve mode and ask the user to accept/override; do not silently downgrade `strict`.
 
+## Light-deliver override (check FIRST)
+
+When `.chaos/changes/<change-id>/change.md` exists with `chaosMetadata.mode: light`, this apply
+is the **DELIVER** phase of the collapsed light lifecycle — run the **Light-deliver** section of
+`.github/skills/chaos-apply/reference/apply-contract.md` instead of the responsibilities below:
+gate on all decisions ANSWERED (else point at the Decision Center and stop; no proposal-review
+exists or is needed), administratively close the answered FRAME run, implement to the approved
+contract verbatim, validate (build + tests + contract coverage — required), append the
+`change.md` §Delivery dashboard (**no `apply-report.md`**), close the `lifecycle.md` view,
+terminalize. Escalation/stop rules per that contract; idempotent on `Delivered`.
+
 ## Responsibilities
 
 1. Load the OpenSpec change.
@@ -55,7 +66,8 @@ Execute reliably on the weakest supported Copilot model. Obey
 
 ## Mode behaviour
 
-- `--light`: permissive but still records risk.
+- `--light` (legacy layout only — `change.md`-based changes use the Light-deliver override
+  above): permissive but still records risk.
 - `--standard`: guarded; allows user-guided continuation for non-direct blockers.
 - `--strict`: blocks on unresolved non-ready proposal/review state.
 
@@ -89,8 +101,12 @@ Every user choice, accepted risk, amendment, deferred item, waiver, or architect
 
 ## Final output
 
-Always write or provide (v0 change-scoped layout; legacy `.chaos/apply-reports/` read-only for
-compat, do not migrate):
+**Light-deliver:** the `change.md` §Delivery dashboard + closed `lifecycle.md` view — no
+`apply-report.md`, and do not recommend `chaos:verify` (the dashboard is the verification
+record; verify is post-hoc optional).
+
+Otherwise, always write or provide (v0 change-scoped layout; legacy `.chaos/apply-reports/`
+read-only for compat, do not migrate):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md
