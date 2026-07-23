@@ -122,17 +122,42 @@ it surfaces a new decision and stops again. Delivering-as-approved requires no s
 
 ## 4. Artifact set on light
 
+> **Amendment (2026-07-22, creator-approved): `change.md` is the universal core narrative — all
+> modes, not just light.** Every change, in every mode, is exactly four artifacts, each with one job:
+> **`change.md`** (the story) · **`lifecycle.md`** (the state) · **`decision-events.md`** (the
+> decisions) · **`openspec/`** (the spec). **Modes scale section *depth*, not file *count*** — light
+> = tables/checklists/single lines (the base case); standard = same sections with short prose where
+> it earns its place; strict = fuller analysis + extra sections (risk, traceability matrix). The
+> separate narrative reports (proposal-report / proposal-review / apply-report / verification /
+> approval) are retired for **new** changes in all modes.
+>
+> - **`lifecycle.md` is kept (creator decision) and reframed**: a pure machine-readable **state
+>   manifest** — phase table (status per phase) + pointers (change.md section anchors, commandRunId,
+>   OpenSpec path). Hard rule: no narrative, edited only at phase transitions. This kills the
+>   observed 19.8k/16-edit churn while keeping the at-a-glance state file (and archive's contract).
+> - **Overflow rule** (guards strict-mode file growth): any `change.md` section exceeding ~80 lines
+>   moves to `appendix/<section>.md`, leaving a summary + link. One entry point, always.
+> - **Write contention** is acceptable: the lifecycle is sequential per change, and the team model is
+>   per-change scoped; phases never race on one change.
+> - **Migration staging** (no big-bang): (1) light ships `change.md` first — new path, zero breakage;
+>   (2) standard/strict adopt it for **new** changes; (3) readers (verify/archive/sync/todo) accept
+>   both layouts during the transition — which they must anyway for archived changes. Old/archived
+>   changes never migrate. End-state: no `artifactType`-based special-casing — every command reads
+>   `change.md`, period.
+
+The table below is the **light** (base-case) instantiation:
+
 | Artifact | Today (all modes) | Light |
 |---|---|---|
 | `openspec/changes/<id>/*` (5 files) | full | **full — unchanged** |
 | `decision-events.md` | narrative, rewritten across phases (49k/24 turns observed) | **kept, same name/contract** — append-only structured entries (§5.2) |
-| `lifecycle.md` | manifest re-edited every phase (16 turns observed) | **10-line table stub**, edited exactly twice (open, close) |
+| `lifecycle.md` | manifest re-edited every phase (16 turns observed) | **kept, reframed as pure state manifest** (phase table + pointers, no narrative), edited exactly twice on light (open, close) |
 | `proposal-report.md` | narrative (36.9k) | **gone** → `change.md` §intent+contract |
 | `proposal-review.md` | narrative (18.6k) | **gone** → verdict line in `change.md` |
 | `approval.md` | separate artifact | **gone** → `approves-change` marker on the decision entry |
 | `apply-report.md` | narrative (11.6k) | **gone** → `change.md` §delivery |
 | `verification.md` | narrative (24.4k) | **gone** → `change.md` §dashboard |
-| `change.md` | — | **new, light-only**: one compact sectioned file, one frontmatter stamp |
+| `change.md` | — | **new — the universal core narrative** (light is its base case): one compact sectioned file, one frontmatter stamp |
 
 Net: **11 files → 8**, and the four pure-narrative reports (~54% of CHAOS artifact tokens) collapse
 into one ~3k file. Estimated artifact prose per change: **~53k → ~9–10k tokens (−80%)**, ≈ **−38% of
@@ -219,7 +244,7 @@ It is **kept** only while the change stays inside the light envelope. The valve 
 |---|---|
 | **runtime / Decision Center** | none — same begin/decision/stop/resume/complete protocol, one session instead of six. |
 | `chaos:resume` | none — normal capsule resume; `nextStep: deliver`. |
-| `chaos:verify` (standalone) | reads `change.md` §Delivery instead of apply-report/verification when `artifactType: light-change` is present; decision-events unchanged. Optional post-hoc deep verify **may** run on a delivered light change and appends to `change.md`. |
+| `chaos:verify` (standalone) | reads `change.md` §Delivery instead of apply-report/verification (transitional: falls back to the legacy report set on old changes); decision-events unchanged. Optional post-hoc deep verify **may** run on a delivered light change and appends to `change.md`. |
 | `chaos:archive` | light changes terminalize in-place (`status: Delivered`); archive treats them as already-terminal when doing repo housekeeping; `lifecycle.md` stub satisfies its existence contract. |
 | `chaos:sync` | reads decisions from `decision-events.md` (unchanged) and change state from `change.md` §status; the light template keeps the same field names sync keys on (verdict/status/confidence). |
 | `chaos:todo` | scans decision-events + `change.md` dashboards — same anatomy, less text. |

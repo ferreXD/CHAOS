@@ -4,6 +4,14 @@
 > design). Toolkit meta-work, developed without CHAOS governance. This pass specifies what each
 > command/skill does inside the light path, the ownership chain, and exactly which skill files change.
 
+> **Amendment (2026-07-22, creator-approved):** `change.md` is promoted to the **universal core
+> narrative for all modes** — modes scale section *depth*, not file *count*; `lifecycle.md` is
+> **kept** and reframed as a pure state manifest (phase table + pointers, no narrative). See the
+> workflow doc §4 amendment for the full model (four artifacts: story / state / decisions / spec),
+> the overflow rule, and migration staging. Consequence here: the `artifactType: light-change`
+> special-casing below is **transitional only** — end-state, every command reads `change.md` for
+> every mode, with legacy-report fallback for old changes.
+
 ## 0. Ownership chain (creator-confirmed)
 
 **`chaos:propose --light` (FRAME owner) → mustStop → human answers (Decision Center) →
@@ -51,7 +59,7 @@
 | `reference/mode-reference.md` | light column rewritten: collapsed path, not relaxed validation |
 | `reference/output-contract.md` | light output set = OpenSpec + `change.md` + lean decisions + stub + capsule |
 | `reference/change-artifacts-layout.md` | add the light layout variant |
-| (new, shared) `chaos-shared/reference/light-change-template.md` | the `change.md` + lean-decision-entry formats (§8) |
+| (new, shared) `chaos-shared/reference/change-template.md` | the universal `change.md` + lean-decision-entry + lifecycle-manifest formats (§8) |
 
 ## 2. `chaos-resume` — router (mechanics unchanged, one mapping added)
 
@@ -99,10 +107,12 @@ the dashboard block).
 ## 4. `chaos-verify` — out of the critical path, light-aware standalone
 
 - Light needs **no** verify invocation: DELIVER's dashboard is the verification record.
-- Standalone `chaos:verify --change <id>` on a `light-change`: read `change.md` (§Contract+§Delivery)
-  + `decision-events.md`; **never** demand `apply-report.md`/`verification.md`; append a compact
-  `## Post-hoc verification` table to `change.md` (it does not create the standard report set).
-- File change: verify's artifact-expectations section gets the `artifactType: light-change` branch.
+- Standalone `chaos:verify --change <id>`: read `change.md` (§Contract+§Delivery) +
+  `decision-events.md` + `lifecycle.md` (state manifest); **never** demand
+  `apply-report.md`/`verification.md` on a `change.md`-based change; append a compact
+  `## Post-hoc verification` table to `change.md` (it does not create the legacy report set).
+- File change: verify's artifact-expectations section reads `change.md` first, with legacy-report
+  fallback for old changes (per the universal-`change.md` amendment — no per-mode branching).
 
 ## 5. `chaos-archive`, `chaos-sync`, `chaos-todo` — light-awareness only
 
@@ -138,11 +148,20 @@ Recording, in every case (creator-confirmed): `⚠ escalated: light → standard
 
 ## 8. Shared templates (new reference file)
 
-`chaos-shared/reference/light-change-template.md` holds both formats from the workflow doc §5 —
-the `change.md` skeleton (hard rule: **tables, checklists, single lines — no paragraphs**) and the
-lean append-only decision-entry format (fields: status/options/recommendation/answer/why-material +
-`approves-change` marker; entries appended, only `status:` lines edited). Propose, apply, resume,
-verify all reference this one file instead of carrying their own copies.
+`chaos-shared/reference/change-template.md` (renamed from light-specific — it is now the
+**universal** skeleton) holds three formats:
+
+1. the `change.md` skeleton with **per-mode depth guidance** — light: tables/checklists/single lines
+   only (hard rule: no paragraphs); standard: short prose allowed per section; strict: fuller
+   analysis + extra sections (risk, traceability matrix) + the **overflow rule** (section > ~80
+   lines → `appendix/<section>.md`, summary + link stays);
+2. the lean append-only decision-entry format (fields: status/options/recommendation/answer/
+   why-material + `approves-change` marker; entries appended, only `status:` lines edited);
+3. the reframed `lifecycle.md` **state manifest** format (kept per creator decision): pure phase
+   table (phase · status · date · pointer) + header pointers (commandRunId, OpenSpec path,
+   `change.md` anchors). Hard rule: no narrative; edited only at phase transitions.
+
+Propose, apply, resume, verify all reference this one file instead of carrying their own copies.
 
 ## 9. Config additions (`.chaos/config.yaml`)
 
@@ -160,7 +179,7 @@ later *suggest* light — deferred).
 
 ## 10. Implementation order
 
-1. `chaos-shared/reference/light-change-template.md` (both formats) — everything else references it.
+1. `chaos-shared/reference/change-template.md` (universal skeleton + decision-entry + lifecycle-manifest formats) — everything else references it.
 2. `chaos-propose` light branch (FRAME) + capsule `nextStep: deliver`.
 3. `chaos-resume` routing row + safety-policy line.
 4. `chaos-apply` light-deliver contract + standalone idempotent entry.
