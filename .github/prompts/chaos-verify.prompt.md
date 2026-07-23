@@ -38,7 +38,7 @@ Mandatory for every model (especially weaker ones such as Sonnet). Full rules:
 - Attempt to use native interactive selection UI when the GitHub Copilot runtime exposes it. If no explicit UI affordance is available, use the numbered decision block fallback. The fallback is compliant only if the command stops after presenting the options.
 - Delegate C#/.NET inspection to the C# specialist in **read-only** mode; the specialist returns findings/options/evidence and does not ask final user decisions.
 - Classify findings with knowledge type + confidence; a displayed verdict is not approval.
-- Write verification output under `.chaos/changes/<change-id>/verification.md` (legacy `.chaos/verification/` is read-only for compat).
+- Write verification output under `.chaos/changes/<change-id>/verification.md` (legacy `.chaos/verification/` is read-only for compat). **Exception:** on a `change.md`-based change (e.g. light), append a `## Post-hoc verification` table to `change.md` instead and do not demand `apply-report.md` (see the skill's universal `change.md` awareness).
 - Do not edit production code.
 
 ### Sonnet-safe execution checklist
