@@ -93,10 +93,14 @@ so light **always** has exactly one human stop, never zero.
 
 ### 3.2 DELIVER (apply + verify, collapsed) — owned by `chaos-apply`
 
-Ownership chain (creator-confirmed): **propose (FRAME) → resume (router) → apply (DELIVER)**.
-`chaos:resume` validates the capsule + answered decisions and routes execution to the `chaos-apply`
-light contract — resume is the entry, apply is the owner/executor (implementation competence,
-C# specialist delegation, scope control live there). Steps:
+Ownership chain (creator-corrected, 2026-07-24 — see the
+[artifact-model roadmap](2026-07-24-artifact-model-roadmap.md) decisions register):
+**`chaos:propose --light` (FRAME, never writes production code) → human answers →
+`chaos:apply` (DELIVER, under its own command identity)**. Vanilla `chaos:apply` **infers the mode
+from `change.md` frontmatter** (explicit `--light` optional); it validates the decisions are
+answered (else points at the Decision Center and stops), administratively closes the answered
+propose run, and executes DELIVER. `chaos:resume` keeps its normal mid-flight job only — it is
+**not** a deliver-router. Steps:
 
 1. **Implement to the approved contract** — honoring the human's answers *verbatim*, R-003/4/5 intact.
 2. **Validate:** build + full test suite; the contract's testable statements must each be covered by a
@@ -114,10 +118,12 @@ it surfaces a new decision and stops again. Delivering-as-approved requires no s
 
 ### 3.3 Session/runtime mechanics
 
-- **One `commandRunId` spans the whole light lifecycle** (FRAME creates it; DELIVER resumes it). One
-  change lock held across the stop, released at completion — the existing runtime model, used as-is.
-- The resume capsule for the stop records `nextStep: deliver` plus the contract hash, so resume needs
-  no re-derivation of what to do (seed of the step-context capsule work — Lever 3).
+- **Two linked runs, one changeId — today's session model, unchanged** (revised 2026-07-24): the
+  propose run owns FRAME and pauses at the stop; once its decisions are answered and consumed it is
+  administratively terminalized (at apply preflight or via normal resume). The apply run owns
+  DELIVER under its own `sourceCommand`. Change-scoped lock re-acquired by apply.
+- The capsule for the stop records `nextStep: deliver` plus the contract hash, so apply needs no
+  re-derivation of FRAME's work (seed of the step-context capsule work — Lever 3).
 - All existing runtime guarantees (EA-X4-hardened reconcile, capsule hash, write lock) apply unchanged.
 
 ## 4. Artifact set on light
@@ -131,10 +137,12 @@ it surfaces a new decision and stops again. Delivering-as-approved requires no s
 > separate narrative reports (proposal-report / proposal-review / apply-report / verification /
 > approval) are retired for **new** changes in all modes.
 >
-> - **`lifecycle.md` is kept (creator decision) and reframed**: a pure machine-readable **state
->   manifest** — phase table (status per phase) + pointers (change.md section anchors, commandRunId,
->   OpenSpec path). Hard rule: no narrative, edited only at phase transitions. This kills the
->   observed 19.8k/16-edit churn while keeping the at-a-glance state file (and archive's contract).
+> - **`lifecycle.md`** (revised 2026-07-24, creator conceded the two-sources-of-truth point):
+>   authoritative machine-readable state lives in **`change.md` frontmatter** (YAML phase block);
+>   `lifecycle.md` survives as a **generated view** of it — rendered, never hand-maintained
+>   (Stage B renderer; until then a hand-written 10-line stub, edited only at phase transitions).
+>   Kills the observed 19.8k/16-edit churn and the drift risk, keeps the at-a-glance file (and
+>   archive's existence contract).
 > - **Overflow rule** (guards strict-mode file growth): any `change.md` section exceeding ~80 lines
 >   moves to `appendix/<section>.md`, leaving a summary + link. One entry point, always.
 > - **Write contention** is acceptable: the lifecycle is sequential per change, and the team model is
