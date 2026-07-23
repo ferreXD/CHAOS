@@ -12,23 +12,29 @@
 > special-casing below is **transitional only** — end-state, every command reads `change.md` for
 > every mode, with legacy-report fallback for old changes.
 
-## 0. Ownership chain (creator-confirmed)
+## 0. Ownership chain (creator-corrected 2026-07-24)
 
-**`chaos:propose --light` (FRAME owner) → mustStop → human answers (Decision Center) →
-`chaos:resume` (router, not executor) → `chaos-apply` light contract (DELIVER owner) → done.**
+**`chaos:propose --light` (FRAME owner — never writes production code) → mustStop → human answers
+(Decision Center) → `chaos:apply` (DELIVER owner, own command identity, mode inferred from
+`change.md`) → done.** See the [artifact-model roadmap](2026-07-24-artifact-model-roadmap.md)
+decisions register.
 
-- **Entry point resolved (workflow doc §12):** no new top-level command. The user surface stays the
-  mode triad on existing commands; `chaos:propose --light` *is* the light lifecycle entry.
+- **Entry points:** no new top-level command. `chaos:propose --light` opens the lifecycle; **vanilla
+  `chaos:apply` is the DELIVER entry** — it infers the mode from `change.md` frontmatter (explicit
+  `--light` optional). This keeps command names honest: propose proposes, apply implements.
 - **`chaos-verify` is out of the light critical path** — DELIVER's dashboard covers it; standalone
   post-hoc verify remains available.
-- **One `commandRunId` end-to-end:** FRAME opens the run and pauses it (lock held); resume validates
-  and executes DELIVER under the same run; completion closes it. No second session is begun for apply.
+- **Two linked runs, one changeId — today's session model unchanged:** the propose run pauses at the
+  stop; once its decisions are answered and consumed it is **administratively terminalized** (at
+  apply preflight, or via normal `chaos:resume`). Apply begins its own run, re-acquires the
+  change-scoped lock, and executes DELIVER. `chaos:resume` keeps its normal mid-flight job only —
+  it is **not** a deliver-router.
 
 | Phase | Owner | Invoked as | Emits |
 |---|---|---|---|
-| FRAME | `chaos-propose` | `chaos:propose --light "<intent>"` | OpenSpec full set · `change.md` (intent+contract+review line) · lean decision entries · lifecycle stub (open) · resume capsule `nextStep: deliver` |
+| FRAME | `chaos-propose` | `chaos:propose --light "<intent>"` | OpenSpec full set · `change.md` (intent+contract+review line) · lean decision entries · lifecycle stub (open) · capsule `nextStep: deliver` |
 | — stop — | runtime / Decision Center | human answers; answering **is** approval (`approves-change: true`) | decision `status:` line updated |
-| DELIVER | `chaos-apply` (routed by `chaos-resume`) | `chaos:resume` (or auto-resume hook) | code+tests · `change.md` §Delivery dashboard · lifecycle stub (closed) · run completed, lock released |
+| DELIVER | `chaos-apply` | `chaos:apply` (mode inferred; `--light` optional) | code+tests · `change.md` §Delivery dashboard · lifecycle stub (closed) · propose run closed, apply run completed, lock released |
 
 ## 1. `chaos-propose` — FRAME owner
 
@@ -61,21 +67,23 @@
 | `reference/change-artifacts-layout.md` | add the light layout variant |
 | (new, shared) `chaos-shared/reference/change-template.md` | the universal `change.md` + lean-decision-entry + lifecycle-manifest formats (§8) |
 
-## 2. `chaos-resume` — router (mechanics unchanged, one mapping added)
+## 2. `chaos-resume` — normal job only (revised 2026-07-24: NOT a deliver-router)
 
-Resume already "continues the original source command semantically from `nextStep`". Light adds one
-row to `reference/resume-command-contract.md`:
+Resume's mechanics are untouched, and — per the creator's correction — it gets **no** deliver-routing
+row. Its only light-path involvement: resuming a light **propose** run whose decisions were answered
+completes FRAME as an **administrative terminalization** (consume decisions, mark ready-for-apply,
+close the run, release the lock) and points at `chaos:apply` as the next command. It never writes
+production files on a light run. (Apply's preflight can perform the same administrative close if the
+user goes straight to `chaos:apply` — see §3 — so resume is optional in the happy path.)
 
-> `sourceCommand: chaos:propose` + `mode: light` + `capsule.nextStep: deliver` ⇒ continuation =
-> execute the **`chaos-apply` light-deliver contract** under the same commandRunId. Do not re-run
-> FRAME steps; do not require a separate user-invoked `chaos:apply`.
+## 3. `chaos-apply` — DELIVER owner (the write entry, own command identity)
 
-Everything else is today's flow: candidate resolution, capsule-hash validation, answered-decision
-consumption (mark consumed), lock checks — then DELIVER runs, then `chaos_complete_command`.
-Safety-policy line to add: on a light run, resume **may** modify production files (that is deliver's
-job) — permitted precisely because `nextStep: deliver` allows it (existing rule, made explicit).
-
-## 3. `chaos-apply` — DELIVER owner
+**Entry (revised 2026-07-24):** vanilla `chaos:apply --change <id>` (or bare `chaos:apply` with
+change inference) — the mode is **inferred from `change.md` frontmatter** (`mode: light`); explicit
+`--light` is optional and merely asserts the expectation. Preflight: verify the FRAME capsule +
+contract hash; verify all decisions are **answered** (any OPEN ⇒ point at the Decision Center and
+stop — no bypass); administratively close the answered propose run if still open; begin the apply
+run; re-acquire the change lock.
 
 ### New `light-deliver` section in `reference/apply-contract.md`
 
@@ -93,9 +101,9 @@ job) — permitted precisely because `nextStep: deliver` allows it (existing rul
 5. **Terminalize:** lifecycle stub → `Delivered` (second and last edit), complete the run, release the
    lock. Archive is a terminal state, not a command run.
 
-**Standalone entry (idempotent):** `chaos:apply --light --change <id>` is valid for a human who wants
-to trigger DELIVER manually on a framed light change: it checks the decisions are answered; if any are
-OPEN it points at the Decision Center and stops (no bypass).
+(The entry is idempotent by construction — re-invoking `chaos:apply` on an already-delivered light
+change reports the dashboard and exits; on a framed-but-unanswered change it points at the Decision
+Center and stops.)
 
 ### Skill-file changes
 
@@ -140,7 +148,7 @@ the dashboard block).
 | OpenSpec unavailable | FRAME | standard degraded-mode handling (light never skips the spec silently) |
 | scope spill beyond capsule scope | DELIVER | escalate **or** surface a scope decision + stop (owner's judgment; never silent) |
 | contract unmeetable / tests can't go green within contract | DELIVER | surface decision + stop (fix-forward / narrow / abandon) |
-| human's answer widens the change beyond the framed contract | resume (routing) | route to standard apply instead of light-deliver; record |
+| human's answer widens the change beyond the framed contract | apply (preflight) | run standard apply instead of light-deliver; record |
 
 Recording, in every case (creator-confirmed): `⚠ escalated: light → standard — <reason>` on the
 `change.md` dashboard + `escalatedFrom: light` in its metadata + an `ESC-…` structured entry in
@@ -157,9 +165,11 @@ Recording, in every case (creator-confirmed): `⚠ escalated: light → standard
    lines → `appendix/<section>.md`, summary + link stays);
 2. the lean append-only decision-entry format (fields: status/options/recommendation/answer/
    why-material + `approves-change` marker; entries appended, only `status:` lines edited);
-3. the reframed `lifecycle.md` **state manifest** format (kept per creator decision): pure phase
-   table (phase · status · date · pointer) + header pointers (commandRunId, OpenSpec path,
-   `change.md` anchors). Hard rule: no narrative; edited only at phase transitions.
+3. the `lifecycle.md` **state view** format (revised 2026-07-24): authoritative state lives in
+   `change.md` **frontmatter** (YAML phase block); `lifecycle.md` is a **generated view** of it —
+   pure phase table (phase · status · date · pointer) + header pointers (commandRunId, OpenSpec
+   path, `change.md` anchors). Rendered by the Stage-B renderer; until then a hand-written 10-line
+   stub edited only at phase transitions. Hard rule: no narrative, never a second source of truth.
 
 Propose, apply, resume, verify all reference this one file instead of carrying their own copies.
 
