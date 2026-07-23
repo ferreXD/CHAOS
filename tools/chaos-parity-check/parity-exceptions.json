@@ -22,5 +22,10 @@
   },
   "referenceFiles": {
     "ignore": []
+  },
+  "contentParity": {
+    "_description": "Dimension 6. After normalization (.claude/skills -> .github/skills; frontmatter stripped for agents/commands), every line that differs between the two surfaces must match one of these regexes (defaults in check.mjs always include Claude/Copilot surface wording, .prompt.md invocations, and /chaos- slash commands). perFile keys are pair ids: skills/<skill>/<relpath>, agents/<name>, commands/<name>. --strict flags perFile patterns that match nothing.",
+    "allowedLinePatterns": [],
+    "perFile": {}
   }
 }

@@ -1,0 +1,428 @@
+{
+  "_description": "LEGACY content drift between the Claude and Copilot surfaces, tolerated by fingerprint. Dimension 6 fails on any pair whose drift signature is not recorded here (new drift) or no longer matches (changed drift). Reconcile pairs over time (chaos:sync hardening-drift work) and regenerate with --update-content-baseline — the file should only ever shrink. Never hand-edit hashes to silence real drift.",
+  "agents/chaos-apply-orchestrator": {
+    "claudeOnly": 12,
+    "copilotOnly": 9,
+    "hash": "cd8d39c715d7e894"
+  },
+  "agents/chaos-archaeology-orchestrator": {
+    "claudeOnly": 0,
+    "copilotOnly": 3,
+    "hash": "e0734cce86d3f800"
+  },
+  "agents/chaos-archive-orchestrator": {
+    "claudeOnly": 7,
+    "copilotOnly": 9,
+    "hash": "727728cf82ec7442"
+  },
+  "agents/chaos-bootstrap-architect": {
+    "claudeOnly": 0,
+    "copilotOnly": 3,
+    "hash": "e0734cce86d3f800"
+  },
+  "agents/chaos-csharp-implementation-specialist": {
+    "claudeOnly": 0,
+    "copilotOnly": 3,
+    "hash": "e0734cce86d3f800"
+  },
+  "agents/chaos-doctor-orchestrator": {
+    "claudeOnly": 3,
+    "copilotOnly": 6,
+    "hash": "1377f79a364d01ad"
+  },
+  "agents/chaos-help-orchestrator": {
+    "claudeOnly": 1,
+    "copilotOnly": 4,
+    "hash": "9e357cb623464d2f"
+  },
+  "agents/chaos-proposal-architect": {
+    "claudeOnly": 1,
+    "copilotOnly": 9,
+    "hash": "ff54af5510b49914"
+  },
+  "agents/chaos-proposal-reviewer": {
+    "claudeOnly": 1,
+    "copilotOnly": 9,
+    "hash": "ff54af5510b49914"
+  },
+  "agents/chaos-resume-orchestrator": {
+    "claudeOnly": 10,
+    "copilotOnly": 8,
+    "hash": "f34017650a745d65"
+  },
+  "agents/chaos-retro-orchestrator": {
+    "claudeOnly": 1,
+    "copilotOnly": 9,
+    "hash": "ff54af5510b49914"
+  },
+  "agents/chaos-status-auditor": {
+    "claudeOnly": 2,
+    "copilotOnly": 5,
+    "hash": "1c859bca4a094fbe"
+  },
+  "agents/chaos-sync-orchestrator": {
+    "claudeOnly": 2,
+    "copilotOnly": 10,
+    "hash": "3c992b1eb9b1a4ae"
+  },
+  "agents/chaos-todo-curator": {
+    "claudeOnly": 3,
+    "copilotOnly": 11,
+    "hash": "67d5bec99cd77eb1"
+  },
+  "agents/chaos-verify-orchestrator": {
+    "claudeOnly": 8,
+    "copilotOnly": 9,
+    "hash": "a1090c911a808d08"
+  },
+  "agents/code-reviewer": {
+    "claudeOnly": 0,
+    "copilotOnly": 3,
+    "hash": "e0734cce86d3f800"
+  },
+  "commands/chaos-apply": {
+    "claudeOnly": 8,
+    "copilotOnly": 17,
+    "hash": "4fc569ea12f54412"
+  },
+  "commands/chaos-archaeology": {
+    "claudeOnly": 1,
+    "copilotOnly": 5,
+    "hash": "18d5da186b47f6ca"
+  },
+  "commands/chaos-archeology": {
+    "claudeOnly": 0,
+    "copilotOnly": 5,
+    "hash": "7082e8fbb2d67327"
+  },
+  "commands/chaos-archive": {
+    "claudeOnly": 3,
+    "copilotOnly": 6,
+    "hash": "32bff4ab4da70a9a"
+  },
+  "commands/chaos-code-review": {
+    "claudeOnly": 2,
+    "copilotOnly": 7,
+    "hash": "77a97105f3552559"
+  },
+  "commands/chaos-doctor": {
+    "claudeOnly": 33,
+    "copilotOnly": 56,
+    "hash": "87706a5992a937ea"
+  },
+  "commands/chaos-help": {
+    "claudeOnly": 8,
+    "copilotOnly": 5,
+    "hash": "fd8d483487f58119"
+  },
+  "commands/chaos-init": {
+    "claudeOnly": 4,
+    "copilotOnly": 8,
+    "hash": "51fb52ce85841f2f"
+  },
+  "commands/chaos-proposal": {
+    "claudeOnly": 0,
+    "copilotOnly": 5,
+    "hash": "d5c745528b9f0006"
+  },
+  "commands/chaos-propose": {
+    "claudeOnly": 5,
+    "copilotOnly": 8,
+    "hash": "76fe1fde98e9036c"
+  },
+  "commands/chaos-resume": {
+    "claudeOnly": 6,
+    "copilotOnly": 23,
+    "hash": "ae0ff72fbf2f0433"
+  },
+  "commands/chaos-retro": {
+    "claudeOnly": 2,
+    "copilotOnly": 6,
+    "hash": "95d754874ebd3acc"
+  },
+  "commands/chaos-review": {
+    "claudeOnly": 5,
+    "copilotOnly": 10,
+    "hash": "e7fa435a6b6d822e"
+  },
+  "commands/chaos-status": {
+    "claudeOnly": 3,
+    "copilotOnly": 7,
+    "hash": "6275cd30713af0a6"
+  },
+  "commands/chaos-sync": {
+    "claudeOnly": 2,
+    "copilotOnly": 6,
+    "hash": "46011be2caaa7f48"
+  },
+  "commands/chaos-todo": {
+    "claudeOnly": 7,
+    "copilotOnly": 25,
+    "hash": "23b282d2867f7a4b"
+  },
+  "commands/chaos-verify": {
+    "claudeOnly": 3,
+    "copilotOnly": 6,
+    "hash": "8080a3d53c192977"
+  },
+  "skills/chaos-apply/SKILL.md": {
+    "claudeOnly": 8,
+    "copilotOnly": 3,
+    "hash": "0b7b3f12ba95e172"
+  },
+  "skills/chaos-apply/reference/csharp-implementation-specialist-contract.md": {
+    "claudeOnly": 7,
+    "copilotOnly": 6,
+    "hash": "d50cb0fad565a381"
+  },
+  "skills/chaos-apply/reference/decision-event-register.md": {
+    "claudeOnly": 16,
+    "copilotOnly": 0,
+    "hash": "5a643b9376560560"
+  },
+  "skills/chaos-apply/reference/output-contract.md": {
+    "claudeOnly": 9,
+    "copilotOnly": 0,
+    "hash": "7af7f4e25d2d7612"
+  },
+  "skills/chaos-archaeology/SKILL.md": {
+    "claudeOnly": 5,
+    "copilotOnly": 0,
+    "hash": "8073e0e2f199e9ef"
+  },
+  "skills/chaos-archaeology/reference/config-awareness.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "4d49610339e603ad"
+  },
+  "skills/chaos-archive/SKILL.md": {
+    "claudeOnly": 6,
+    "copilotOnly": 0,
+    "hash": "0cc079dd7ffafec4"
+  },
+  "skills/chaos-archive/reference/install-checklist.md": {
+    "claudeOnly": 36,
+    "copilotOnly": 1,
+    "hash": "344bf62cab305adc"
+  },
+  "skills/chaos-code-review/SKILL.md": {
+    "claudeOnly": 14,
+    "copilotOnly": 1,
+    "hash": "b9a6b9b3aa69e602"
+  },
+  "skills/chaos-code-review/reference/config-awareness.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "4f66a561ba0e3bc8"
+  },
+  "skills/chaos-doctor/SKILL.md": {
+    "claudeOnly": 6,
+    "copilotOnly": 7,
+    "hash": "646533a95a666070"
+  },
+  "skills/chaos-doctor/reference/check-catalog.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 3,
+    "hash": "a22e2ea8de49c5fc"
+  },
+  "skills/chaos-help/SKILL.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 2,
+    "hash": "6abe1158145fb2bc"
+  },
+  "skills/chaos-help/reference/readme-generation-policy.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 1,
+    "hash": "e5148c04ed84a9b6"
+  },
+  "skills/chaos-init/SKILL.md": {
+    "claudeOnly": 17,
+    "copilotOnly": 0,
+    "hash": "f1cc08315f323d20"
+  },
+  "skills/chaos-init/reference/config-contract.md": {
+    "claudeOnly": 4,
+    "copilotOnly": 4,
+    "hash": "7e876cbd84e1b07d"
+  },
+  "skills/chaos-interaction-runtime/SKILL.md": {
+    "claudeOnly": 22,
+    "copilotOnly": 18,
+    "hash": "ad166e886f2d2721"
+  },
+  "skills/chaos-interaction-runtime/reference/command-preflight-protocol.md": {
+    "claudeOnly": 5,
+    "copilotOnly": 4,
+    "hash": "5e7bb4451fa8ff5c"
+  },
+  "skills/chaos-interaction-runtime/reference/diagnostics-integration-contract.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "92240b8849c826e8"
+  },
+  "skills/chaos-interaction-runtime/reference/fallback-protocol.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "a26c9abfd5c4272f"
+  },
+  "skills/chaos-interaction-runtime/reference/material-decision-protocol.md": {
+    "claudeOnly": 2,
+    "copilotOnly": 3,
+    "hash": "84817a1781acdce2"
+  },
+  "skills/chaos-interaction-runtime/reference/runtime-resume-handoff.md": {
+    "claudeOnly": 12,
+    "copilotOnly": 6,
+    "hash": "4d6e66b7847d8348"
+  },
+  "skills/chaos-propose/SKILL.md": {
+    "claudeOnly": 6,
+    "copilotOnly": 1,
+    "hash": "62005a4a7b268ad6"
+  },
+  "skills/chaos-propose/reference/openspec-integration-contract.md": {
+    "claudeOnly": 3,
+    "copilotOnly": 2,
+    "hash": "b2f81beb8e04b42d"
+  },
+  "skills/chaos-propose/reference/question-bank.md": {
+    "claudeOnly": 51,
+    "copilotOnly": 0,
+    "hash": "88fefc76f00e2988"
+  },
+  "skills/chaos-resume/SKILL.md": {
+    "claudeOnly": 4,
+    "copilotOnly": 5,
+    "hash": "6557a3a8b5b819af"
+  },
+  "skills/chaos-resume/reference/resume-command-contract.md": {
+    "claudeOnly": 3,
+    "copilotOnly": 2,
+    "hash": "9b29baf5dd76fc32"
+  },
+  "skills/chaos-resume/reference/resume-mcp-tool-contract.md": {
+    "claudeOnly": 3,
+    "copilotOnly": 3,
+    "hash": "d0875f6b19533c49"
+  },
+  "skills/chaos-resume/reference/resume-safety-policy.md": {
+    "claudeOnly": 3,
+    "copilotOnly": 1,
+    "hash": "ebe549b3d4a7f32c"
+  },
+  "skills/chaos-retro/SKILL.md": {
+    "claudeOnly": 8,
+    "copilotOnly": 3,
+    "hash": "f50c6c0f689e8c9d"
+  },
+  "skills/chaos-review/SKILL.md": {
+    "claudeOnly": 10,
+    "copilotOnly": 5,
+    "hash": "e2ea0bd6356f68ec"
+  },
+  "skills/chaos-review/reference/question-bank.md": {
+    "claudeOnly": 70,
+    "copilotOnly": 0,
+    "hash": "d2084e7ddb4f583e"
+  },
+  "skills/chaos-review/reference/ux-flow.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "26b5ea9af58b1be6"
+  },
+  "skills/chaos-shared/reference/change-scoped-artifact-layout.md": {
+    "claudeOnly": 0,
+    "copilotOnly": 1,
+    "hash": "706cdb4f97983e6a"
+  },
+  "skills/chaos-shared/reference/hooks-repository-context-policy.md": {
+    "claudeOnly": 0,
+    "copilotOnly": 9,
+    "hash": "65bc6c1f92efd77a"
+  },
+  "skills/chaos-shared/reference/interactive-decision-protocol.md": {
+    "claudeOnly": 16,
+    "copilotOnly": 11,
+    "hash": "42bbb747f33b4cfd"
+  },
+  "skills/chaos-shared/reference/mcp-security-policy.md": {
+    "claudeOnly": 0,
+    "copilotOnly": 1,
+    "hash": "522c2353dc0d8857"
+  },
+  "skills/chaos-status/SKILL.md": {
+    "claudeOnly": 5,
+    "copilotOnly": 5,
+    "hash": "e81f07010234b780"
+  },
+  "skills/chaos-status/reference/check-catalog.md": {
+    "claudeOnly": 3,
+    "copilotOnly": 3,
+    "hash": "4ba9da3c7e89516f"
+  },
+  "skills/chaos-status/reference/config-audit.md": {
+    "claudeOnly": 0,
+    "copilotOnly": 15,
+    "hash": "7e2f357db59b6ec1"
+  },
+  "skills/chaos-sync/SKILL.md": {
+    "claudeOnly": 15,
+    "copilotOnly": 9,
+    "hash": "d18e7b115f820726"
+  },
+  "skills/chaos-todo/SKILL.md": {
+    "claudeOnly": 2,
+    "copilotOnly": 0,
+    "hash": "4888aca3730c51b2"
+  },
+  "skills/chaos-todo/reference/todo-command-contract.md": {
+    "claudeOnly": 2,
+    "copilotOnly": 2,
+    "hash": "cf2443938d391db4"
+  },
+  "skills/chaos-todo/reference/todo-deduplication-policy.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 1,
+    "hash": "3deb739810d18c2b"
+  },
+  "skills/chaos-todo/reference/todo-examples.md": {
+    "claudeOnly": 5,
+    "copilotOnly": 6,
+    "hash": "ac3336981b0f0619"
+  },
+  "skills/chaos-todo/reference/todo-source-contract.md": {
+    "claudeOnly": 2,
+    "copilotOnly": 2,
+    "hash": "cd58917ca187a5bf"
+  },
+  "skills/chaos-verify/SKILL.md": {
+    "claudeOnly": 10,
+    "copilotOnly": 2,
+    "hash": "aeda973d82e9b6aa"
+  },
+  "skills/chaos-verify/reference/verification-contract.md": {
+    "claudeOnly": 17,
+    "copilotOnly": 0,
+    "hash": "8a48721dab04a73b"
+  },
+  "skills/openspec-apply-change/SKILL.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "bcb736eb7af0b2a2"
+  },
+  "skills/openspec-archive-change/SKILL.md": {
+    "claudeOnly": 4,
+    "copilotOnly": 1,
+    "hash": "81bc970ae60c789e"
+  },
+  "skills/openspec-propose/SKILL.md": {
+    "claudeOnly": 5,
+    "copilotOnly": 3,
+    "hash": "d2b9b8ab62b40e15"
+  },
+  "skills/openspec-sync-specs/SKILL.md": {
+    "claudeOnly": 1,
+    "copilotOnly": 0,
+    "hash": "cda34e4cefe9d73e"
+  }
+}
