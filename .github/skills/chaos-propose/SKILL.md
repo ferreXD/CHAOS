@@ -3,12 +3,14 @@ name: chaos-propose
 description: "Create evidence-aware, ADR/rule-aligned OpenSpec proposals through CHAOS. Supports --light, --standard, and --strict modes with runtime decision resolution."
 ---
 
+> Copilot agent skill. Keep this file named `SKILL.md`; supplementary material lives in `reference/`.
+
 # CHAOS Propose
 
-Use this skill when the user invokes:
+Use this skill when the user invokes the matching prompt file:
 
 ```text
-/chaos-propose "<change intent>" [--light|--standard|--strict]
+.github/prompts/chaos-propose.prompt.md "<change intent>" [--light|--standard|--strict]
 ```
 
 or asks to create a CHAOS/OpenSpec proposal.
@@ -19,17 +21,9 @@ Create a proposal for a change using CHAOS governance and OpenSpec as the spec m
 
 The skill must not implement code.
 
-## Repository context (vNext, optional)
-
-When easily available, `chaos:propose` may record the **branch / change source** from the
-provider-neutral repository context
-(`.github/skills/chaos-shared/reference/repository-context-contract.md`, tool profile
-`propose`, read-only). This is purely additive provenance — propose does **not** require MCP,
-CLI, or provider context, and local git fallback is sufficient.
-
 ## Non-negotiable execution contract (model robustness)
 
-This skill must be executable by the **weakest supported Claude model**. Do not depend on
+This skill must be executable by the **weakest supported Copilot model**. Do not depend on
 inferring governance intent. Obey:
 
 - `.github/skills/chaos-shared/reference/model-robustness-policy.md`
@@ -77,12 +71,12 @@ Before operating, read the reference files in this skill (and the shared policie
    - record each material answer as a `PROP-DEC-*` Decision Event.
 8. Present the Approach Alignment Checkpoint. STOP and wait for explicit confirmation.
 9. After user confirmation, run the **hard OpenSpec invocation gate** (mechanical, in order):
-   1. Detect OpenSpec availability (`.chaos/config.yaml` `project.specEngine`/`toolchain.openspec`, or `/opsx:propose`, `openspec` CLI, `openspec/changes/`).
-   2. Invoke OpenSpec via one acceptable path — `/opsx:propose`, the `openspec-propose` skill, or driving the `openspec` CLI (all first-class; see "CHAOS overlay invocation rules" in `reference/openspec-integration-contract.md`). Pass the CHAOS brief as input and let OpenSpec own artifact paths. Do not hand-write artifacts when OpenSpec is available; if no path can run, there is no automatic fallback — go to degraded mode (6).
+   1. Detect OpenSpec availability (`.chaos/config.yaml` `project.specEngine`/`toolchain.openspec`, or `opsx-propose.prompt.md`, `openspec` CLI, `openspec/changes/`).
+   2. Invoke OpenSpec via one acceptable path — `opsx-propose.prompt.md`, the `openspec-propose` skill, or driving the `openspec` CLI (all first-class; see "CHAOS overlay invocation rules" in `reference/openspec-integration-contract.md`). Pass the CHAOS brief as input and let OpenSpec own artifact paths. Do not hand-write artifacts when OpenSpec is available; if no path can run, there is no automatic fallback — go to degraded mode (6).
    3. Confirm the OpenSpec change folder exists (`openspec/changes/<change-id>/`).
    4. Confirm proposal/spec/task artifacts were created or updated.
    5. Run OpenSpec validation (`openspec validate <change-id> --strict`) when available; record run/not-run/failed honestly.
-   6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard/light ask one decision and STOP, then cap confidence; record the degraded-mode decision event.
+   6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard asks one decision and STOPs, then caps confidence; light auto-escalates to standard first (the light valve); record the degraded-mode decision event.
    7. Only after the gate, apply CHAOS wrapping (confidence, decision events, archaeology references, lifecycle, review routing, governance recommendations).
    8. Record the **OpenSpec Invocation Proof** in the report (see `reference/openspec-integration-contract.md`).
 10. Re-read/re-evaluate amended proposal artefacts when runtime decisions changed them.

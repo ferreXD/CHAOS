@@ -59,8 +59,8 @@ materiality guardrail — do not import every marker as a todo.
 
 ## Runtime event promotion gating
 
-Hook violations and decision-wait events (`.chaos/runtime/*.jsonl`) become todo candidates
-only when:
+Hook violations and decision-wait events (`.chaos/runtime/*.jsonl`) are shared runtime logs.
+They become todo candidates only when:
 
 - the same violation/wait recurs across multiple sessions (repeated), or
 - the event is classified `ERROR`/`BLOCKED` severity (severe), or

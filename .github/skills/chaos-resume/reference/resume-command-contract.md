@@ -30,6 +30,12 @@ Natural-language equivalents are accepted (map to the same behaviour):
 6. **Reconstruct context** and load `requiredArtifacts`.
 7. **Continue semantically** from `nextStep` under the original `sourceCommand`
    contract, delegating to that command's skill/agent as needed.
+   **Special case — light FRAME (`sourceCommand: chaos:propose`, capsule `nextStep: deliver`,
+   `change.md` frontmatter `mode: light`):** the continuation is an **administrative
+   terminalization only** — consume the answered decisions, close the run, release the lock,
+   and point the user at `chaos:apply <change-id>` (which infers light from `change.md` and owns
+   DELIVER). Resume never implements production code on a light run; `chaos:apply`'s preflight
+   performs this same close when invoked directly, so this step may already be done.
 8. **Consume decisions** after incorporation; **write a resume report** in
    standard/strict (or with `--write-report`).
 9. **Finalize** session state.

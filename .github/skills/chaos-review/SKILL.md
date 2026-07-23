@@ -5,6 +5,8 @@ allowed-tools: Read, Grep, Glob, Bash, LS, Write, Edit
 agent: chaos-proposal-reviewer
 ---
 
+> Copilot agent skill. Keep this file named `SKILL.md`; supplementary material lives in `reference/`.
+
 # chaos:review
 
 Run a pre-implementation proposal review for an OpenSpec change.
@@ -15,10 +17,10 @@ Canonical CHAOS form:
 chaos:review <change-id-or-intent> [--light|--standard|--strict]
 ```
 
-Claude invocation:
+Copilot invocation:
 
 ```text
-/chaos-review <change-id-or-intent> --standard
+chaos-review.prompt.md <change-id-or-intent> --standard
 ```
 
 ## Inputs
@@ -94,22 +96,6 @@ Read the reference files under `reference/` before executing the review:
 - `report-template.md`
 - `question-bank.md`
 
-## Repository context (vNext, optional)
-
-When easily available, `chaos:review` may record **review request (PR) / branch context** from
-the provider-neutral repository context
-(`.github/skills/chaos-shared/reference/repository-context-contract.md`, tool profile
-`review`, read-only). This is additive provenance only — review does **not** require MCP, CLI,
-or provider context; local git fallback is sufficient.
-
-## Todo Candidates (optional)
-
-`chaos:review` MAY end its report with an optional `## Todo Candidates` section listing
-material remediation not applied, conditional-approval follow-up items, or missing
-tests/spec clarifications, using the shared fields in
-`.github/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:review` does not
-create durable todo items — only `chaos:todo` curates `.chaos/todo/items/`.
-
 ## Hard boundary
 
 `chaos:review` may amend OpenSpec/CHAOS review artefacts with confirmation.
@@ -121,3 +107,11 @@ It must not implement production/source code.
 Read `.chaos/config.yaml` when present before resolving OpenSpec, ADR, decision-log, archaeology, rules, gates, validation, and review report paths. Follow `reference/config-awareness.md`.
 
 Do not edit config from `chaos:review`; report config drift and route to `chaos:status` or `chaos:sync`.
+
+## Todo Candidates (optional)
+
+`chaos:review` MAY end its report with an optional `## Todo Candidates` section listing
+material remediation not applied, conditional-approval follow-up items, or missing
+tests/spec clarifications, using the shared fields in
+`.github/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:review` does not
+create durable todo items — only `chaos:todo` curates `.chaos/todo/items/`.

@@ -53,6 +53,9 @@ artifacts, and the original source command's contract justify.
 5. **Continue semantically** — load the original `sourceCommand` contract and
    continue from `nextStep`, delegating to that command's skill/agent when
    appropriate. If `sourceCommand` is unknown, STOP and ask for direction.
+   **Light FRAME runs** (`chaos:propose` + capsule `nextStep: deliver` + `change.md`
+   `mode: light`): administrative terminalization only — consume decisions, close the run,
+   release the lock, point at `chaos:apply <change-id>`; never implement here.
 6. **Consume decisions** after they are incorporated; record decision events in
    the change artifact if the change contract has them.
 7. **Write a resume report** (standard/strict, or `--write-report`).

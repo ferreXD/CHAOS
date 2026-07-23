@@ -43,14 +43,17 @@ above is the middle tier; a tiny change runs a shorter one, brownfield/risky wor
 
 | Path | Use it for | The commands, in order | Typical mode |
 |---|---|---|---|
-| **Tiny** | docs, tests, a small no-behaviour tweak | `propose → apply → verify` | `--light` |
+| **Tiny** | docs, tests, a small no-behaviour tweak | `propose → (answer decisions) → apply` | `--light` |
 | **Normal** | a bounded feature or bug fix | `propose → review → apply → code-review → verify → archive` | `--standard` |
 | **Brownfield** | risky, legacy, architectural, data, or auth work | `archaeology → propose → review → apply → code-review → verify → archive → sync → retro` | `--strict` |
 
 Same commands, different amount of ceremony:
 
-- **Tiny** skips the review gates, archive, and retro — you still get a proposal, the
-  implementation, and an independent `chaos:verify`, but with minimal ceremony.
+- **Tiny** is the **collapsed light lifecycle**: `chaos:propose --light` frames the change (one
+  `change.md` with the contract, full OpenSpec, your decisions surfaced — then it stops for
+  you); `chaos:apply` delivers against your answers and writes a compact dashboard. No review /
+  verify / archive runs, one file to read, and it auto-escalates to `--standard` the moment
+  real risk appears.
 - **Normal** is the everyday path: a pre-build **`chaos:review`** gate, a post-build
   **`chaos:code-review`**, and a clean **`chaos:archive`** — the golden path above, with the
   code-review gate added.
@@ -114,7 +117,7 @@ asks you to confirm.
 
 | Mode | Use for | What it demands |
 |---|---|---|
-| **`--light`** | docs, tests, small no-behaviour cleanups | Reports recommended, not required; only high-impact issues prompt remediation; accepted risk allowed for non-critical gaps. |
+| **`--light`** | docs, tests, small no-behaviour cleanups | **Collapsed lifecycle, not relaxed validation**: one `change.md` (contract + review line + delivery dashboard) instead of the report set; full OpenSpec; every material decision still stops for you; tests still required; auto-escalates to `--standard` on risk. |
 | **`--standard`** | normal feature work, bounded API/logic changes | OpenSpec change required; review/apply evidence and task traceability required; blockers block; skipped validation needs a rationale. |
 | **`--strict`** | migrations, auth/security, data & schema, API contracts, cross-module or production-critical work | Review + apply reports required; OpenSpec validation required; no unresolved blocking/major findings; material decisions required; missing tests for behavioural change **block** unless you explicitly downgrade. |
 
@@ -135,12 +138,14 @@ openspec/changes/<change-id>/          # OWNER: OpenSpec — the source of truth
   tasks.md                             #   the steps (checked off as apply completes them)
 
 .chaos/changes/<change-id>/            # OWNER: CHAOS — the governance & audit trail
-  proposal-report.md   proposal-review.md   approval.md    # per-command reports
+  proposal-report.md   proposal-review.md   approval.md    # per-command reports (standard/strict)
   apply-report.md      verification.md
   archive-report.md    sync-report.md
   decision-events.md                   #   PROP-DEC-*/REV-DEC-*/APP-DEC-* — the human record
   lifecycle.md                         #   status + links tying it all together
   waivers.md                           #   accepted risk / debt
+  change.md                            #   --light: replaces the report set with one story file
+                                       #   (intent + contract + review line + delivery dashboard)
 
 .chaos/interactions/decisions/<DEC-…>/ # the machine-level decision record
   decision.json · response.json · audit.jsonl

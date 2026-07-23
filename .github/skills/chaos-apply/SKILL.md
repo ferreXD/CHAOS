@@ -3,9 +3,11 @@ name: chaos-apply
 description: Apply an approved OpenSpec change under CHAOS governance, with C# expert delegation, scope control, decision-event capture, and confidence-aware apply reporting.
 ---
 
+> Copilot agent skill. Keep this file named `SKILL.md`; supplementary material lives in `reference/`.
+
 # CHAOS Apply Skill
 
-Use this skill when the user invokes `chaos:apply`, `/chaos-apply`, or asks to implement an OpenSpec change under CHAOS.
+Use this skill when the user invokes `chaos:apply`, `chaos-apply.prompt.md`, or asks to implement an OpenSpec change under CHAOS.
 
 ## Required references
 
@@ -65,6 +67,12 @@ Then recommend:
 chaos:verify <change-id>
 ```
 
+## Config awareness
+
+Before resolving OpenSpec paths, review reports, apply report output, validation commands, or C# specialist delegation, read `.chaos/config.yaml` when present and follow `reference/config-awareness.md`.
+
+If config is missing, infer defaults and record the config status. In strict mode, require a config waiver before code mutation when missing config affects execution safety.
+
 ## Todo Candidates (optional)
 
 `chaos:apply` MAY end its report with an optional `## Todo Candidates` section listing
@@ -72,17 +80,3 @@ material implementation debt, out-of-scope changes deferred, or validation not r
 shared fields in `.github/skills/chaos-todo/reference/todo-candidate-contract.md`.
 `chaos:apply` does not create durable todo items — only `chaos:todo` curates
 `.chaos/todo/items/`.
-
-## Repository context (vNext, optional)
-
-When easily available, `chaos:apply` may record **changed files and branch context** from the
-provider-neutral repository context
-(`.github/skills/chaos-shared/reference/repository-context-contract.md`, tool profile `apply`,
-read-only) in the apply report. This is additive provenance only — apply does **not** require
-MCP, CLI, or provider context; local git fallback is sufficient.
-
-## Config awareness
-
-Before resolving OpenSpec paths, review reports, apply report output, validation commands, or C# specialist delegation, read `.chaos/config.yaml` when present and follow `reference/config-awareness.md`.
-
-If config is missing, infer defaults and record the config status. In strict mode, require a config waiver before code mutation when missing config affects execution safety.

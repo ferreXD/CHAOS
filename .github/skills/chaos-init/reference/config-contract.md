@@ -114,6 +114,11 @@ policies:
     inferModeWhenMissing: true
     defaultMode: "standard"
     allowStrictDowngradeWithRationale: true
+  lightMode:                           # collapsed light lifecycle (FRAME -> DELIVER)
+    collapsedWorkflow: true
+    maxMaterialDecisions: 2            # exceeding this auto-escalates light -> standard
+    autoEscalate: true                 # never ask; always announce + record (escalatedFrom, ESC-*)
+    allowStandaloneApplyEntry: true
   decisions:
     requireDecisionEvents: true
     requireSyncAction: true

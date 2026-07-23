@@ -82,7 +82,7 @@ Before operating, read the reference files in this skill (and the shared policie
    3. Confirm the OpenSpec change folder exists (`openspec/changes/<change-id>/`).
    4. Confirm proposal/spec/task artifacts were created or updated.
    5. Run OpenSpec validation (`openspec validate <change-id> --strict`) when available; record run/not-run/failed honestly.
-   6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard/light ask one decision and STOP, then cap confidence; record the degraded-mode decision event.
+   6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard asks one decision and STOPs, then caps confidence; light auto-escalates to standard first (the light valve); record the degraded-mode decision event.
    7. Only after the gate, apply CHAOS wrapping (confidence, decision events, archaeology references, lifecycle, review routing, governance recommendations).
    8. Record the **OpenSpec Invocation Proof** in the report (see `reference/openspec-integration-contract.md`).
 10. Re-read/re-evaluate amended proposal artefacts when runtime decisions changed them.
