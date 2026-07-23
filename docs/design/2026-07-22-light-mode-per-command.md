@@ -191,7 +191,7 @@ later *suggest* light — deferred).
 
 1. `chaos-shared/reference/change-template.md` (universal skeleton + decision-entry + lifecycle-manifest formats) — everything else references it.
 2. `chaos-propose` light branch (FRAME) + capsule `nextStep: deliver`.
-3. `chaos-resume` routing row + safety-policy line.
+3. `chaos-resume` administrative-terminalization note; `chaos-apply` entry preflight (mode inference + answered-decision gate + propose-run close).
 4. `chaos-apply` light-deliver contract + standalone idempotent entry.
 5. Light-awareness one-liners: verify / archive / sync / todo + metadata-hook include.
 6. Config block.

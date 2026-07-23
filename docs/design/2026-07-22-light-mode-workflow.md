@@ -291,9 +291,10 @@ dated row in `RUNKIT.md` — never overwrite the baseline.
 ## 11. Implementation sketch (next passes)
 
 1. **Per-command design** — done: [`2026-07-22-light-mode-per-command.md`](2026-07-22-light-mode-per-command.md).
-   Ownership chain (creator-confirmed): `chaos-propose` owns FRAME, `chaos-resume` is the router,
-   **`chaos-apply` owns DELIVER** (implementation competence lives there); verify is out of the
-   critical path. Entry point resolved: `chaos:propose --light`, no new top-level command.
+   Ownership chain (creator-corrected 2026-07-24): `chaos-propose` owns FRAME (never writes
+   production code), **`chaos-apply` owns DELIVER under its own command identity** (mode inferred
+   from `change.md`; explicit `--light` optional); `chaos-resume` keeps its normal mid-flight job —
+   not a deliver-router; verify is out of the critical path. No new top-level command.
 2. **Templates**: `change.md` + lean decision-entry formats as skill reference files.
 3. **Config**: `defaultMode` stays `standard`; add `lightMode:` block (N-decision threshold,
    escalation triggers) to `config.yaml`.
