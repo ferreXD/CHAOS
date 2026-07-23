@@ -2,7 +2,13 @@
 
 ## Primary output
 
-`chaos:apply` must produce or update (v0 change-scoped layout):
+**Light-deliver exception:** on a `change.md`-based light change (`chaosMetadata.mode: light`),
+the primary output is the **`change.md` §Delivery dashboard** (plus the `lifecycle.md` view
+update) — **no `apply-report.md` is written**, and the required output properties below are
+carried by the dashboard's fields (mode, result status, checks, files, deviations, run id).
+Formats: `chaos-shared/reference/change-template.md`.
+
+Otherwise, `chaos:apply` must produce or update (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md

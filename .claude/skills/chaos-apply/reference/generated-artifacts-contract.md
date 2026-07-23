@@ -8,6 +8,16 @@
 .chaos/changes/<change-id>/lifecycle.md   # Apply row, with confirmation
 ```
 
+On a `change.md`-based light change (light-deliver), the writable set is instead:
+
+```text
+.chaos/changes/<change-id>/change.md          # §Delivery dashboard + frontmatter lifecycle state
+.chaos/changes/<change-id>/decision-events.md # lean entries (incl. ESC-* on escalation)
+.chaos/changes/<change-id>/lifecycle.md       # generated-view stub, closing edit
+```
+
+No `apply-report.md` on light-deliver.
+
 Legacy `.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
 
 It may update code and tests only within the implementation boundary.

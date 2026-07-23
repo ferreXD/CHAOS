@@ -2,7 +2,13 @@
 
 ## Primary output
 
-`chaos:apply` must produce or update (v0 change-scoped layout):
+**Light-deliver exception:** on a `change.md`-based light change (`chaosMetadata.mode: light`),
+the primary output is the **`change.md` §Delivery dashboard** (plus the `lifecycle.md` view
+update) — **no `apply-report.md` is written**, and the required output properties below are
+carried by the dashboard's fields (mode, result status, checks, files, deviations, run id).
+Formats: `chaos-shared/reference/change-template.md`.
+
+Otherwise, `chaos:apply` must produce or update (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md
@@ -34,6 +40,18 @@ The report must include:
 - decision events
 - validation attempts/skips
 - next command recommendation
+
+## Closing checklist
+
+Before writing the final apply report, verify that every task in `tasks.md` confirmed complete
+in the Task Execution Log is actually marked `[x]` in `tasks.md` itself — do not rely on archive
+time to catch this. If a task's real-world completion is independently confirmed but its checkbox
+was left unmarked, correct the checkbox as part of closing this apply pass, not as a later
+archive-time correction.
+
+Provenance: `implement-entra-id-authentication` archive (2026-07-03, ARC-DEC-001) — 23 checkboxes
+were never marked `[x]` during apply despite independently-verified completion; caught and fixed
+only at archive. Promoted via `chaos:sync --all`, 2026-07-06.
 
 ## Forbidden output patterns
 

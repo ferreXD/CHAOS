@@ -116,9 +116,13 @@ touches them. Then, instead of steps 8–12:
    `approves-change: true` (answering it is the approval — no `approval.md`). If no material
    decision exists, surface the explicit gate decision "Approve contract as framed?" — light's
    floor is one human stop, never zero.
-4. Create the resume capsule (`nextStep: deliver`, contract hash, scope list, in-scope rule ids)
-   and **STOP** (mustStop). Next command after answers: `chaos:apply` (mode is inferred from
-   `change.md`; `chaos:review` is not part of the light path).
+4. Create the resume capsule using the standard capsule schema
+   (`chaos-resume/reference/resume-capsule-contract.md`) — `nextStep: deliver`;
+   `contextCapsule.intent` = the change intent; `contextCapsule.approvedScope` = the scope
+   (files/modules) list; `contextCapsule.constraints` = the contract statements' hash + in-scope
+   rule ids; `requiredArtifacts` = [`.chaos/changes/<change-id>/change.md`]. Then **STOP**
+   (mustStop). Next command after answers: `chaos:apply` (mode is inferred from `change.md`;
+   `chaos:review` is not part of the light path).
 
 **Auto-escalation valve (one-way, never ask):** escalate to `--standard` when the change crosses
 an architecture non-goal/posture, surfaces more than `modes.light.maxMaterialDecisions` material

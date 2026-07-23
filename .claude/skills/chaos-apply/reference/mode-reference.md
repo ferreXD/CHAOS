@@ -1,5 +1,14 @@
 # `chaos:apply` Mode Reference
 
+## Light-deliver override (collapsed lifecycle)
+
+When `.chaos/changes/<change-id>/change.md` exists with `chaosMetadata.mode: light`, the mode is
+**light by inference** and the **Light-deliver** section of `reference/apply-contract.md`
+supersedes this file's mode-behaviour table for that run: no `chaos:review` requirement (the FRAME
+self-review + the human's answered decisions are the gate), output is the `change.md` §Delivery
+dashboard (no apply-report), and validation (build + tests + contract coverage) is **required**,
+not suggested. The table below applies to legacy-layout light applies only.
+
 ## Invocation
 
 ```bash

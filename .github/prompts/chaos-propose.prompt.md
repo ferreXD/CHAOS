@@ -79,7 +79,8 @@ when it was not; hiding OpenSpec failure behind a successful CHAOS proposal.
 
 - `--strict`: if OpenSpec is unavailable or cannot be invoked, **block**.
 - `--standard`: ask whether to continue in degraded mode, **STOP for explicit choice**, and cap confidence.
-- `--light`: warn, ask if the proposal can be sketched without OpenSpec, **STOP for choice**, and cap confidence.
+- `--light`: **auto-escalate to `--standard`** (the light valve — announce + record `ESC-*`;
+  light never skips the spec silently), then apply the standard degraded-mode handling above.
 - Degraded mode must be explicitly recorded (decision event + report).
 
 The proposal report MUST include an **OpenSpec Invocation Proof** section (see

@@ -46,6 +46,12 @@ back to.
 | `chaos:archive` | light / standard / strict `†` `+flags` | ✅ verdict + decision-event types | ✅ mirror | `chaos:sync` (+ `chaos:retro`) | `archive-report.md` (+ `waivers.md`) |
 | `chaos:sync` | light / **standard** / strict `+flags` | ✅ drift findings + verdict | ✅ mirror | `context` (closure summary) | `sync-report.md` / repo `sync-reports/` |
 
+**`--light` collapses this lifecycle** (Primary-output column above describes standard/strict):
+`chaos:propose --light` = FRAME (`change.md` + decisions + full OpenSpec, one human stop) →
+`chaos:apply` (mode inferred) = DELIVER (`change.md` §Delivery dashboard). No review / verify /
+archive runs; auto-escalates to standard on risk. Formats:
+`.claude/skills/chaos-shared/reference/change-template.md`.
+
 ## Investigate — understand before (or after) you change
 
 | Command | Modes | Confidence | Copilot | Next | Primary output |

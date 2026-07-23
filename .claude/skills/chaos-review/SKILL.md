@@ -26,6 +26,16 @@ Claude invocation:
 - OpenSpec change id or intent.
 - Optional mode: `--light`, `--standard`, `--strict`.
 
+## Light collapsed-lifecycle changes
+
+A `change.md`-based light change (`chaosMetadata.mode: light` — see
+`chaos-shared/reference/change-template.md`) does **not** require `chaos:review`: the FRAME
+self-review line plus the human-answered decisions are its gate, and `chaos:apply` is the next
+command. If review is explicitly invoked on one anyway, review the `change.md` contract +
+`decision-events.md` (do not demand `proposal-report.md`) and update the Review line in
+`change.md` with the verdict — do not create `proposal-review.md`. Escalated changes
+(`escalatedFrom: light`) follow the standard path below.
+
 ## Required output
 
 Generate or update (v0 change-scoped layout):

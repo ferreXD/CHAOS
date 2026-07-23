@@ -16,7 +16,7 @@ everywhere, applied to that command's own work:
 
 | Mode | Use for | Effect (general) |
 |---|---|---|
-| `--light` | docs, tests, small no-behaviour cleanups | Reports/evidence recommended, not required; only high-impact issues prompt action. |
+| `--light` | docs, tests, small no-behaviour cleanups | **Collapsed lifecycle, not relaxed validation**: propose = FRAME (contract + decisions in one `change.md`, full OpenSpec, one human stop) → `chaos:apply` delivers (dashboard, tests still required). No review/verify/archive runs; auto-escalates to `--standard` when risk appears. |
 | `--standard` | normal, bounded feature work | Full evidence/traceability required; blockers block; skipped validation needs a rationale. |
 | `--strict` | migrations, auth/security, data, API contracts, production-critical work | Prior reports + OpenSpec validation required; no unresolved blocking/major findings; missing tests for behaviour changes **block**. |
 
@@ -50,7 +50,7 @@ The **default** mode differs by command (see the matrix). Three commands don't u
 | Flag / arg | What it does |
 |---|---|
 | `"<intent>"` | The change-intent string that seeds the proposal *(positional)*. |
-| `--light` | Docs-only / isolated low-risk / spike; ≤3 clarifications, minimal OpenSpec, review optional. |
+| `--light` | Docs-only / isolated low-risk / spike; collapsed FRAME — full OpenSpec, `change.md` + decisions, then STOP for the human; next is `chaos:apply` (no review step); auto-escalates on risk. |
 | `--standard` | Normal changes; 2–3 approaches, full OpenSpec artefacts, recommends review. |
 | `--strict` | Brownfield / data / auth / architecture; exact source manifest, review mandatory, no "ready" with blocking gaps. |
 
