@@ -91,9 +91,12 @@ authorized implementation — no separate approval.md, no second stop. If a chan
 *zero* material decisions, FRAME surfaces one explicit gate decision — "Approve contract as framed?" —
 so light **always** has exactly one human stop, never zero.
 
-### 3.2 DELIVER (apply + verify, collapsed)
+### 3.2 DELIVER (apply + verify, collapsed) — owned by `chaos-apply`
 
-Resumed via the normal resume flow (capsule → answered decisions → continue):
+Ownership chain (creator-confirmed): **propose (FRAME) → resume (router) → apply (DELIVER)**.
+`chaos:resume` validates the capsule + answered decisions and routes execution to the `chaos-apply`
+light contract — resume is the entry, apply is the owner/executor (implementation competence,
+C# specialist delegation, scope control live there). Steps:
 
 1. **Implement to the approved contract** — honoring the human's answers *verbatim*, R-003/4/5 intact.
 2. **Validate:** build + full test suite; the contract's testable statements must each be covered by a
@@ -254,10 +257,10 @@ dated row in `RUNKIT.md` — never overwrite the baseline.
 
 ## 11. Implementation sketch (next passes)
 
-1. **Per-command design** (next): what each skill's light section says — chiefly `chaos-propose`
-   (FRAME owner), `chaos-resume` (DELIVER entry), and the light-awareness edits in
-   verify/archive/sync/todo per §7. Decide whether FRAME lands as `chaos:propose --light` behavior
-   or a thin `chaos:light` entry command that drives the collapsed path.
+1. **Per-command design** — done: [`2026-07-22-light-mode-per-command.md`](2026-07-22-light-mode-per-command.md).
+   Ownership chain (creator-confirmed): `chaos-propose` owns FRAME, `chaos-resume` is the router,
+   **`chaos-apply` owns DELIVER** (implementation competence lives there); verify is out of the
+   critical path. Entry point resolved: `chaos:propose --light`, no new top-level command.
 2. **Templates**: `change.md` + lean decision-entry formats as skill reference files.
 3. **Config**: `defaultMode` stays `standard`; add `lightMode:` block (N-decision threshold,
    escalation triggers) to `config.yaml`.
