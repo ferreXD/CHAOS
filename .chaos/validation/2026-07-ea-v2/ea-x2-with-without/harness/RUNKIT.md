@@ -20,6 +20,28 @@ What *should* move after perf work is the **cost ratio**.
 regressing the oracle (still 19/19 clean both arms) or the governance artifact set (11 artifacts /
 run). Record the re-run numbers next to these in a new dated row — do not overwrite.
 
+## Re-run — Stage-A `--light` collapsed path (2026-07-24, model claude-opus-4-8[1m])
+
+Governed arm swapped from the standard 6-command / 11-artifact lifecycle to the **collapsed light
+path** (FRAME→DELIVER, artifact set = OpenSpec + `change.md` + lean `decision-events.md` +
+lifecycle stub). Frozen-3 tasks run **forced-light** (valve suppressed) for comparability. Full
+scorecard + Cost B (new light-eligible tasks) + valve fidelity: `../../ea-x2-stage-a-light/`.
+
+| Pair | task | light time | plain time | time ratio | light out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 258 s | 78 s | 3.31× | 27,652 | 5,868 | 4.71× | 9/9 clean |
+| 2 | soft-delete | 302 s | 97 s | 3.11× | 23,418 | 8,264 | 2.83× | 5/5 clean |
+| 3 | concurrency | 335 s | 92 s | 3.64× | 27,240 | 8,425 | 3.23× | 5/5 clean |
+| **Σ** | | **895 s** | **267 s** | **3.35×** | **78,310** | **22,557** | **3.47×** | 19/19 both |
+
+**Read against the frozen baseline (2,149 s / 185,376 tok governed):** the governed arm's absolute
+cost dropped **−58%** on the identical tasks. The within-session ratio is 3.35× only because this
+session's plain arm was ~2× cheaper than the frozen plain (546 s / 38,996 tok); vs the **frozen
+plain** baseline the light arm is **1.64× time / 2.01× tok** — meeting ≤2×. Oracle unregressed
+(19/19 both). Artifact count 11 → **7** (4 narrative reports collapsed into `change.md`); artifact
+prose **45.5% → 4.7%** of governed output. Bottleneck now the OpenSpec set + governance reads +
+decision records, not prose → motivates Stage B. (Tokens output-only proxy; time self-reported.)
+
 ## Files
 
 | File | Role |
