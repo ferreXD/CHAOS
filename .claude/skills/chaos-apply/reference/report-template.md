@@ -1,5 +1,8 @@
 # Apply Report Template
 
+**Not used on light-deliver** — `change.md`-based light changes get the §Delivery dashboard
+(`chaos-shared/reference/change-template.md`) instead of this report.
+
 Save as (v0 change-scoped layout; legacy `.chaos/apply-reports/` read-only for compat):
 
 ```text

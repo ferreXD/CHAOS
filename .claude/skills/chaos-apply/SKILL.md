@@ -25,6 +25,15 @@ Read the reference files before acting:
 - `reference/output-contract.md`
 - `reference/report-template.md`
 - `reference/question-bank.md`
+- `.claude/skills/chaos-shared/reference/change-template.md` (universal change artifacts)
+
+## Light-deliver entry (mode inferred)
+
+Before anything else: if `.chaos/changes/<change-id>/change.md` exists with
+`chaosMetadata.mode: light`, this apply is the **DELIVER** phase of the collapsed light lifecycle
+— run the **Light-deliver** section of `reference/apply-contract.md` instead of the standard
+stages (gate: all decisions ANSWERED, else point at the Decision Center and stop; output =
+`change.md` §Delivery dashboard, no apply-report/verification; `chaos:verify` not required).
 
 ## Golden rules
 

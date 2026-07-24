@@ -44,6 +44,11 @@ Read the reference files before acting:
 - Do not modify production files unless the resumed command's `nextStep` allows it.
 - If runtime state is malformed, STOP and report repair actions.
 - Do not fake literal chat continuation — continue semantically from `nextStep`.
+- **Light lifecycle:** resuming an answered light FRAME run (`sourceCommand: chaos:propose`,
+  `mode: light`, `capsule.nextStep: deliver`) is an **administrative terminalization only** —
+  consume the answered decisions, close the run, release the lock, and point at `chaos:apply`
+  (which infers light from `change.md` and owns DELIVER). Resume never implements on a light
+  run; apply's preflight can perform this same close if invoked directly.
 
 ## Relationship to other iterations
 

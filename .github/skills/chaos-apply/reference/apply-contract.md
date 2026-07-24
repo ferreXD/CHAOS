@@ -97,3 +97,38 @@ Every result must include:
 ## Config resolution
 
 `chaos:apply` must resolve repository conventions through `.chaos/config.yaml` when present. Use configured paths and commands for OpenSpec, reviews, apply reports, ADRs, decision logs, rules, gates, validation, and specialist delegation. Missing or conflicting config must be recorded as a confidence-impacting condition.
+
+## Light-deliver (collapsed lifecycle — `chaos:apply` is the DELIVER owner)
+
+When `.chaos/changes/<change-id>/change.md` exists with `chaosMetadata.mode: light`, **infer light
+mode from it** (an explicit `--light` flag merely asserts the expectation) and run this contract
+instead of the standard stages. Design: `docs/design/2026-07-24-artifact-model-roadmap.md`;
+formats: `chaos-shared/reference/change-template.md`.
+
+**Preflight (gate, in order):**
+
+1. Load `change.md` + `decision-events.md` + the FRAME capsule; verify the contract hash.
+2. Every material decision must be **ANSWERED** (including the `approves-change: true` entry).
+   Any OPEN ⇒ point the human at the Decision Center and STOP — no bypass, no re-asking in chat.
+3. Administratively terminalize the answered FRAME (propose) run if still open; begin the apply
+   run; re-acquire the change lock.
+4. Idempotency: if `change.md` already shows `status: Delivered`, report the dashboard and exit.
+
+**Deliver:**
+
+1. Implement to the approved contract, honoring the human's answers **verbatim**. Specialist
+   delegation applies unchanged. Scope stays inside the capsule's scope list.
+2. Validate: build + full tests + **contract coverage** — tick each `change.md` §Contract
+   checkbox only when covered by a test or a directly-evidenced check.
+3. Report = dashboard, not prose: append `change.md` §Delivery (table + files + deviations +
+   status lines). **No `apply-report.md`, no `verification.md`** — the dashboard is the
+   verification record; `chaos:verify` is post-hoc optional, not part of the light path.
+4. Terminalize: `change.md` frontmatter `lifecycle.status: Delivered`; update the `lifecycle.md`
+   stub (second and last edit); complete the run; release the lock. No `chaos:archive` run needed.
+
+**Escalation/stop (never silent):** scope spill beyond the capsule scope, an unmeetable contract,
+or a newly-discovered posture crossing ⇒ either surface a new decision + STOP, or auto-escalate
+light → standard (announce; `⚠ escalated` line under the `change.md` H1; `escalatedFrom: light`;
+`ESC-*` entry; keep all work). Never ship red (R-003); never silently narrow the contract. If the
+human's answers widened the change beyond the framed contract, run the standard stages instead —
+record why.

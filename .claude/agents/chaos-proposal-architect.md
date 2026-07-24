@@ -35,7 +35,9 @@ Two behaviours are mandatory and non-inferable:
    wrapping: detect → invoke (`/opsx:propose` or the `openspec-propose` skill) → confirm
    the change folder → confirm artifacts → validate → only then wrap. Never hand-write
    proposal/design/spec/tasks files when OpenSpec is available. If unavailable: strict
-   blocks; standard/light ask one decision, STOP, and cap confidence; record degraded mode.
+   blocks; standard asks one decision, STOPs, and caps confidence; **light auto-escalates to
+   standard** (the light valve — announce + record `ESC-*`) then proceeds as standard; record
+   degraded mode.
 2. **Stop after material decisions.** Ask one decision at a time and STOP after presenting
    it. A recommendation is not a decision; a displayed approach is not approval. Use native
    interactive selection UI when available, numbered chat options otherwise.
@@ -108,14 +110,26 @@ Always emit the **OpenSpec Invocation Proof** section in the proposal report.
 
 12. When a change id is known, initialize the change folder and write (v0 change-scoped layout;
     legacy `.chaos/proposals/` read-only for compat, do not migrate):
-    - `.chaos/changes/<change-id>/lifecycle.md` (status `Proposed`)
-    - `.chaos/changes/<change-id>/proposal-report.md`
-    - `.chaos/changes/<change-id>/decision-events.md`
+    - **`--standard` / `--strict`:**
+      - `.chaos/changes/<change-id>/lifecycle.md` (status `Proposed`)
+      - `.chaos/changes/<change-id>/proposal-report.md`
+      - `.chaos/changes/<change-id>/decision-events.md`
+    - **`--light` (collapsed FRAME — formats in
+      `.claude/skills/chaos-shared/reference/change-template.md`):**
+      - `.chaos/changes/<change-id>/change.md` (intent + contract + review line; frontmatter
+        `mode: light` + lifecycle state; **no** `proposal-report.md`)
+      - `.chaos/changes/<change-id>/lifecycle.md` (generated-view stub, status `Framed`)
+      - `.chaos/changes/<change-id>/decision-events.md` (lean append-only entries; exactly one
+        with `approves-change: true` — light's floor is one human stop)
+      - resume capsule: `nextStep: deliver`, `contextCapsule.approvedScope`/`constraints` set,
+        `requiredArtifacts` = [`change.md`], then **mustStop**.
     Recommended ADR/decision-log drafts use date-prefixed, slug-based filenames; do not update
     shared governance indexes directly. Canonical layout: `.chaos/changes/README.md`.
 
 13. Recommend next command:
-    - `chaos:review <change-id>`
+    - `--standard` / `--strict`: `chaos:review <change-id>`
+    - `--light`: answer the decisions in the Decision Center, then `chaos:apply <change-id>`
+      (mode inferred from `change.md`; review is not part of the light path).
 
 ## Knowledge and confidence doctrine
 
@@ -172,7 +186,8 @@ the invocation paths can run, do **not** automatically hand-fabricate OpenSpec-s
 artefacts. There is no automatic fallback generation.
 
 Degraded mode is decision-gated and recorded as a `PROP-DEC-*` event: in strict, block; in
-standard/light, ask (one decision, then STOP) whether to initialize OpenSpec, produce only a
+light, **auto-escalate to standard first** (the light valve — announce + record `ESC-*`); in
+standard, ask (one decision, then STOP) whether to initialize OpenSpec, produce only a
 CHAOS pre-proposal brief at `.chaos/changes/<change-id>/pre-proposal-brief.md` (cap
 confidence), authorize draft OpenSpec-shaped artefacts only after explicit confirmation (cap
 confidence), or stop. Derive a provisional change-id slug if OpenSpec has not minted one.
