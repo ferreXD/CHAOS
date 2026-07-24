@@ -73,7 +73,21 @@ four narrative reports (proposal-report / proposal-review / apply-report / verif
 Design prediction was ~53k→~9–10k prose tokens (−80%); observed is stronger because append-only
 also kills the rewrite churn (frozen decision-events alone was 49k over 24 turns).
 
-## Valve fidelity (both directions)
+## Fidelity boundary — decisions were self-resolved, NOT run through the runtime
+
+Verified from the 13 arm transcripts: **zero** real interaction-runtime calls
+(`chaos_create_decision`/`begin_command`/`answer_decision`) — the tool names appear only in each
+subagent's available-tools catalog, never as invocations. Each arm recorded every material decision
+in `decision-events.md` and stamped it `RESOLVED-IN-ARM` (no live human), exactly the documented
+EA-X2 deviation; the live Decision Center shows `NO_ACTIVE_DECISION`. Consequence: this run measures
+the light path's **cost + artifact set** faithfully, but does **not** exercise the shipped skill's
+live runtime surface (blocking `chaos_create_decision` with the `approves-change` marker → `mustStop`
+→ human answers in the Decision Center). No popup appeared because none was ever created — by design,
+so 13 unattended arms don't deadlock. The valve result below is therefore **routing-reasoning**
+fidelity (the arm correctly *judged* escalate-vs-stay), not proof the runtime plumbing fires. To
+close that gap: a real interactive `--light` run, or a harness with a mock auto-answering runtime.
+
+## Valve fidelity (both directions — routing reasoning)
 
 | Seed | expected | escalated? | to | trigger | verdict |
 |---|---|---|---|---|---|
