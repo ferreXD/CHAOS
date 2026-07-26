@@ -56,9 +56,13 @@ chaos:sync   -> governance reconciliation
 `.chaos/changes/README.md`):
 
 - **Per-change artifact layout.** Feature/change artifacts live under a flattened
-  per-change folder `.chaos/changes/<change-id>/` (`lifecycle.md`, `proposal-review.md`,
-  `approval.md`, `apply-report.md`, `verification.md`, `archive-report.md`,
-  `sync-report.md`, `retro.md`, `decision-events.md`, `waivers.md`). Shared governance
+  per-change folder `.chaos/changes/<change-id>/`. Current model in **every** mode:
+  `change.md` (the change story: intent → contract → review → delivery), `lifecycle.md`,
+  `decision-events.md`, plus `archive-report.md`, `sync-report.md`, `retro.md`, and
+  `waivers.md` as their commands run (canonical formats:
+  `chaos-shared/reference/change-template.md`). Legacy/old changes may instead carry the
+  retired narrative reports (`proposal-review.md`, `approval.md`, `apply-report.md`,
+  `verification.md`) — read those only when `change.md` is absent. Shared governance
   artifacts stay global and are reconciled through `chaos:sync`.
 - **Team concurrency policy.** Multiple developers may work on different OpenSpec changes
   in the same sprint; feature work writes change-scoped artifacts and must not silently
@@ -67,14 +71,18 @@ chaos:sync   -> governance reconciliation
   contributor-safe and reconciles only that change folder. `--all` is a repository-wide,
   maintainer-confirmed reconciliation run by the repo owner / CHAOS maintainer after
   feature branches merge into `main`.
-- **`chaos:help next`** uses `.chaos/changes/<change-id>/lifecycle.md` when available.
+- **`chaos:help next`** uses `.chaos/changes/<change-id>/change.md` (frontmatter lifecycle,
+  §Review, §Delivery) when present — any mode — and `lifecycle.md` when available.
 
 ## Legacy compatibility
 
 Commands may READ legacy scattered report folders (`.chaos/reviews/`,
 `.chaos/apply-reports/`, etc.) for compatibility, but new artifacts are written under
-`.chaos/changes/<change-id>/`. `chaos:help` must not migrate legacy artifacts; it may note
-that a future migration is recommended.
+`.chaos/changes/<change-id>/`. The retired per-change narrative reports (proposal-report /
+proposal-review / apply-report / verification / approval) are likewise read-only: they exist
+only on old changes without `change.md` and are not produced for new changes in any mode.
+`chaos:help` must not migrate legacy artifacts; it may note that a future migration is
+recommended.
 
 ## README idempotency contract
 

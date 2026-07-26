@@ -1,13 +1,16 @@
 # `chaos:apply` Mode Reference
 
-## Light-deliver override (collapsed lifecycle)
+## `change.md` deliver (universal lifecycle — all modes)
 
-When `.chaos/changes/<change-id>/change.md` exists with `chaosMetadata.mode: light`, the mode is
-**light by inference** and the **Light-deliver** section of `reference/apply-contract.md`
-supersedes this file's mode-behaviour table for that run: no `chaos:review` requirement (the FRAME
-self-review + the human's answered decisions are the gate), output is the `change.md` §Delivery
-dashboard (no apply-report), and validation (build + tests + contract coverage) is **required**,
-not suggested. The table below applies to legacy-layout light applies only.
+When `.chaos/changes/<change-id>/change.md` exists, the mode is **inferred from
+`chaosMetadata.mode`** (light | standard | strict) and the **Deliver** section of
+`reference/apply-contract.md` governs the run: output is the `change.md` §Delivery dashboard at
+mode depth (**no apply-report**), and validation (build + tests + contract coverage) is
+**required** in every mode. Light additionally waives the `chaos:review` requirement (the FRAME
+self-review + the human's answered decisions are the gate) and runs the collapsed lifecycle
+instead of the standard stages; standard/strict keep the full mode-behaviour table below inside
+the Deliver shell. Rows of the table that imply a legacy apply-report output apply to
+legacy-layout changes (no `change.md`) only.
 
 ## Invocation
 
@@ -67,4 +70,7 @@ Infer `--strict` when the change is high risk:
 
 `--dry-run` performs all preflight, classification, boundary, and plan generation without changing code.
 
-The output result should be `DRY_RUN_ONLY` and should still write or propose the apply report.
+The output result should be `DRY_RUN_ONLY`. On a `change.md` change, present the would-be
+§Delivery dashboard in the response without appending it or setting
+`lifecycle.status: Delivered`; on a legacy-layout change, still write or propose the legacy
+apply report.

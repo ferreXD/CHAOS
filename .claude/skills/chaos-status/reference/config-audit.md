@@ -156,6 +156,13 @@ The status command may accept compatible supersets, but it must report unknown o
 - `policies.changeArtifacts`, `policies.sync`, and `policies.artifactNaming`, plus
   `paths.changes`, are expected for config-aware v0 workspaces. If they are missing, report
   `CONFIG_PARTIAL` and route to the `CS-CHG-*` checks in `check-catalog.md`.
+- `policies.changeArtifacts` needs no new keys for the universal `change.md` model: the
+  per-change artifact set in **every** mode is `change.md` + `lifecycle.md` +
+  `decision-events.md` (+ the OpenSpec change). Do not report drift — and do not flag a
+  change as incomplete — merely because the retired narrative reports (proposal-report /
+  proposal-review / apply-report / verification / approval) are absent; they exist only on
+  legacy changes and remain covered by `readLegacyReportFolders: true` / `paths.legacy` as
+  read-only fallbacks.
 - If `policies.changeArtifacts.migrateLegacyReportsAutomatically` is `true`, report a
   `CONFIG_CONFLICT` — automatic migration is out of scope for v0 (legacy artifacts are
   read-compatible, not auto-migrated).

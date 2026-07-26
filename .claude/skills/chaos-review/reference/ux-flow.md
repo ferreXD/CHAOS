@@ -32,7 +32,7 @@ I will review proposal/design/spec/tasks against CHAOS rules and ADRs.
    - patch only OpenSpec/CHAOS artefacts after explicit confirmation;
    - re-read/re-evaluate affected artefacts.
 
-1. Generate review report.
+1. Record the review verdict in `change.md` §Review (verdict/confidence/evidence_coverage/assumption_load + findings), with review decisions in `decision-events.md`.
 
 1. Return short summary and next action.
 

@@ -10,14 +10,18 @@ concurrency policy, sync role model).
 
 When a change id is known (OpenSpec change created or selected), create:
 
-**`--standard` / `--strict`:**
+**`--standard` / `--strict`** (same artifact set as light, deeper sections — formats in
+`chaos-shared/reference/change-template.md`; standard = short prose allowed per section,
+strict = fuller analysis + extra sections (risk, traceability matrix) + the >~80-line
+overflow rule):
 
 ```text
 .chaos/changes/<change-id>/
-  lifecycle.md                # created now, status: Proposed
-  decision-events.md          # PROP-DEC-* recorded here, linked from lifecycle.md
-  proposal-report.md          # the full CHAOS proposal report
+  change.md                   # the story: §Intent + §Contract + §Review (+ Delivery, by apply)
+  lifecycle.md                # generated-view stub, status: Framed
+  decision-events.md          # PROP-DEC-* recorded here, append-only
   pre-proposal-brief.md       # degraded mode only (OpenSpec unavailable/declined)
+  appendix/<section>.md       # strict overflow only (any section > ~80 lines)
 ```
 
 **`--light` (collapsed FRAME — formats in `chaos-shared/reference/change-template.md`):**
@@ -29,8 +33,9 @@ When a change id is known (OpenSpec change created or selected), create:
   decision-events.md          # lean append-only entries; one carries approves-change: true
 ```
 
-No `proposal-report.md` on light — degraded OpenSpec mode auto-escalates to standard instead of
-writing a brief.
+No `proposal-report.md` in any mode. On light, degraded OpenSpec auto-escalates to standard
+instead of writing a brief; on standard/strict, degraded mode may write the decision-gated
+`pre-proposal-brief.md`.
 
 OpenSpec remains the source of truth for `proposal.md`, `design.md`, `specs/`,
 and `tasks.md` under `openspec/changes/<change-id>/`. Do not duplicate them into
@@ -42,47 +47,28 @@ the optional `pre-proposal-brief.md` is written here — never to the legacy
 OpenSpec has not minted a change id. See
 `reference/openspec-integration-contract.md` ("If OpenSpec is not available").
 
-## Lifecycle manifest template (`lifecycle.md`)
+## Lifecycle stub template (`lifecycle.md` — generated state view)
+
+Authoritative state lives in the `change.md` frontmatter (`chaosMetadata.lifecycle`);
+`lifecycle.md` is a **view** of it — never a second source of truth, never narrative — edited
+only at phase transitions (format: `chaos-shared/reference/change-template.md` §3, all modes):
 
 ```md
-# CHAOS Lifecycle — <change-id>
+# Lifecycle — <change-id>
 
-Change ID: <change-id>
-OpenSpec path: openspec/changes/<change-id>
-Status: Proposed
-Owner: <optional>
-Created: YYYY-MM-DD
-Last updated: YYYY-MM-DD
+Status: <Framed | Approved | Delivered | Rejected | Escalated | Archived>
+Mode: <light | standard | strict> · Escalated-from: <none | light>
+OpenSpec: openspec/changes/<change-id> · Run(s): <frame-run-id> · <deliver-run-id>
 
-## Lifecycle
-
-| Phase    | Artifact           | Status                        |
-| -------- | ------------------ | ----------------------------- |
-| Proposal | OpenSpec proposal  | Complete                      |
-| Review   | proposal-review.md | Pending                       |
-| Approval | approval.md        | Pending/Not required          |
-| Apply    | apply-report.md    | Pending                       |
-| Verify   | verification.md    | Pending                       |
-| Archive  | archive-report.md  | Pending                       |
-| Sync     | sync-report.md     | Pending                       |
-| Retro    | retro.md           | Pending                       |
-
-## Decision Events
-
-<List PROP-DEC-* events or "None recorded yet.">
-
-## Waivers / Accepted Risks
-
-<List waivers or "None recorded yet.">
-
-## Current Next Command
-
-chaos:review <change-id>
-
-## Confidence / Evidence summary
-
-<Overall confidence, evidence coverage, assumption load when available.>
+| Phase | Status | Date | Pointer |
+|---|---|---|---|
+| Frame | Complete | <date> | change.md#contract |
+| Deliver | Pending | — | change.md#delivery |
 ```
+
+Legacy `lifecycle.md` manifests (the phase-per-artifact table listing `proposal-review.md`,
+`approval.md`, `apply-report.md`, `verification.md`, `archive-report.md`, …) remain readable
+on old changes; never write that format for a new change.
 
 ## Naming rules for recommended drafts
 

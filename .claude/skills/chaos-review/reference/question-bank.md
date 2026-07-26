@@ -241,13 +241,15 @@ Options:
 ```text
 The proposal is eligible for approval <with/without conditions>.
 
-Do you want me to create `.chaos/changes/<change-id>/approval.md`?
+Do you want me to record approval as the `approves-change: true` marker on the approving decision entry in `decision-events.md` and proceed to `chaos:apply`?
 
 Options:
-1. Create approval artefact
-2. Do not create approval artefact
+1. Record approval marker
+2. Do not approve yet
 3. Add approval conditions first
 ```
+
+Legacy: only on an old change with no `change.md` does option 1 create `.chaos/changes/<change-id>/approval.md` instead.
 
 ## Deferred decision rationale
 

@@ -1,19 +1,22 @@
 # CHAOS Review Output Contract
 
-`chaos:review` must produce a Markdown report at (v0 change-scoped layout):
+`chaos:review` records its result in the universal change artifacts (v0 change-scoped
+layout; formats in `chaos-shared/reference/change-template.md`):
 
 ```text
-.chaos/changes/<change-id>/proposal-review.md
+.chaos/changes/<change-id>/change.md           # §Review — verdict line + findings
+.chaos/changes/<change-id>/decision-events.md  # REV-DEC-* review decisions, append-only
 ```
 
-After explicit approval handoff confirmation, it may also write:
+Do **not** write `proposal-review.md` for a change that has a `change.md`. After explicit
+approval handoff confirmation, approval is recorded as the `approves-change: true` marker
+on the approving decision entry in `decision-events.md` — not as an `approval.md` file.
 
-```text
-.chaos/changes/<change-id>/approval.md
-```
-
-Legacy `.chaos/reviews/<change-id>-proposal-review.md` and
-`.chaos/approvals/<change-id>-approval.md` may be READ for compatibility but are no
+**Legacy fallback (old changes only):** when the change has no `change.md`, the review
+reads and writes the legacy `.chaos/changes/<change-id>/proposal-review.md` (and, after
+explicit approval handoff confirmation, `.chaos/changes/<change-id>/approval.md`) using
+the legacy report structure below. Legacy `.chaos/reviews/<change-id>-proposal-review.md`
+and `.chaos/approvals/<change-id>-approval.md` may be READ for compatibility but are no
 longer the preferred output location. Do not migrate legacy artifacts. Do not update
 shared governance indexes directly. Canonical layout: `.chaos/changes/README.md`.
 
@@ -25,7 +28,43 @@ It reviews OpenSpec proposal/design/spec/tasks and may amend OpenSpec artefacts 
 
 It must not modify production/source implementation code.
 
-## Required report structure
+## §Review output format (`change.md`-based changes)
+
+Update the `## Review` section of `change.md` in place (structured-format rule: do not
+restyle, reorder, or rename the fields — downstream commands parse them):
+
+```md
+## Review
+
+verdict: READY_FOR_APPROVAL|READY_WITH_CONDITIONS|NEEDS_REVISION|BLOCKED|INSUFFICIENT_EVIDENCE · confidence: HIGH|MEDIUM|LOW · evidence_coverage: COMPLETE|PARTIAL|WEAK · assumption_load: LOW|MEDIUM|HIGH
+scope: <files/modules the change may touch> · rules in play: <R-00x, R-00y>
+openspec_validation: PASSED|FAILED|NOT_RUN|NOT_AVAILABLE · approval_eligible: Yes|No|Conditional
+reviewed: <date> · run: <review commandRunId>
+
+findings:
+- <ID> <BLOCKING|MAJOR|MINOR|ADVISORY> — <finding, one line> · <status>
+```
+
+- **Standard:** short prose allowed where it earns its place (e.g. a 2–3 line
+  decision-oriented summary under the findings list).
+- **Strict:** fuller analysis; may add a `### Findings and risk` subsection carrying the
+  findings register, assumption register, and conflicts/unknowns from the rubric below.
+  Any section exceeding ~80 lines moves to
+  `.chaos/changes/<change-id>/appendix/<section>.md`, leaving a one-line summary + link.
+- Review decision events (`REV-DEC-*`) go to `decision-events.md`, not `change.md` (see
+  `decision-event-register.md`); §Review findings reference them by ID.
+- A light change's inline self-review writes `verdict: PASS` on this line; a full
+  `chaos:review` replaces it with the review verdict vocabulary above.
+
+## Review rubric and legacy report structure
+
+Every standard/strict review still performs the **full analysis** below — metadata,
+verdict, source manifest, classification, OpenSpec validation, artefact review, evidence
+coverage, ADR/rule alignment, findings/assumption registers, remediation log, decision
+events, conflicts, remediation plan, approval handoff, next command. For a
+`change.md`-based change, the material results are condensed into §Review +
+`decision-events.md` at mode depth as specified above. The full report layout below is
+written **only** in the legacy fallback (old change with no `change.md`).
 
 ```md
 # CHAOS Proposal Review — <change-id>
@@ -189,7 +228,8 @@ Usually one of:
 
 - No final verdict may be emitted without confidence, evidence coverage, and assumption load.
 - No finding may be emitted without knowledge type and confidence.
-- No material runtime decision may be omitted from the Decision Events section.
+- No material runtime decision may be omitted from the decision-event record
+  (`decision-events.md`; the legacy report's Decision Events section in the fallback path).
 - No OpenSpec change may be marked approval-ready if required artefacts are missing.
 - In strict mode, missing required archaeology for confirmed brownfield/high-risk work is blocking unless explicitly waived by the user and recorded.
 - Open questions are a fallback. Ask runtime remediation questions first when possible.

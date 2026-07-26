@@ -19,8 +19,13 @@ Canonical contract: `.chaos/changes/README.md`. Machine-readable form:
 
 - Reconciles **only** the specific change folder `.chaos/changes/<change-id>/`.
 - Writes `.chaos/changes/<change-id>/sync-report.md`.
-- May reconcile that change's decision events, lifecycle manifest, and OpenSpec
-  state for the change.
+- Keys on `decision-events.md` plus the `change.md` fields (lifecycle status, §Review
+  verdict/confidence, §Delivery) whenever `change.md` is present — **any mode**, not just
+  light. On legacy changes without `change.md`, read the old narrative reports instead.
+- May reconcile that change's decision events, `change.md`/lifecycle manifest, and OpenSpec
+  state for the change. Must **not** regenerate the retired narrative reports
+  (proposal-report / proposal-review / apply-report / verification / approval) — they are no
+  longer produced for new changes in any mode.
 - Must **not** silently edit shared governance (ADRs, decision logs, rules, gates,
   indexes, `AGENTS.md`, `README.md`). It may *recommend* promotions and route them to
   a maintainer-level / repo-owner sync.
@@ -108,3 +113,8 @@ duplicates are recorded in the Sync Debt Ledger.
 `.chaos/retros/`, `.chaos/proposals/`, `.chaos/approvals/`) for compatibility. It must
 not migrate them as part of normal reconciliation; it may surface a legacy-layout
 finding and recommend a future migration task.
+
+The retired per-change narrative reports (proposal-report / proposal-review / apply-report /
+verification / approval) are likewise read-only legacy inputs — present only on old changes
+without `change.md`. Sync reads them there but never regenerates them, and must not flag a
+`change.md`-based change as incomplete for lacking them.

@@ -1,9 +1,15 @@
-# Apply Report Template
+# Apply Report Template (legacy — RETIRED as an output)
 
-**Not used on light-deliver** — `change.md`-based light changes get the §Delivery dashboard
-(`chaos-shared/reference/change-template.md`) instead of this report.
+**Retired for all modes (light, standard, strict)** — on any `change.md`-based change the apply
+output is the `change.md` **§Delivery dashboard** instead of this report: the
+build/tests/contract/rules table + `files:` + `deviations:` + `status: Delivered` lines defined
+in `chaos-shared/reference/change-template.md` §1 (`## Delivery`). Standard may add short prose
+where it earns its place; strict adds fuller analysis + extras, with any section over ~80 lines
+moved to `appendix/<section>.md` (one-line summary + link). Do not write this template for a new
+change.
 
-Save as (v0 change-scoped layout; legacy `.chaos/apply-reports/` read-only for compat):
+**Legacy fallback only** — when the change has no `change.md` (old change), save as (v0
+change-scoped layout; legacy `.chaos/apply-reports/` read-only for compat):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md

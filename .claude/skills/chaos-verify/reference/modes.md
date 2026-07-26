@@ -45,8 +45,8 @@ If no mode is provided, infer the mode and ask for confirmation.
 
 ### Light
 
-- apply report recommended, not always required;
-- review report recommended, not always required;
+- apply evidence (`change.md` §Delivery, or the legacy apply report on old changes) recommended, not always required;
+- review evidence (`change.md` §Review, or the legacy review report on old changes) recommended, not always required;
 - only high-impact issues prompt remediation;
 - accepted risk allowed for non-critical gaps;
 - confidence caps must still be applied.
@@ -62,8 +62,8 @@ If no mode is provided, infer the mode and ask for confirmation.
 
 ### Strict
 
-- review report required;
-- apply report required;
+- review evidence required: `change.md` §Review must be populated (legacy review report only on old changes with no `change.md`);
+- apply evidence required: `change.md` §Delivery must be populated (legacy apply report only on old changes with no `change.md`);
 - OpenSpec validation required;
 - no unresolved blocking/major findings;
 - material decision events required;
@@ -77,7 +77,7 @@ If no mode is provided, infer the mode and ask for confirmation.
 
 ## Continue
 
-`--continue` reads the previous verification report and classifies prior issues as:
+`--continue` reads the previous verification evidence (`change.md` §Verification, or the legacy `verification.md` on old changes) and classifies prior issues as:
 
 ```text
 RESOLVED

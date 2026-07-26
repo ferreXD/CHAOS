@@ -450,6 +450,14 @@ If a patch or rewrite is proposed, include a concise patch summary and the exact
 collaboration model (canonical contract: `.chaos/changes/README.md`). This is a read-only
 audit; do not mutate shared files except through the existing confirmed remediation flow.
 
+The current per-change artifact model in **every** mode is `change.md` + `lifecycle.md` +
+`decision-events.md` + `openspec/changes/<change-id>/` (canonical formats:
+`.claude/skills/chaos-shared/reference/change-template.md`). The narrative reports
+(proposal-report / proposal-review / apply-report / verification / approval) are legacy
+artifacts present only on old/archived changes. Never flag a change as incomplete merely
+because it lacks the retired reports: when `change.md` is present, audit against it (any
+mode); only when it is absent, audit against the legacy report set.
+
 Required findings (use the `CS-CHG-*` and `CS-SYNCPOSTURE-*` checks from
 `reference/check-catalog.md`):
 

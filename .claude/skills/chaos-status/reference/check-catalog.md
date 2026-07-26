@@ -136,6 +136,14 @@ Config should describe protected-file handling for `AGENTS.md` and root `README.
 Canonical contract: `.chaos/changes/README.md`. These are read-only audits; do not mutate
 shared files except through the existing confirmed remediation flow.
 
+Current per-change artifact model in **every** mode: `change.md` + `lifecycle.md` +
+`decision-events.md` (+ the OpenSpec change); canonical formats:
+`.claude/skills/chaos-shared/reference/change-template.md`. The narrative reports
+(proposal-report / proposal-review / apply-report / verification / approval) are legacy
+artifacts found only on old/archived changes. Never flag a change as incomplete merely for
+lacking the retired reports: audit `change.md` when present (any mode); fall back to the
+legacy report set only when it is absent.
+
 ### CS-CHG-001 — Config declares the change-scoped layout
 
 `.chaos/config.yaml` should declare `paths.changes` (`.chaos/changes`) and

@@ -84,13 +84,18 @@ Before operating, read the reference files in this skill (and the shared policie
    5. Run OpenSpec validation (`openspec validate <change-id> --strict`) when available; record run/not-run/failed honestly.
    6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard asks one decision and STOPs, then caps confidence; light auto-escalates to standard first (the light valve); record the degraded-mode decision event.
    7. Only after the gate, apply CHAOS wrapping (confidence, decision events, archaeology references, lifecycle, review routing, governance recommendations).
-   8. Record the **OpenSpec Invocation Proof** in the report (see `reference/openspec-integration-contract.md`).
+   8. Record the **OpenSpec Invocation Proof** in `change.md` §Contract (see `reference/openspec-integration-contract.md`).
 10. Re-read/re-evaluate amended proposal artefacts when runtime decisions changed them.
 11. When a change id is known, initialize the change folder `.chaos/changes/<change-id>/`
-    and write `lifecycle.md` (status `Proposed`). Record proposal-time decision events
-    in `.chaos/changes/<change-id>/decision-events.md` and link them from `lifecycle.md`.
-    Write the proposal report to `.chaos/changes/<change-id>/proposal-report.md`. See
-    `reference/change-artifacts-layout.md`.
+    per `reference/change-artifacts-layout.md`: write `change.md` (§Intent + §Contract +
+    §Review verdict line — formats in `chaos-shared/reference/change-template.md`;
+    frontmatter `artifactType: change`, `mode: standard|strict`) at mode depth, record
+    proposal-time decision events in `.chaos/changes/<change-id>/decision-events.md`, and
+    write the `lifecycle.md` generated-view stub (status `Framed`), linking decisions from
+    `change.md`. Depth scales by mode: standard = short prose allowed per section; strict =
+    fuller analysis + extra sections (risk, traceability matrix) + the overflow rule (any
+    section > ~80 lines → `appendix/<section>.md`, leaving a one-line summary + link).
+    **No `proposal-report.md`.**
 12. Recommend `chaos:review <change-id>`.
 
 ## Light mode: collapsed FRAME workflow
@@ -127,9 +132,19 @@ touches them. Then, instead of steps 8–12:
 **Auto-escalation valve (one-way, never ask):** escalate to `--standard` when the change crosses
 an architecture non-goal/posture, surfaces more than `modes.light.maxMaterialDecisions` material
 decisions (config, default 2), fails the self-review checklist, or OpenSpec is unavailable
-(degraded mode). Announce it, add the `⚠ escalated` line under the `change.md` H1, set
-`escalatedFrom: light`, append an `ESC-*` entry — then continue on the standard path reusing all
-FRAME output. Never downgrade automatically.
+(degraded mode). On escalation the skill **keeps the `change.md` model** — it never drops into a
+legacy report path:
+
+- If `change.md` already exists, add the `> ⚠ escalated: light → <mode>` line directly under
+  its H1.
+- If the trigger fired **before** FRAME wrote `change.md` (e.g. posture crossing detected at
+  classification), **create `change.md` now** at the target mode's depth.
+- Always: announce it, set `escalatedFrom: light` in the `change.md` frontmatter, append an
+  `ESC-*` entry to `decision-events.md`, deepen the sections to the target mode's depth, and
+  continue on the target-mode path reusing all FRAME output.
+- **Never emit `proposal-report.md` or `proposal-review.md` on an escalated change.**
+
+Never downgrade automatically.
 
 ## UX rule
 
@@ -137,7 +152,7 @@ Do not ask questions the repository already answers.
 
 Do ask targeted runtime decision questions when missing context materially changes proposal scope, approach, OpenSpec artefacts, confidence, or implementation readiness.
 
-Open questions are a fallback, not the default output. Only unresolved/deferred/external questions should remain open in the report.
+Open questions are a fallback, not the default output. Only unresolved/deferred/external questions should remain open in the final output (as deferred entries in `decision-events.md`).
 
 ## Runtime amendment rule
 
@@ -147,7 +162,7 @@ No silent proposal mutation.
 
 ## Todo Candidates (optional)
 
-`chaos:propose` MAY end its report with an optional `## Todo Candidates` section listing
+`chaos:propose` MAY end its final response with an optional `## Todo Candidates` section listing
 material deferred proposal questions, degraded-mode follow-up (e.g. OpenSpec unavailable), or
 missing context that should be tracked, using the shared fields in
 `.claude/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:propose` does not

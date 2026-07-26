@@ -46,7 +46,9 @@ Material user choices must be recorded as `REV-DEC-*` Decision Events when they 
 
 ## Report requirements
 
-The proposal review report must include a `Config Context` section with:
+When `change.md` is present (new changes, any mode), config context that affects the review is recorded in `change.md` §Review (confidence impact, path-resolution notes) plus `REV-DEC-*` decision events for material config choices. A dedicated `Config Context` section is not required.
+
+Only when maintaining the legacy proposal review report on an old change (no `change.md`) must the report include a `Config Context` section with:
 
 - config status;
 - path resolution decisions;

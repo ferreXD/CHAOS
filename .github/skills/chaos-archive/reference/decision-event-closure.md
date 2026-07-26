@@ -8,11 +8,14 @@ Scan:
 
 ```text
 .chaos/changes/<change-id>/decision-events.md
+.chaos/changes/<change-id>/change.md           # current model, any mode: deviations/review findings reference decisions
+.chaos/changes/<change-id>/waivers.md
+openspec/changes/<change-id>/**
+
+# Legacy report set — old changes without change.md only:
 .chaos/changes/<change-id>/proposal-review.md
 .chaos/changes/<change-id>/apply-report.md
 .chaos/changes/<change-id>/verification.md
-.chaos/changes/<change-id>/waivers.md
-openspec/changes/<change-id>/**
 ```
 
 Legacy fallbacks (read-only for compatibility): `.chaos/proposals/**`,
@@ -27,7 +30,12 @@ PROP-DEC-*
 REV-DEC-*
 APP-DEC-*
 VFY-DEC-*
+ESC-*
 ```
+
+On `change.md`-based changes (any mode) the approval lives as the `approves-change: true`
+marker on the approving decision entry in `decision-events.md` — there is no `approval.md`;
+`ESC-*` entries record auto-escalations.
 
 ## Required closure statuses
 

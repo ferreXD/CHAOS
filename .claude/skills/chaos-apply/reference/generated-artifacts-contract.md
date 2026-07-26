@@ -1,22 +1,24 @@
 # Generated Artifacts Contract
 
-`chaos:apply` may create or update (v0 change-scoped layout):
+On a `change.md`-based change (any mode — light, standard, strict), the writable set is:
+
+```text
+.chaos/changes/<change-id>/change.md          # §Delivery dashboard + frontmatter lifecycle state
+.chaos/changes/<change-id>/decision-events.md # entries (incl. ESC-* on escalation)
+.chaos/changes/<change-id>/lifecycle.md       # generated-view stub, Deliver row
+.chaos/changes/<change-id>/appendix/          # standard/strict overflow only (section > ~80 lines)
+```
+
+No `apply-report.md`, no `verification.md` on `change.md` changes.
+
+Legacy fallback — only when `change.md` is absent (old change), `chaos:apply` may create or
+update (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md
 .chaos/changes/<change-id>/decision-events.md
 .chaos/changes/<change-id>/lifecycle.md   # Apply row, with confirmation
 ```
-
-On a `change.md`-based light change (light-deliver), the writable set is instead:
-
-```text
-.chaos/changes/<change-id>/change.md          # §Delivery dashboard + frontmatter lifecycle state
-.chaos/changes/<change-id>/decision-events.md # lean entries (incl. ESC-* on escalation)
-.chaos/changes/<change-id>/lifecycle.md       # generated-view stub, closing edit
-```
-
-No `apply-report.md` on light-deliver.
 
 Legacy `.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
 
