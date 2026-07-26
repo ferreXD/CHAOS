@@ -48,9 +48,16 @@ Follow-up owner:
 <user/team/unknown>
 ```
 
+## Approval marker
+
+When the user confirms the approval handoff on a `change.md`-based change, the approving
+decision entry carries `approves-change: true` (see
+`chaos-shared/reference/change-template.md`). This marker replaces `approval.md` for new
+changes; exactly one entry per change carries it.
+
 ## ID rules
 
-Use stable IDs per review report:
+Use stable IDs per change:
 
 - `REV-DEC-001`, `REV-DEC-002`, etc.
 - Do not reuse IDs.
@@ -58,8 +65,17 @@ Use stable IDs per review report:
 
 ## Required location
 
-Review decision events live under the change folder (v0 layout), inside the review
-report and/or the per-change decision-event register:
+Review decision events are appended to the per-change decision-event register (v0 layout):
+
+```text
+.chaos/changes/<change-id>/decision-events.md
+```
+
+`change.md` §Review references them by ID — do not duplicate full entries there, and do
+not write them into a `proposal-review.md` for a change that has a `change.md`.
+
+**Legacy fallback (old changes only):** when the change has no `change.md`, events live
+inside the legacy review report and/or the per-change register:
 
 ```text
 .chaos/changes/<change-id>/proposal-review.md

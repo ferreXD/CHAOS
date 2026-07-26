@@ -9,8 +9,8 @@ Use this skill when the user asks to run or design `chaos:verify`, verify an imp
 It verifies the implemented result against:
 
 - OpenSpec proposal/design/spec/tasks;
-- proposal review report;
-- apply report;
+- `change.md` (§Contract + §Delivery + §Review) when present — any mode;
+- legacy proposal-review / apply reports (read-fallback when `change.md` is absent);
 - actual code changes;
 - test/build/OpenSpec validation evidence;
 - ADRs, rules, decisions, gates, and constitution;
@@ -40,7 +40,7 @@ Read these references before executing:
 
 ## Repository context (vNext)
 
-`chaos:verify` may enrich the verification report with the provider-neutral repository context
+`chaos:verify` may enrich the verification output with the provider-neutral repository context
 (`.claude/skills/chaos-shared/reference/repository-context-contract.md`), tool profile
 `verify` (least privilege, read-only): changed-files source, review request (PR) / linked
 work item if available, and CI/check status if available. **Do not** require MCP unless
@@ -62,16 +62,20 @@ No silent amendment of governance artifacts.
 
 ## Output
 
-**Universal `change.md` awareness:** when `.chaos/changes/<change-id>/change.md` exists, read it
-first (§Contract + §Delivery + `decision-events.md` + the `lifecycle.md` view) and do **not**
-demand `apply-report.md`/`verification.md` — on such changes (e.g. the collapsed light path,
-where the Delivery dashboard *is* the verification record and verify is post-hoc optional),
-append a compact `## Post-hoc verification` table to `change.md` instead of writing
-`verification.md`. Formats: `chaos-shared/reference/change-template.md`.
+**`change.md` first (all modes):** when `.chaos/changes/<change-id>/change.md` exists — any
+mode, not just light — verify against it: read §Contract + §Delivery first (plus §Review,
+`decision-events.md`, and the `lifecycle.md` view) and do **not** demand
+`apply-report.md`/`verification.md`. Standalone post-hoc verification appends a compact
+`## Verification` table to `change.md` (build/tests/contract/rules + confidence-labelled
+verdict) instead of writing `verification.md`. Depth scales with mode: light = table only;
+standard = short prose allowed where it earns its place; strict = fuller analysis + extras,
+with any section > ~80 lines overflowing to `appendix/<section>.md` (one-line summary + link
+in place). Presence of `change.md` selects this layout — mode does not. Formats:
+`chaos-shared/reference/change-template.md`.
 
-Otherwise (legacy layout), read change-folder artifacts (`lifecycle.md`, `apply-report.md`,
-`proposal-review.md`, `decision-events.md`, `waivers.md`) when present. Always produce (v0
-change-scoped layout):
+**Legacy fallback (`change.md` absent — old/archived changes only):** read change-folder
+artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`, `decision-events.md`,
+`waivers.md`) when present and produce the legacy report (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/verification.md
@@ -82,11 +86,12 @@ if present. Update the lifecycle recommendation only with user confirmation. Do 
 production code. The legacy `.chaos/verification/` folder may be READ for compatibility but is
 no longer the preferred output location; do not migrate it. See `.chaos/changes/README.md`.
 
-When verification cannot be completed, still produce a report with `BLOCKED` or `INSUFFICIENT_EVIDENCE` and concrete next actions.
+When verification cannot be completed, still record the outcome — a `## Verification` entry on `change.md` (or the legacy report on old changes) with `BLOCKED` or `INSUFFICIENT_EVIDENCE` and concrete next actions.
 
 ## Todo Candidates (optional)
 
-`chaos:verify` MAY end its report with an optional `## Todo Candidates` section listing
+`chaos:verify` MAY surface an optional `## Todo Candidates` list (in the legacy report when one
+is produced; as a compact list in the run summary when the result lives on `change.md`) covering
 material verification gaps, failed validations, waivers, archive blockers, or low-confidence
 conformance findings, using the shared fields in
 `.claude/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:verify` does not

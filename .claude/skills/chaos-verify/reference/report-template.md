@@ -1,4 +1,32 @@
-# `chaos:verify` Report Template
+# `chaos:verify` Report Template (legacy fallback)
+
+**Retired as an output for new changes — all modes.** When
+`.chaos/changes/<change-id>/change.md` exists, the verification result lives on `change.md`:
+verify reads §Contract + §Delivery, and standalone post-hoc verification appends a compact
+`## Verification` table there instead of writing `verification.md`. Canonical format:
+`chaos-shared/reference/change-template.md` (§Delivery dashboard/table shape). The appended
+section:
+
+```md
+## Verification
+
+| check | result |
+|---|---|
+| build | <0 warn / 0 err> |
+| tests | <N/N (baseline + new)> |
+| contract | <N/N statements covered> |
+| rules | <R-00x ✅ · R-00y ✅> |
+
+verdict: <VERIFIED|VERIFIED_WITH_CONDITIONS|BLOCKED|INSUFFICIENT_EVIDENCE> · confidence: <HIGH|MEDIUM|LOW> · evidence_coverage: <COMPLETE|PARTIAL|WEAK> · assumption_load: <LOW|MEDIUM|HIGH>
+archive: <READY|READY_WITH_DEBT|NOT_READY> · run: <verify commandRunId> · <date>
+```
+
+Depth scales with mode (standard: short prose allowed; strict: fuller + extras, overflow →
+`appendix/<section>.md`).
+
+The template below is kept **only** as the legacy-fallback shape — the read shape for
+old/archived changes' existing verification reports, and the write shape when verifying a
+legacy change that has no `change.md`.
 
 ```md
 # CHAOS Verification Report — <change-id>

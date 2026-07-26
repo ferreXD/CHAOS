@@ -8,6 +8,13 @@
 
 The config answers **where/how** questions. It must not become a second architecture source of truth.
 
+`policies.changeArtifacts` intentionally has no per-report keys: the per-change artifact set
+in **every** mode is `change.md` + `lifecycle.md` + `decision-events.md` (+ the OpenSpec
+change; canonical formats: `chaos-shared/reference/change-template.md`). The retired
+narrative reports (proposal-report, proposal-review, apply-report, verification, approval)
+are no longer produced for new changes in any mode; they exist only on legacy changes and
+are covered by `readLegacyReportFolders: true` / `paths.legacy` as read-only fallbacks.
+
 ## Required principles
 
 - Config centralises repository conventions.

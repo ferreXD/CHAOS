@@ -49,7 +49,17 @@ clean verdict on assumed isolation. (Also prefer running `chaos:code-review` **b
 
 ## Required output
 
-v0 change-scoped layout (legacy `.chaos/verification/<change-id>-verification.md`
+**`change.md` present (any mode):** the verification result IS the `change.md`
+§Delivery / §Verification content — read §Contract + §Delivery first, then (standalone
+post-hoc verify) append a compact `## Verification` table (build/tests/contract/rules +
+confidence-labelled verdict). No standalone `verification.md` is written. Depth scales with
+mode: standard = short prose allowed; strict = fuller analysis + extras, overflow (> ~80
+lines per section) → `appendix/<section>.md`. Format:
+`chaos-shared/reference/change-template.md`. Also reads `decision-events.md`, `waivers.md`,
+and the `lifecycle.md` view when present.
+
+**Legacy fallback (`change.md` absent — old/archived changes only):** produce the legacy v0
+change-scoped report (the older `.chaos/verification/<change-id>-verification.md` stays
 read-only for compatibility; do not migrate):
 
 ```text
@@ -60,7 +70,16 @@ Reads change-folder inputs when present: `.chaos/changes/<change-id>/lifecycle.m
 `apply-report.md`, `proposal-review.md`, `decision-events.md`, `waivers.md`.
 Canonical layout: `.chaos/changes/README.md`.
 
-## Required final sections
+## Verification rubric (all modes, both layouts)
+
+Whatever the output surface, verification always covers: build · tests · contract/spec
+traceability · rules/ADR alignment · scope drift · decision-event completeness · archive
+readiness — each confidence-labelled; the verdict line carries
+verdict / confidence / evidence coverage / assumption load.
+
+## Required final sections (legacy report only)
+
+When the legacy `verification.md` is produced (no `change.md`), it uses these sections:
 
 - Verification Dashboard
 - Scope and Inputs

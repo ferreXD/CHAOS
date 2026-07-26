@@ -20,14 +20,15 @@ Prefer authoritative sources in this order:
 
 1. Explicit user answers given during this command run.
 2. OpenSpec active change artifacts.
-3. `chaos:verify` report.
-4. `chaos:apply` report.
-5. `chaos:review` report.
-6. CHAOS governance files.
-7. ADRs and decision logs.
-8. Git state and OpenSpec CLI output.
-9. Inference.
-10. Assumption.
+3. `.chaos/changes/<change-id>/change.md` (§Review / §Delivery / §Verification) when present — any mode.
+4. Legacy `chaos:verify` report (old changes without `change.md`).
+5. Legacy `chaos:apply` report (old changes without `change.md`).
+6. Legacy `chaos:review` report (old changes without `change.md`).
+7. CHAOS governance files.
+8. ADRs and decision logs.
+9. Git state and OpenSpec CLI output.
+10. Inference.
+11. Assumption.
 
 Never present inference or assumption as fact.
 
@@ -41,12 +42,16 @@ openspec/changes/<change-id>/design.md
 openspec/changes/<change-id>/specs/
 openspec/changes/<change-id>/tasks.md
 
+.chaos/changes/<change-id>/change.md           # current model, any mode: §Contract/§Review/§Delivery/§Verification
 .chaos/changes/<change-id>/lifecycle.md
+.chaos/changes/<change-id>/decision-events.md
+.chaos/changes/<change-id>/waivers.md
+
+# Legacy report set — present only on old changes without change.md; read-fallback, never
+# required (and no longer produced) for new changes in any mode:
 .chaos/changes/<change-id>/verification.md     # legacy fallback: .chaos/verification/<change-id>-verification.md
 .chaos/changes/<change-id>/apply-report.md     # legacy fallback: .chaos/apply-reports/<change-id>-apply-report.md
 .chaos/changes/<change-id>/proposal-review.md  # legacy fallback: .chaos/reviews/<change-id>-proposal-review.md
-.chaos/changes/<change-id>/decision-events.md
-.chaos/changes/<change-id>/waivers.md
 
 .chaos/context.md
 .chaos/architecture.md
@@ -57,6 +62,15 @@ openspec/changes/<change-id>/tasks.md
 ```
 
 Also inspect ADRs, decision logs, OpenSpec base specs, git status, and previous archive reports when relevant.
+
+## Existence and closure contract (all modes)
+
+The per-change existence contract is satisfied by `change.md` + `lifecycle.md` in **every**
+mode (canonical formats: `chaos-shared/reference/change-template.md`). A change is terminal
+when `change.md` frontmatter shows `lifecycle.status: Delivered`, `Rejected`, or `Archived`,
+or — legacy changes only — when the old report set (proposal-review / apply-report /
+verification) exists. If `change.md` is present, read it (any mode) and do not require the
+retired narrative reports; keep reading them on old changes that lack `change.md`.
 
 ## Required outputs
 
@@ -143,4 +157,4 @@ fixability: FIXABLE_NOW | NEEDS_USER_DECISION | NEEDS_VERIFY | NEEDS_APPLY | NEE
 7. Archive with a governance override must be named, justified, confidence-downgraded, and routed to sync/retro.
 8. If OpenSpec archive fails or cannot be confirmed, final verdict cannot be `ARCHIVED`.
 9. If base specs cannot be confirmed after archive, final confidence is capped at MEDIUM.
-10. If verification evidence is missing, final readiness is at best `READY_WITH_DEBT`.
+10. If verification evidence is missing, final readiness is at best `READY_WITH_DEBT`. Verification evidence is `change.md` §Delivery/§Verification when `change.md` is present (any mode), else a legacy `verification.md`.

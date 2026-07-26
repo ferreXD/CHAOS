@@ -15,26 +15,39 @@ Change-scoped commands write **new** artifacts under:
 Resolve `<change-id>` from the invocation/OpenSpec change, and resolve the base path from
 `.chaos/config.yaml` `paths.changes` (default `.chaos/changes`) before using any default.
 
-## Expected per-change outputs
+## Expected per-change outputs (current model, every mode)
 
 ```text
 .chaos/changes/<change-id>/
-  proposal-report.md      # chaos:propose
-  proposal-review.md      # chaos:review
-  approval.md             # approval record
-  apply-report.md         # chaos:apply
+  change.md               # the change story (all modes): §Intent/§Contract/§Review/§Delivery
+  lifecycle.md            # lifecycle manifest / generated state view (status + links)
+  decision-events.md      # PROP-DEC-*/REV-DEC-*/APP-DEC-*/ESC-*/... events (append-only)
   code-review.md          # chaos:code-review
-  verification.md         # chaos:verify
   archive-report.md       # chaos:archive
   sync-report.md          # chaos:sync --change <change-id>
   retro.md                # chaos:retro <change-id>
-  decision-events.md      # PROP-DEC-*/REV-DEC-*/APP-DEC-*/... events
   waivers.md              # recorded waivers / accepted risk / debt
-  lifecycle.md            # lifecycle manifest (status + links)
 ```
 
-(Exact filenames may already exist per command; prefer the command's own output-contract
-filename and keep it under the change folder.)
+Canonical `change.md` / decision-entry / `lifecycle.md` formats:
+`chaos-shared/reference/change-template.md`. Approval is the `approves-change: true` marker
+on the approving decision entry — no `approval.md`.
+
+Legacy per-change reports — read-only, present only on old changes that predate `change.md`
+(never produced for new changes in any mode):
+
+```text
+.chaos/changes/<change-id>/
+  proposal-report.md      # retired output of chaos:propose  -> change.md §Intent + §Contract
+  proposal-review.md      # retired output of chaos:review   -> change.md §Review
+  approval.md             # retired approval record          -> approves-change: true decision entry
+  apply-report.md         # retired output of chaos:apply    -> change.md §Delivery
+  verification.md         # retired output of chaos:verify   -> change.md §Delivery / §Verification
+```
+
+Readers are presence-conditioned: use `change.md` when present (any mode); fall back to the
+legacy report set only when it is absent. (Exact filenames may already exist per command;
+prefer the command's own output-contract filename and keep it under the change folder.)
 
 ## Legacy compatibility
 

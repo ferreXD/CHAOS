@@ -69,19 +69,22 @@ event removes the reactive round-trip.
 
 Use stable IDs:
 
-- `APP-DEC-001`, `APP-DEC-002`, etc. inside one apply report.
+- `APP-DEC-001`, `APP-DEC-002`, etc. inside one change's apply pass.
 - Do not reuse IDs.
 
 ## Required indexing
 
-Apply decision events live under the change folder (v0 layout):
+Apply decision events are recorded in the change folder's register (v0 layout) — **not** in an
+apply report:
 
 ```text
-.chaos/changes/<change-id>/apply-report.md
 .chaos/changes/<change-id>/decision-events.md
 ```
 
-Legacy `.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
+`change.md` references them (§Contract decisions pointer; §Delivery `deviations:` lines, each
+backed by a decision). On a legacy change (no `change.md`) the legacy apply report may
+summarize them, but `decision-events.md` remains the register. Legacy
+`.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
 
 For future versions, `chaos:sync` may promote them into:
 

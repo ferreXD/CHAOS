@@ -10,8 +10,10 @@
 | `design.md` | Yes | Design constraints, selected approach, alternatives. |
 | `specs/**` | Yes | Observable behaviour, acceptance criteria, requirements. |
 | `tasks.md` | Yes | Implementation tasks, validation tasks, sequencing. |
-| `.chaos/changes/<change-id>/proposal-review.md` | Yes | Review report and decision events (v0 layout; legacy `.chaos/reviews/**` read-only for compat). |
-| `.chaos/changes/<change-id>/approval.md` | Conditional | Only after explicit approval handoff confirmation (legacy `.chaos/approvals/**` read-only for compat). |
+| `.chaos/changes/<change-id>/change.md` | Yes | §Review verdict line + findings (format: `review-contract.md`). |
+| `.chaos/changes/<change-id>/decision-events.md` | Yes | Append `REV-DEC-*` review decision events. |
+| `approves-change: true` marker (approving decision entry) | Conditional | Only after explicit approval handoff confirmation; replaces `approval.md` for `change.md`-based changes. |
+| Legacy `proposal-review.md` / `approval.md` | Conditional | Old change with no `change.md` only (read/write fallback); `approval.md` still requires explicit handoff confirmation. Legacy `.chaos/reviews/**` and `.chaos/approvals/**` read-only for compat. |
 | Production/source code | No | Use `chaos:apply` after review/approval. |
 
 ## Runtime options

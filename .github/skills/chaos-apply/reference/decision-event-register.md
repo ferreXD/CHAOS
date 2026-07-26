@@ -45,23 +45,46 @@ Follow-up owner:
 <user/team/unknown>
 ```
 
+## Auth/access-control removal evidence requirement
+
+When a decision event removes, reverts, or disables code whose name or location matches
+an auth/access-control naming pattern (attribute, handler, requirement, policy,
+authorization behavior), the decision event's `Rationale`/`Scope impact` fields must
+proactively state the non-weakening evidence — do not wait for an automated
+safety/security classifier to flag it and only then investigate reactively:
+
+- confirm and cite that the real enforcement mechanism (if a separate one exists) is
+  untouched;
+- confirm and cite that the removed mechanism has zero production callers, or state what
+  replaces it;
+- cite the explicit owner direction authorizing the removal.
+
+Provenance: RETRO-ACTION-003 (implement-authorization-pipeline retro, 2026-07-06). SIG-03:
+an automated safety classifier flagged "disables an access-control mechanism" twice within
+one change's apply phase (APP-DEC-004 and its related pass-through revert), each requiring
+a reactive investigation before proceeding. Stating the evidence proactively in the decision
+event removes the reactive round-trip.
+
 ## ID format
 
 Use stable IDs:
 
-- `APP-DEC-001`, `APP-DEC-002`, etc. inside one apply report.
+- `APP-DEC-001`, `APP-DEC-002`, etc. inside one change's apply pass.
 - Do not reuse IDs.
 
 ## Required indexing
 
-Apply decision events live under the change folder (v0 layout):
+Apply decision events are recorded in the change folder's register (v0 layout) — **not** in an
+apply report:
 
 ```text
-.chaos/changes/<change-id>/apply-report.md
 .chaos/changes/<change-id>/decision-events.md
 ```
 
-Legacy `.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
+`change.md` references them (§Contract decisions pointer; §Delivery `deviations:` lines, each
+backed by a decision). On a legacy change (no `change.md`) the legacy apply report may
+summarize them, but `decision-events.md` remains the register. Legacy
+`.chaos/apply-reports/<change-id>-apply-report.md` is read-only for compatibility.
 
 For future versions, `chaos:sync` may promote them into:
 

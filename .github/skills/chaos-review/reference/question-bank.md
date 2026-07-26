@@ -112,6 +112,99 @@ Options:
 
 Provenance: RETRO-DEC-006 (implement-file-storage-foundation retro, 2026-06-30).
 
+## Fix task-wiring completeness gap
+
+Check whether every task that introduces a new DI-registration extension method or a new
+data/read contract with a field list has a matching task that wires it into its consumer
+(composition root) or sources every contract field:
+
+```text
+Review issue: task-wiring completeness gap
+
+Task <id> introduces <DI extension / data contract> but tasks.md does not itemize
+<wiring it into the composition root / sourcing field <name>>.
+
+Why this matters:
+An unwired DI registration or an unsourced contract field will surface as a stop-and-decide
+interruption mid-apply rather than being caught here.
+
+Suggested remediation:
+Add the missing wiring/data-source task to tasks.md now.
+
+Options:
+1. Apply suggested task amendment now
+2. Provide custom task text
+3. Defer with rationale
+4. Mark accepted risk and continue
+5. Keep as blocking
+```
+
+Provenance: RETRO-ACTION-001 (implement-authorization-pipeline retro, 2026-07-06).
+
+## Fix layer state-assumption gap
+
+When a design introduces a cross-cutting check that depends on caller identity or other
+ambient state, verify the state-resolution path actually exists at that layer for every
+invocation path the check is meant to cover — not just the HTTP path.
+
+```text
+Review issue: layer state-assumption not verified
+
+The design introduces a <layer> check depending on <state>, but I cannot confirm
+<state> is resolvable outside <HTTP middleware/other layer-specific mechanism> for
+every invocation path this check claims to cover.
+
+Suggested remediation:
+Confirm the state-resolution path before apply, or narrow the check's scope to covered
+paths and record the narrowing as a decision.
+
+Options:
+1. Apply suggested scope narrowing now
+2. Request confirmation of the state-resolution path before approval
+3. Defer with rationale
+4. Mark accepted risk and continue
+5. Keep as blocking
+```
+
+Provenance: RETRO-ACTION-002 (implement-authorization-pipeline retro, 2026-07-06).
+
+## Fix clause-level evidence gap (brownfield/equivalence-first)
+
+For brownfield/equivalence-first changes (R-008), evidence-coverage checks must operate
+at the clause level, not just the topic level: for each SHALL requirement bearing a
+specific behavioral detail (a filter, condition, or exclusion), confirm that detail traces
+to a specific evidence citation — not merely that the requirement's general topic area has
+evidence coverage.
+
+```text
+Review issue: unevidenced behavioral clause in spec
+
+Requirement "<requirement text>" in <spec file> claims <specific behavioral detail>,
+but I cannot find an evidence citation (legacy code, test, or archaeology finding)
+specifically supporting that detail.
+
+Why this matters:
+For an equivalence-first change, an unevidenced claim in the spec can silently diverge
+from actual legacy/implementation behavior and reach archive undetected.
+
+Suggested remediation:
+Either cite the specific evidence for this clause, or correct the spec to describe only
+what is actually evidenced/implemented.
+
+Options:
+1. Apply suggested spec correction now
+2. Provide the missing evidence citation
+3. Defer with rationale
+4. Keep as blocking
+5. Stop
+```
+
+Provenance: RETRO-ACTION-004 (implement-authorization-pipeline retro, 2026-07-06). SIG-06:
+a spec claimed an unimplemented "non-deleted" permission filter, not sourced from any
+evidence citation, not present in the implementation or in legacy; this passed review's
+topic-level evidence-coverage check and was caught only by an independent specialist
+re-read during chaos:verify (VFY-DEC-001).
+
 ## Fix unclear scope
 
 ```text
@@ -148,13 +241,15 @@ Options:
 ```text
 The proposal is eligible for approval <with/without conditions>.
 
-Do you want me to create `.chaos/changes/<change-id>/approval.md`?
+Do you want me to record approval as the `approves-change: true` marker on the approving decision entry in `decision-events.md` and proceed to `chaos:apply`?
 
 Options:
-1. Create approval artefact
-2. Do not create approval artefact
+1. Record approval marker
+2. Do not approve yet
 3. Add approval conditions first
 ```
+
+Legacy: only on an old change with no `change.md` does option 1 create `.chaos/changes/<change-id>/approval.md` instead.
 
 ## Deferred decision rationale
 

@@ -45,4 +45,4 @@ Escalate to HIGH or CRITICAL if any apply:
 - Brownfield change: archaeology expected.
 - Brownfield + strict: archaeology required unless explicitly waived.
 - Waiver must lower confidence unless equivalent evidence exists.
-- Missing archaeology must be recorded in the proposal report.
+- Missing archaeology must be recorded in `change.md` §Review (plus a decision event when material); on old changes with no `change.md`, record it in the legacy proposal report.

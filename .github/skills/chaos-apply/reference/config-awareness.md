@@ -10,7 +10,7 @@ The config file centralises repository conventions. It does **not** replace ADRs
 
 1. Attempt to read `.chaos/config.yaml`.
 2. If present, use it to resolve repository paths and command conventions.
-3. If missing or partial, infer defaults and record `CONFIG_MISSING` or `CONFIG_PARTIAL` in the apply report.
+3. If missing or partial, infer defaults and record `CONFIG_MISSING` or `CONFIG_PARTIAL` — in `change.md` when present (a §Delivery deviations line plus a decision event when confidence-impacting), or in the legacy apply report on old changes with no `change.md`.
 4. In `--light` and `--standard`, continue with inferred defaults unless a missing config value creates a direct blocker.
 5. In `--strict`, require either a valid config or an explicit user waiver before mutating code.
 
@@ -20,7 +20,7 @@ The config file centralises repository conventions. It does **not** replace ADRs
 - `paths.reviews` for proposal review report location.
 - `paths.applyReports` for apply report output.
 - `paths.rules`, `paths.gates`, `paths.decisionLogs`, `paths.adrs` for governance loading.
-- `agents.copilot.csharpExpert` for Copilot C# specialist delegation; read `agents.copilot.csharpExpert` only as legacy/informational metadata if present.
+- `agents.copilot.csharpExpert` and `agents.claude.csharpSpecialist` for implementation-specialist delegation.
 - `validation.build.defaultCommand`, `validation.test.defaultCommand`, and `validation.openspec.validateCommand` for validation prompts.
 - `policies.commandExecution.*` for mode inference / downgrade behaviour.
 - `policies.decisions.*` for Decision Event requirements.
@@ -49,7 +49,9 @@ Configuration issues are direct blockers only when they prevent safe execution, 
 
 ## Report requirements
 
-The apply report must include a `Config Context` section with:
+When `change.md` is present (new changes, any mode), confidence-impacting config context is recorded in `change.md`: a `deviations:` line in §Delivery plus an `APP-DEC-*` decision event for material config choices/waivers. In `--strict`, fuller config detail may go to `appendix/config-context.md` per the overflow rule. A dedicated `Config Context` section is not required.
+
+Only when maintaining the legacy apply report on an old change (no `change.md`) must the report include a `Config Context` section with:
 
 - config status: `CONFIG_OK | CONFIG_MISSING | CONFIG_PARTIAL | CONFIG_CONFLICT | CONFIG_UNSUPPORTED_VERSION`;
 - config path used;

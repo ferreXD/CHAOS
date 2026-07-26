@@ -2,13 +2,18 @@
 
 ## Primary output
 
-**Light-deliver exception:** on a `change.md`-based light change (`chaosMetadata.mode: light`),
-the primary output is the **`change.md` §Delivery dashboard** (plus the `lifecycle.md` view
-update) — **no `apply-report.md` is written**, and the required output properties below are
-carried by the dashboard's fields (mode, result status, checks, files, deviations, run id).
-Formats: `chaos-shared/reference/change-template.md`.
+**`change.md` present (any mode — light, standard, strict):** the primary output is the
+**`change.md` §Delivery dashboard** (build/tests/contract/rules table + files + deviations +
+`status: Delivered` line, plus the frontmatter `lifecycle.status: Delivered` and the
+`lifecycle.md` view update) — **no `apply-report.md` and no `verification.md` are written**.
+The required output properties below are carried by the dashboard's fields (mode, result
+status, checks, files, deviations, run id) plus `decision-events.md`. Depth scales with mode:
+light = tables/lines only; standard = short prose allowed where it earns its place; strict =
+fuller analysis + extras, any section over ~80 lines → `appendix/<section>.md` (one-line
+summary + link). Formats: `chaos-shared/reference/change-template.md`.
 
-Otherwise, `chaos:apply` must produce or update (v0 change-scoped layout):
+**Legacy fallback** — only when `change.md` is absent (old change), `chaos:apply` must produce
+or update (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md
@@ -20,11 +25,12 @@ The legacy `.chaos/apply-reports/<change-id>-apply-report.md` may be READ for
 compatibility but is no longer the preferred output location; do not migrate it.
 Canonical layout: `.chaos/changes/README.md`.
 
-If the host environment cannot write files, it must output the full report content and instruct the user where to save it.
+If the host environment cannot write files, it must output the full delivery content and instruct the user where to save it.
 
 ## Required output properties
 
-The report must include:
+The delivery record must include (on the `change.md` path these live in §Delivery +
+`decision-events.md`; overflow follows the `appendix/` rule):
 
 - explicit mode and mode source
 - result state
@@ -43,8 +49,9 @@ The report must include:
 
 ## Closing checklist
 
-Before writing the final apply report, verify that every task in `tasks.md` confirmed complete
-in the Task Execution Log is actually marked `[x]` in `tasks.md` itself — do not rely on archive
+Before closing the delivery record (`change.md` §Delivery, or the legacy apply report on a
+legacy change), verify that every task in `tasks.md` confirmed complete
+during apply (Task Execution Log on the legacy report) is actually marked `[x]` in `tasks.md` itself — do not rely on archive
 time to catch this. If a task's real-world completion is independently confirmed but its checkbox
 was left unmarked, correct the checkbox as part of closing this apply pass, not as a later
 archive-time correction.
@@ -75,4 +82,4 @@ Always end with one of:
 
 ## Config Context section
 
-Apply reports must include a `Config Context` section documenting config status, configured paths/commands used, inferred defaults, config conflicts, config-related user decisions, and confidence impact.
+Legacy apply reports must include a `Config Context` section documenting config status, configured paths/commands used, inferred defaults, config conflicts, config-related user decisions, and confidence impact. On the `change.md` path, record config status only when it is confidence-impacting — as a `deviations:` line backed by a decision event; strict may add a fuller `Config Context` note via the `appendix/` overflow rule.

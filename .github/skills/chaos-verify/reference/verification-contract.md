@@ -18,6 +18,27 @@ It checks whether the implementation produced by `chaos:apply` satisfies the app
 - decision-event completeness;
 - archive readiness.
 
+## Implementation inspection — required checks (worker/background & deferred-migration changes)
+
+Provenance: RETRO-ACTION-001 (`keyed-outbox-writer-category2-redrive` retro, 2026-07-13). CR-001 — a new worker
+poll-cycle step that could halt core outbox delivery on a coordination-scan fault (most concretely before its
+deferred client-pipeline migration was applied) — passed `chaos:verify` and was only caught by the later
+`chaos:code-review`. For a change touching a **worker/background poll cycle, hosted service, or startup path**,
+Implementation Inspection MUST verify:
+
+- **Secondary-path fault isolation.** A newly added secondary/coordination step (e.g. a step that runs before or
+  alongside the existing critical work in a cycle) is fault-isolated so a fault in the new step cannot skip,
+  block, or abort the existing critical path. A shared `try`/`catch` that lets a new step's failure prevent the
+  primary work is a finding.
+- **Deferred-migration tolerance.** New code that queries a table/column behind a **deferred (client-pipeline)
+  migration** (R-010; DB apply gated to the client pipeline) tolerates the object's absence until the migration is
+  applied — it must not fault every cycle (or at startup) against an environment where the migration has not yet
+  run. Verify this whenever the change adds a table/column with `chaos:apply` DB-apply deferred.
+
+When these checks cannot be evidenced for an applicable change, record a finding and cap confidence; do not pass a
+clean verdict on assumed isolation. (Also prefer running `chaos:code-review` **before** `chaos:verify`, per
+`AGENTS.md` — the earlier gate is where this class of defect is cheapest to catch.)
+
 ## It does not
 
 - design the solution;
@@ -28,7 +49,17 @@ It checks whether the implementation produced by `chaos:apply` satisfies the app
 
 ## Required output
 
-v0 change-scoped layout (legacy `.chaos/verification/<change-id>-verification.md`
+**`change.md` present (any mode):** the verification result IS the `change.md`
+§Delivery / §Verification content — read §Contract + §Delivery first, then (standalone
+post-hoc verify) append a compact `## Verification` table (build/tests/contract/rules +
+confidence-labelled verdict). No standalone `verification.md` is written. Depth scales with
+mode: standard = short prose allowed; strict = fuller analysis + extras, overflow (> ~80
+lines per section) → `appendix/<section>.md`. Format:
+`chaos-shared/reference/change-template.md`. Also reads `decision-events.md`, `waivers.md`,
+and the `lifecycle.md` view when present.
+
+**Legacy fallback (`change.md` absent — old/archived changes only):** produce the legacy v0
+change-scoped report (the older `.chaos/verification/<change-id>-verification.md` stays
 read-only for compatibility; do not migrate):
 
 ```text
@@ -39,7 +70,16 @@ Reads change-folder inputs when present: `.chaos/changes/<change-id>/lifecycle.m
 `apply-report.md`, `proposal-review.md`, `decision-events.md`, `waivers.md`.
 Canonical layout: `.chaos/changes/README.md`.
 
-## Required final sections
+## Verification rubric (all modes, both layouts)
+
+Whatever the output surface, verification always covers: build · tests · contract/spec
+traceability · rules/ADR alignment · scope drift · decision-event completeness · archive
+readiness — each confidence-labelled; the verdict line carries
+verdict / confidence / evidence coverage / assumption load.
+
+## Required final sections (legacy report only)
+
+When the legacy `verification.md` is produced (no `change.md`), it uses these sections:
 
 - Verification Dashboard
 - Scope and Inputs

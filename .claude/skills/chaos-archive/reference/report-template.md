@@ -41,9 +41,12 @@ Rationale: <reason>
 | `openspec/changes/<change-id>/design.md` | `<found/missing/not-required>` | |
 | `openspec/changes/<change-id>/specs/` | `<found/missing/not-required>` | |
 | `openspec/changes/<change-id>/tasks.md` | `<found/missing>` | |
-| `.chaos/changes/<change-id>/verification.md` | `<found/missing>` | legacy fallback: `.chaos/verification/<change-id>-verification.md` |
-| `.chaos/changes/<change-id>/apply-report.md` | `<found/missing>` | legacy fallback: `.chaos/apply-reports/<change-id>-apply-report.md` |
-| `.chaos/changes/<change-id>/proposal-review.md` | `<found/missing>` | legacy fallback: `.chaos/reviews/<change-id>-proposal-review.md` |
+| `.chaos/changes/<change-id>/change.md` | `<found/missing>` | current model, any mode: §Review/§Delivery/§Verification |
+| `.chaos/changes/<change-id>/lifecycle.md` | `<found/missing>` | |
+| `.chaos/changes/<change-id>/decision-events.md` | `<found/missing>` | |
+| `.chaos/changes/<change-id>/verification.md` | `<found/missing/legacy-only>` | legacy changes only (absent by design when `change.md` present); fallback: `.chaos/verification/<change-id>-verification.md` |
+| `.chaos/changes/<change-id>/apply-report.md` | `<found/missing/legacy-only>` | legacy changes only (absent by design when `change.md` present); fallback: `.chaos/apply-reports/<change-id>-apply-report.md` |
+| `.chaos/changes/<change-id>/proposal-review.md` | `<found/missing/legacy-only>` | legacy changes only (absent by design when `change.md` present); fallback: `.chaos/reviews/<change-id>-proposal-review.md` |
 
 ## 4. Pre-Archive Checks
 
@@ -51,13 +54,14 @@ Rationale: <reason>
 |---|---|---|---|---|
 | OpenSpec change exists | | | | |
 | Toolchain available | | | | |
-| Verification report present | | | | |
+| Verification evidence present (`change.md` §Delivery/§Verification, or legacy `verification.md`) | | | | |
 | Tasks complete/waived | | | | |
 | Decision events classified | | | | |
 
 ## 5. Verification Gate Summary
 
-Verdict consumed from `chaos:verify`:
+Verdict consumed from `change.md` §Delivery/§Verification (any mode) or, on legacy changes
+without `change.md`, the `chaos:verify` report:
 
 ```text
 <summary>

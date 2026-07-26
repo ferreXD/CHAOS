@@ -49,7 +49,7 @@ Follow-up owner:
 
 ## ID rules
 
-Use stable IDs per proposal report:
+Use stable IDs per change (`decision-events.md`):
 
 - `PROP-DEC-001`, `PROP-DEC-002`, etc.
 - Do not reuse IDs.
@@ -61,12 +61,16 @@ Proposal decision events live under the change folder (v0 layout):
 
 ```text
 .chaos/changes/<change-id>/decision-events.md
-.chaos/changes/<change-id>/proposal-report.md
 ```
 
-Legacy `.chaos/proposals/<change-id>-chaos-propose-report.md` is read-only for compatibility.
+`change.md` §Review summarizes the verdict/confidence picture and points at these entries; it
+does not duplicate them.
 
-They may also be copied into OpenSpec `proposal.md`, `design.md`, or `tasks.md` when relevant, but the CHAOS report is the audit source for `chaos:sync`.
+Legacy `.chaos/changes/<change-id>/proposal-report.md` and
+`.chaos/proposals/<change-id>-chaos-propose-report.md` are read-only for compatibility on old
+changes.
+
+They may also be copied into OpenSpec `proposal.md`, `design.md`, or `tasks.md` when relevant, but `decision-events.md` is the audit source for `chaos:sync`.
 
 ## Sync semantics
 

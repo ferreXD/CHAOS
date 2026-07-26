@@ -64,10 +64,12 @@ CHAOS owns:
 It must ask:
 
 ```text
-This change is eligible for approval. Do you want me to create .chaos/changes/<change-id>/approval.md?
+This change is eligible for approval. Do you want me to record approval as the `approves-change: true` marker on the approving decision entry in `decision-events.md` and proceed to `chaos:apply`?
 ```
 
 It must not silently approve.
+
+Legacy: only on an old change with no `change.md` does approval produce `.chaos/changes/<change-id>/approval.md`.
 
 
 ## Guided OpenSpec remediation

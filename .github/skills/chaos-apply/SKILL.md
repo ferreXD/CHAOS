@@ -29,13 +29,17 @@ Read the reference files before acting:
 - `reference/question-bank.md`
 - `.github/skills/chaos-shared/reference/change-template.md` (universal change artifacts)
 
-## Light-deliver entry (mode inferred)
+## `change.md` entry (mode inferred)
 
-Before anything else: if `.chaos/changes/<change-id>/change.md` exists with
-`chaosMetadata.mode: light`, this apply is the **DELIVER** phase of the collapsed light lifecycle
-— run the **Light-deliver** section of `reference/apply-contract.md` instead of the standard
-stages (gate: all decisions ANSWERED, else point at the Decision Center and stop; output =
-`change.md` §Delivery dashboard, no apply-report/verification; `chaos:verify` not required).
+Before anything else: if `.chaos/changes/<change-id>/change.md` exists, this apply is the
+**DELIVER** phase of the universal change lifecycle — infer the mode from `chaosMetadata.mode`
+(light | standard | strict) and run the **Deliver** section of `reference/apply-contract.md`
+(gate: all decisions ANSWERED, else point at the Decision Center and stop; output = `change.md`
+§Delivery dashboard at mode depth, no apply-report/verification.md). Light runs it as the
+collapsed lifecycle instead of the standard stages and does not require `chaos:verify`;
+standard/strict keep the standard-stage rigor inside the Deliver shell and still recommend
+`chaos:verify`. Only when `change.md` is absent (legacy change) use the legacy stages and the
+legacy output below.
 
 ## Golden rules
 
@@ -49,34 +53,52 @@ stages (gate: all decisions ANSWERED, else point at the Decision Center and stop
 
 ## Output
 
-Read `.chaos/changes/<change-id>/lifecycle.md` when available. Write (v0 change-scoped layout):
+Read `.chaos/changes/<change-id>/change.md` and `lifecycle.md` when available. On a `change.md`
+change (any mode) the output is the **`change.md` §Delivery dashboard** (build/tests/contract/
+rules table + files + deviations + `status: Delivered` line) plus the frontmatter
+`lifecycle.status: Delivered` — **no `apply-report.md` is written**. Depth scales: light =
+tables/lines only; standard = short prose allowed; strict = fuller + extras (any section over
+~80 lines → `appendix/<section>.md`, one-line summary + link).
+
+Legacy fallback — only when `change.md` is absent (old change), write (v0 change-scoped layout):
 
 ```text
 .chaos/changes/<change-id>/apply-report.md
 ```
 
 Record apply-time decision events under `.chaos/changes/<change-id>/decision-events.md`
-and update the Apply row in `.chaos/changes/<change-id>/lifecycle.md` (with confirmation).
+and update the Apply/Deliver row in `.chaos/changes/<change-id>/lifecycle.md` (with confirmation).
 The legacy `.chaos/apply-reports/` folder may be READ for compatibility but is no longer
 the preferred output location; do not migrate it. Do not promote decisions into ADR/rules/gates
 directly — route that to `chaos:sync`. See `.chaos/changes/README.md`.
 
-Then recommend:
+Then recommend (post-hoc optional on light; recommended on standard/strict):
 
 ```text
 chaos:verify <change-id>
 ```
+
+## Todo Candidates (optional)
+
+`chaos:apply` MAY end its delivery record with an optional `## Todo Candidates` section (after
+`change.md` §Delivery — strict: `appendix/` when long — or at the end of the legacy apply report
+on a legacy change) listing material implementation debt, out-of-scope changes deferred, or
+validation not run, using the shared fields in
+`.github/skills/chaos-todo/reference/todo-candidate-contract.md`.
+`chaos:apply` does not create durable todo items — only `chaos:todo` curates
+`.chaos/todo/items/`.
+
+## Repository context (vNext, optional)
+
+When easily available, `chaos:apply` may record **changed files and branch context** from the
+provider-neutral repository context
+(`.github/skills/chaos-shared/reference/repository-context-contract.md`, tool profile `apply`,
+read-only) in the delivery record (`change.md` §Delivery on change.md changes; the legacy apply
+report otherwise). This is additive provenance only — apply does **not** require
+MCP, CLI, or provider context; local git fallback is sufficient.
 
 ## Config awareness
 
 Before resolving OpenSpec paths, review reports, apply report output, validation commands, or C# specialist delegation, read `.chaos/config.yaml` when present and follow `reference/config-awareness.md`.
 
 If config is missing, infer defaults and record the config status. In strict mode, require a config waiver before code mutation when missing config affects execution safety.
-
-## Todo Candidates (optional)
-
-`chaos:apply` MAY end its report with an optional `## Todo Candidates` section listing
-material implementation debt, out-of-scope changes deferred, or validation not run, using the
-shared fields in `.github/skills/chaos-todo/reference/todo-candidate-contract.md`.
-`chaos:apply` does not create durable todo items — only `chaos:todo` curates
-`.chaos/todo/items/`.

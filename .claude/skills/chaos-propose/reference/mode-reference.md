@@ -77,7 +77,9 @@ Behaviour:
 - Produce 2–3 approaches.
 - Require Approach Alignment Checkpoint.
 - Generate OpenSpec change artefacts when available.
-- Produce CHAOS proposal report.
+- Write the universal change artifact set: `change.md` (§Intent + §Contract + §Review verdict
+  line; short prose allowed per section) + `decision-events.md` + `lifecycle.md` stub
+  (`chaos-shared/reference/change-template.md`). No `proposal-report.md`.
 - Recommend `chaos:review` before implementation.
 
 ## `--strict`
@@ -100,13 +102,19 @@ Behaviour:
 - Brownfield work requires archaeology unless explicitly waived.
 - Proposed ADRs must not be treated as accepted unless CHAOS workspace or user confirms that posture.
 - OpenSpec validation must be requested or run if possible.
+- Write the same `change.md` artifact set at strict depth — fuller analysis + extra sections
+  (risk, traceability matrix) + the overflow rule (any section > ~80 lines →
+  `appendix/<section>.md`, one-line summary + link). No `proposal-report.md`.
 - Proposal cannot be marked ready if blocking evidence gaps remain.
 - `chaos:review` is mandatory before implementation.
 
 ## Mode escalation
 
 - **`--light` → `--standard` is automatic** (the valve — see the `--light` section): never ask,
-  always announce and record (`⚠` line, `escalatedFrom`, `ESC-*` entry), reuse all FRAME output.
+  always announce and record (`⚠` line under the `change.md` H1, `escalatedFrom`, `ESC-*`
+  entry), reuse all FRAME output, and keep the `change.md` model — create `change.md` at the
+  target mode's depth if the trigger fired before FRAME wrote it; never emit
+  `proposal-report.md`/`proposal-review.md` on an escalated change.
 - **→ `--strict`** (from light or standard) remains confirm-based when strict-class risk is
   detected:
 

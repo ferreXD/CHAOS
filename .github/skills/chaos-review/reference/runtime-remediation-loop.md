@@ -15,8 +15,8 @@ A CHAOS review should:
 3. Ask the user whether to apply a suggested amendment, provide custom context, defer, accept risk, or stop.
 4. Patch OpenSpec artefacts only after explicit user confirmation.
 5. Re-read/re-evaluate affected artefacts after any amendment.
-6. Record every material remediation decision as a `REV-DEC-*` Decision Event.
-7. Produce a final review report that distinguishes fixed, deferred, accepted-risk, and still-blocking issues.
+6. Record every material remediation decision as a `REV-DEC-*` Decision Event in `decision-events.md`.
+7. Record a final verdict in `change.md` §Review (legacy report only in the fallback path) that distinguishes fixed, deferred, accepted-risk, and still-blocking issues.
 
 ## Remediation issue classes
 
@@ -71,8 +71,11 @@ Options:
 - `openspec/changes/<change-id>/design.md`
 - `openspec/changes/<change-id>/specs/**`
 - `openspec/changes/<change-id>/tasks.md`
-- `.chaos/changes/<change-id>/proposal-review.md`
-- `.chaos/changes/<change-id>/approval.md` only after explicit handoff confirmation
+- `.chaos/changes/<change-id>/change.md` — the §Review verdict line + findings
+- `.chaos/changes/<change-id>/decision-events.md` — append `REV-DEC-*` entries; the
+  `approves-change: true` approval marker only after explicit handoff confirmation
+- Legacy fallback (old change with no `change.md`): `.chaos/changes/<change-id>/proposal-review.md`,
+  and `.chaos/changes/<change-id>/approval.md` only after explicit handoff confirmation
   (legacy `.chaos/reviews/` and `.chaos/approvals/` are read-only for compatibility)
 
 `chaos:review` must not amend production/source implementation code.

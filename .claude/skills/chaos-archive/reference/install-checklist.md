@@ -53,10 +53,14 @@ AGENTS.md
 .chaos/gates/index.md
 ```
 
-Recommended prior lifecycle reports (v0 change-scoped layout; legacy folders read-only for compat):
+Recommended prior lifecycle artifacts (v0 change-scoped layout; legacy folders read-only for compat):
 
 ```text
+.chaos/changes/<change-id>/change.md            # current model, any mode
 .chaos/changes/<change-id>/lifecycle.md
+.chaos/changes/<change-id>/decision-events.md
+
+# Legacy report set — old changes without change.md only (not expected for new changes):
 .chaos/changes/<change-id>/proposal-review.md   # legacy fallback: .chaos/reviews/<change-id>-proposal-review.md
 .chaos/changes/<change-id>/apply-report.md      # legacy fallback: .chaos/apply-reports/<change-id>-apply-report.md
 .chaos/changes/<change-id>/verification.md      # legacy fallback: .chaos/verification/<change-id>-verification.md

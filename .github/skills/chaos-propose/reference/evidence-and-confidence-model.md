@@ -34,7 +34,11 @@ Use:
 
 ## Required proposal-level confidence block
 
-Every proposal report must include:
+This confidence content is recorded in `change.md` — §Review carries the
+`verdict · confidence · evidence_coverage · assumption_load` line, §Contract carries the
+evidence-backed testable statements — and in `decision-events.md` (knowledge type +
+confidence per material decision). The block below is the legacy `proposal-report.md`
+format; write it only when maintaining an old change that has no `change.md`:
 
 ```md
 ## Confidence Summary

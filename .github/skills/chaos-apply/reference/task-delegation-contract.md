@@ -34,7 +34,8 @@ Specialist: <C# Expert or equivalent>
 - openspec/changes/<change-id>/design.md
 - openspec/changes/<change-id>/specs/
 - openspec/changes/<change-id>/tasks.md
-- .chaos/changes/<change-id>/proposal-review.md   (legacy fallback: .chaos/reviews/<change-id>-proposal-review.md)
+- .chaos/changes/<change-id>/change.md            (§Contract + §Review; preferred, any mode)
+- .chaos/changes/<change-id>/proposal-review.md   (legacy fallback when change.md is absent; also: .chaos/reviews/<change-id>-proposal-review.md)
 
 ## Relevant CHAOS constraints
 - <rule/decision excerpts>

@@ -38,24 +38,34 @@ command. If review is explicitly invoked on one anyway, review the `change.md` c
 
 ## Required output
 
-Generate or update (v0 change-scoped layout):
+Record the review result in the universal change artifacts (v0 change-scoped layout;
+formats in `chaos-shared/reference/change-template.md`):
 
 ```text
-.chaos/changes/<change-id>/proposal-review.md
+.chaos/changes/<change-id>/change.md           # §Review — verdict line + findings
+.chaos/changes/<change-id>/decision-events.md  # REV-DEC-* review decisions, append-only
 ```
 
-After explicit approval handoff confirmation, optionally also write:
+Update `change.md` §Review with `verdict: … · confidence: … · evidence_coverage: … ·
+assumption_load: …` plus a findings list. Standard: short prose allowed. Strict: fuller
+analysis, may add a findings/risk subsection; any section over ~80 lines overflows to
+`.chaos/changes/<change-id>/appendix/<section>.md` (one-line summary + link stays in
+place). Do **not** create `proposal-review.md` for a change that has a `change.md`.
 
-```text
-.chaos/changes/<change-id>/approval.md
-```
+After explicit approval handoff confirmation, record approval as the
+`approves-change: true` marker on the approving decision entry in `decision-events.md` —
+do not write `approval.md` for a `change.md`-based change.
 
-Record review-time decision events under `.chaos/changes/<change-id>/decision-events.md`
-(or within the review report with lifecycle references) and update
-`.chaos/changes/<change-id>/lifecycle.md` (Review row, `Last updated`) with confirmation.
-The legacy `.chaos/reviews/` and `.chaos/approvals/` folders may be READ for
-compatibility but are no longer the preferred output location; do not migrate them.
-Do not update shared governance indexes directly. See `.chaos/changes/README.md`.
+Update `.chaos/changes/<change-id>/lifecycle.md` (Review row, `Last updated`) with
+confirmation.
+
+**Legacy fallback (old changes only):** when the change has no `change.md` (legacy
+artifact set), read and write the legacy `.chaos/changes/<change-id>/proposal-review.md`
+(and, after explicit handoff confirmation, `approval.md`) instead — do not migrate old
+changes to the new layout. The legacy `.chaos/reviews/` and `.chaos/approvals/` folders
+may be READ for compatibility but are no longer the preferred output location; do not
+migrate them. Do not update shared governance indexes directly. See
+`.chaos/changes/README.md`.
 
 ## Workflow
 
@@ -75,7 +85,8 @@ Do not update shared governance indexes directly. See `.chaos/changes/README.md`
     - patch OpenSpec artefacts only after explicit confirmation;
     - record every material choice as a `REV-DEC-*` Decision Event;
     - re-read/re-evaluate affected artefacts after amendments.
-13. Produce final verdict with confidence.
+13. Record the final verdict (with confidence, evidence coverage, assumption load) and
+    findings in `change.md` §Review (legacy report only in the fallback path).
 14. Offer optional approval handoff only if eligible.
 
 ## Reference files
@@ -91,7 +102,7 @@ Read the reference files under `reference/` before executing the review:
 - `guided-amendment-policy.md`
 - `openspec-review.md`
 - `ux-flow.md`
-- `report-template.md`
+- `report-template.md` (legacy `proposal-review.md` format — old changes without `change.md` only)
 - `question-bank.md`
 
 ## Repository context (vNext, optional)
@@ -104,8 +115,9 @@ or provider context; local git fallback is sufficient.
 
 ## Todo Candidates (optional)
 
-`chaos:review` MAY end its report with an optional `## Todo Candidates` section listing
-material remediation not applied, conditional-approval follow-up items, or missing
+`chaos:review` MAY end the §Review section of `change.md` (or the legacy report, for old
+changes) with an optional `Todo Candidates` list covering material remediation not
+applied, conditional-approval follow-up items, or missing
 tests/spec clarifications, using the shared fields in
 `.claude/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:review` does not
 create durable todo items — only `chaos:todo` curates `.chaos/todo/items/`.

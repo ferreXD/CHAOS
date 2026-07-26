@@ -6,16 +6,22 @@ outputs stay outside change folders. Canonical layout: `.chaos/changes/README.md
 
 ## Change-scoped outputs (`.chaos/changes/<change-id>/`)
 
-| Command | Primary output | Legacy fallback (read-only) |
+| Command | Primary output (all modes) | Legacy fallback (read-only) |
 |---|---|---|
-| `chaos:propose` | `.chaos/changes/<change-id>/lifecycle.md` (+ OpenSpec change) | `.chaos/proposals/` |
-| `chaos:review` | `.chaos/changes/<change-id>/proposal-review.md` (+ `approval.md`) | `.chaos/reviews/`, `.chaos/approvals/` |
-| `chaos:apply` | `.chaos/changes/<change-id>/apply-report.md` | `.chaos/apply-reports/` |
+| `chaos:propose` | `.chaos/changes/<change-id>/change.md` (§Intent/§Contract/§Review) + `lifecycle.md` + `decision-events.md` (+ OpenSpec change) | `proposal-report.md`, `.chaos/proposals/` |
+| `chaos:review` | updates `change.md` §Review + records the `approves-change: true` decision entry | `proposal-review.md` + `approval.md`, `.chaos/reviews/`, `.chaos/approvals/` |
+| `chaos:apply` | appends `change.md` §Delivery | `apply-report.md`, `.chaos/apply-reports/` |
 | `chaos:code-review <id>` | `.chaos/changes/<change-id>/code-review.md` | — |
-| `chaos:verify` | `.chaos/changes/<change-id>/verification.md` | `.chaos/verification/` |
+| `chaos:verify` | reads `change.md` §Contract/§Delivery; standalone post-hoc verify appends `change.md` §Verification | `verification.md`, `.chaos/verification/` |
 | `chaos:archive` | `.chaos/changes/<change-id>/archive-report.md` | `.chaos/archive-reports/` |
 | `chaos:sync --change <id>` | `.chaos/changes/<change-id>/sync-report.md` | — |
 | `chaos:retro <id>` | `.chaos/changes/<change-id>/retro.md` | `.chaos/retros/<id>-retro.md` |
+
+Readers are presence-conditioned: when `.chaos/changes/<change-id>/change.md` exists, use it
+— any mode (light, standard, strict). Only when it is absent fall back to the legacy report
+set (proposal-report / proposal-review / apply-report / verification / approval), which is no
+longer produced for new changes and lives only on old/archived changes. Old changes never
+migrate. Canonical model: `chaos-shared/reference/change-template.md`.
 
 ## Global / repository-wide outputs
 
@@ -42,6 +48,11 @@ VFY-DEC-*   -> chaos:verify
 ARC-DEC-*   -> chaos:archive
 SYNC-DEC-*  -> chaos:sync
 RETRO-ACTION-* -> chaos:retro
+ESC-*       -> auto-escalation events (recorded by the escalating command)
 ```
+
+All entries append to `.chaos/changes/<change-id>/decision-events.md`; the approval of a
+`change.md`-based change is the `approves-change: true` marker on the approving entry (no
+separate `approval.md`).
 
 `chaos:sync` promotes durable decision events into decision logs, ADRs, rules, gates, or follow-up recommendations.
