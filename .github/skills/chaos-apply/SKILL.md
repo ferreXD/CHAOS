@@ -60,6 +60,12 @@ rules table + files + deviations + `status: Delivered` line) plus the frontmatte
 tables/lines only; standard = short prose allowed; strict = fuller + extras (any section over
 ~80 lines → `appendix/<section>.md`, one-line summary + link).
 
+Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set
+`frontmatter.lifecycle.phases.deliver` (`status` — `complete` or `complete-partial` — `at`, `run`,
+`mode`), advance `lifecycle.status`, and reconcile `lifecycle.current` (`tests`, `contract`,
+`decisions`), then re-render `lifecycle.md`. The §Delivery dashboard is a per-pass snapshot tagged by
+run id — append a new `### Delivery — pass N` block on `--continue`; never back-edit a prior pass.
+
 Legacy fallback — only when `change.md` is absent (old change), write (v0 change-scoped layout):
 
 ```text

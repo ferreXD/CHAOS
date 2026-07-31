@@ -93,7 +93,10 @@ confirmation per `mcp-security-policy.md`).
 - Do not regenerate retired narrative reports for `change.md`-based changes: on such changes
   (e.g. the collapsed light path — `chaos-shared/reference/change-template.md`) sync keys on
   `decision-events.md` (anatomy unchanged) plus the `change.md` status/verdict fields, and
-  updates indexes only.
+  updates indexes only. Per the reconcile-on-write rule, when syncing a `change.md`-based change
+  set `frontmatter.lifecycle.phases.sync` (`status`, `at`, `run`, `mode`, `verdict` =
+  reconciliation state) and reconcile `lifecycle.current.syncState` + `decisions`, then re-render
+  `lifecycle.md` (Sync row) — this is a change-scoped state write, not a shared-governance edit.
 - Do not edit production code.
 - Do not hide sync debt.
 

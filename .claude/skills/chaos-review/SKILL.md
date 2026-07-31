@@ -56,8 +56,13 @@ After explicit approval handoff confirmation, record approval as the
 `approves-change: true` marker on the approving decision entry in `decision-events.md` —
 do not write `approval.md` for a `change.md`-based change.
 
-Update `.chaos/changes/<change-id>/lifecycle.md` (Review row, `Last updated`) with
-confirmation.
+Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set
+`frontmatter.lifecycle.phases.review` (`status`, `at`, `run`, `mode` = the review's rigor — which may
+auto-escalate above the framing mode — and `verdict`), advance `lifecycle.status` (e.g. `Approved` on
+the approval handoff), reconcile `lifecycle.current` (`decisions`), then re-render
+`.chaos/changes/<change-id>/lifecycle.md` (Review row) with confirmation. Self-review check before
+finishing: every `*-DEC-*` id cross-referenced in `change.md` exists and points at the entry that
+records the fact.
 
 **Legacy fallback (old changes only):** when the change has no `change.md` (legacy
 artifact set), read and write the legacy `.chaos/changes/<change-id>/proposal-review.md`
