@@ -22,6 +22,17 @@ analysis + extra sections (risk, traceability matrix).
 tables, checklists, `key: value` lines. Do not restyle, reorder, or rename fields; downstream
 commands and the future renderer parse them.
 
+**Reconcile-on-write rule (single source of current state).** Every command that writes `change.md`
+MUST, before it finishes: (a) set **its own** `lifecycle.phases.<step>` entry (`status`, `at`, `run`,
+`mode`, plus `verdict` for review/verify/sync), advance `lifecycle.status` if the step changes it, and
+(b) reconcile the `lifecycle.current` rollup to present values (test counts, contract met/total,
+decision-events count, traceability, syncState, archiveReadiness). Then re-render `lifecycle.md` (§3).
+The prose §Delivery / §Verification dashboards are **per-pass snapshots, tagged by their run id, and are
+appended — never back-edited**: each records the figures as of that pass. The **only** authoritative
+*current* cumulative state is `lifecycle.current` (rendered in `lifecycle.md`). A reader must never take
+a dated pass dashboard as current — §Delivery/§Verification each open with a one-line pointer saying so.
+This keeps the append-only story intact while giving one non-stale home for current counts.
+
 ## 1. `change.md` template
 
 ```markdown
@@ -36,9 +47,25 @@ chaosMetadata:
   sourceCommand: "chaos:propose"
   lifecycle:             # authoritative machine-readable state (lifecycle.md is a VIEW of this)
     status: Framed       # Framed | Approved | Delivered | Rejected | Escalated | Archived
+    # phases models EVERY step that can run in the mode, so no step is ever schemaless.
+    # Light: frame + deliver only. Standard/strict: the full lifecycle below (a phase stays
+    # `pending` until its step runs). Each entry carries its own `mode` (per-phase rigor —
+    # review/verify/sync may auto-escalate above the framing `mode` above); review/verify/sync
+    # also carry a `verdict`.
     phases:
-      frame:   { status: complete, at: "<ISO-8601>", run: "<commandRunId>" }
-      deliver: { status: pending,  at: null,          run: null }
+      frame:   { status: complete, at: "<ISO-8601>", run: "<commandRunId>", mode: <mode> }
+      review:  { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
+      deliver: { status: pending,  at: null, run: null, mode: null }
+      verify:  { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
+      sync:    { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
+      archive: { status: pending,  at: null, run: null, mode: null }                  # standard/strict
+    current:               # authoritative CURRENT cumulative rollup — reconciled on every write
+      tests: null          # "<passed>/<total>"           (once delivered)
+      contract: null       # "<met>/<total>"
+      decisions: null      # integer count of decision-events.md entries
+      traceability: null   # "<satisfied>/<partial>/<missing>" (strict; omit when N/A)
+      syncState: null      # RECONCILED | PARTIALLY_RECONCILED | ... (once sync runs)
+      archiveReadiness: null # READY | READY_WITH_DEBT | NOT_READY (once verified)
 ---
 
 # <change-id> — <one-line title>
@@ -61,9 +88,15 @@ OpenSpec: `openspec/changes/<change-id>/` · decisions: see `decision-events.md`
 verdict: PASS · confidence: MEDIUM · evidence_coverage: PARTIAL · assumption_load: LOW
 scope: <files/modules the change may touch> · rules in play: <R-00x, R-00y>
 <!-- Light: the inline self-review checklist result — one line, no report. Checklist:
-     scope sane / rules mapped / contract testable / decisions complete. Failure ⇒ escalate. -->
+     scope sane / rules mapped / contract testable / decisions complete / decision cross-refs
+     resolve (every `*-DEC-*` id cited elsewhere in change.md exists and points at the entry that
+     actually records the fact). Failure ⇒ escalate. Standard/strict: chaos:review sets the
+     phases.review entry (mode + verdict) and a fuller findings list. -->
 
 ## Delivery
+
+<!-- Per-pass snapshot, tagged by run id — appended, never back-edited. Current cumulative state
+     lives in the frontmatter `lifecycle.current` block (rendered in lifecycle.md), not here. -->
 
 | check | result |
 |---|---|
@@ -75,6 +108,22 @@ scope: <files/modules the change may touch> · rules in play: <R-00x, R-00y>
 files: <changed files, comma-separated>
 deviations: none · <or one line per deviation, each backed by a decision>
 status: Delivered · <date> · run: <apply commandRunId>
+
+## Verification            <!-- standard/strict; standalone/post-hoc appends here -->
+
+<!-- Per-pass snapshot, tagged by run id — appended, never back-edited (a re-verify appends a new
+     "### Verification — pass N" block). Current cumulative state lives in `lifecycle.current`. -->
+
+verdict: <READY | READY_WITH_DEBT | NOT_READY> · confidence: <…> · archive_readiness: <…>
+verified: <date> · run: <verify commandRunId>
+
+| check | result |
+|---|---|
+| build | <0/0> |
+| tests | <N/N> |
+| contract | <N/N ticked> |
+| traceability | <sat/partial/missing> → `appendix/verification-traceability.md` (strict overflow) |
+| rules | R-003 ✅ · … |
 ```
 
 Escalation warning (when it happens) goes directly under the H1, so it is unmissable:
@@ -115,20 +164,30 @@ Escalation events use the same shape with the `ESC-` prefix:
 
 Authoritative state lives in `change.md` frontmatter (`chaosMetadata.lifecycle`). `lifecycle.md`
 is a **view** of it — never a second source of truth, never narrative. Until the Stage-B renderer
-exists, commands hand-write this stub and edit it **only at phase transitions**:
+exists, commands hand-write this stub and edit it at each phase transition, rendering the frontmatter
+`phases` (incl. per-phase `mode`/`verdict`) and the `current` rollup. The **Current** line is where a
+reader gets present cumulative state — the change.md prose dashboards are historical per-pass snapshots.
 
 ```markdown
 # Lifecycle — <change-id>
 
 Status: <Framed | Approved | Delivered | Rejected | Escalated | Archived>
 Mode: <light | standard | strict> · Escalated-from: <none | light>
-OpenSpec: openspec/changes/<change-id> · Run(s): <frame-run-id> · <deliver-run-id>
+OpenSpec: openspec/changes/<change-id> · Runs: <per-phase run ids>
+Current: tests <N/N> · contract <N/N> · decisions <N> · traceability <s/p/m> · sync <state> · archive <readiness>
 
-| Phase | Status | Date | Pointer |
-|---|---|---|---|
-| Frame | Complete | <date> | change.md#contract |
-| Deliver | Pending | — | change.md#delivery |
+| Phase | Status | Mode | Verdict | Date | Pointer |
+|---|---|---|---|---|---|
+| Frame | Complete | <mode> | — | <date> | change.md#contract |
+| Review | Pending | — | — | — | change.md#review |
+| Deliver | Pending | — | — | — | change.md#delivery |
+| Verify | Pending | — | — | — | change.md#verification |
+| Sync | Pending | — | — | — | change.md (decision-events) |
+| Archive | Pending | — | — | — | — |
 ```
+
+Light renders only the `Frame` and `Deliver` rows and omits the `Current` fields that never populate
+(no traceability/sync/archive on the collapsed path). Standard/strict render all rows.
 
 ## 4. Legacy compatibility
 

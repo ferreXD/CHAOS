@@ -94,7 +94,11 @@ Before operating, read the reference files in this skill (and the shared policie
     frontmatter `artifactType: change`, `mode: standard|strict`) at mode depth, record
     proposal-time decision events in `.chaos/changes/<change-id>/decision-events.md`, and
     write the `lifecycle.md` generated-view stub (status `Framed`), linking decisions from
-    `change.md`. Depth scales by mode: standard = short prose allowed per section; strict =
+    `change.md`. **Initialize the full frontmatter `lifecycle` block** (per
+    `chaos-shared/reference/change-template.md`): `phases.frame` = complete with `mode`
+    (the framing mode) + run id, and `review`/`deliver`/`verify`/`sync`/`archive` as `pending`
+    (standard/strict; light seeds only `deliver` pending); seed the `lifecycle.current` rollup
+    (`decisions` = current entry count; the rest `null` until delivered). Depth scales by mode: standard = short prose allowed per section; strict =
     fuller analysis + extra sections (risk, traceability matrix) + the overflow rule (any
     section > ~80 lines → `appendix/<section>.md`, leaving a one-line summary + link).
     **No `proposal-report.md`.**

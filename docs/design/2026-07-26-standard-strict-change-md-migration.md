@@ -118,3 +118,30 @@ Reader generalization (light→all-modes; keep legacy fallback):
    escalatedFrom: light, ESC-001) + `decision-events.md` + `lifecycle.md` + OpenSpec, and **no**
    `proposal-report.md`/`proposal-review.md`. Re-run a non-posture task in `--standard` → same
    `change.md`-only set. Legacy-change read path still works (change.md absent → legacy reports read).
+
+## Addendum (2026-07-26) — frontmatter lifecycle-state schema extension
+
+Follow-up to an artifact quality-grade review of the first standard/strict run (`secure-task-api`),
+which surfaced four nits in the generated `change.md`: (#1) a cumulative count went stale in a prose
+dashboard, (#2) the frontmatter `lifecycle.phases` block omitted `verify` (it modelled only the light
+`frame`/`deliver`), (#4) a decision cross-ref cited the approach entry instead of the accepted-risk
+entry, (#5) mixed rigor (standard framing, strict review/verify) was visible only in prose.
+
+Root cause was one place — the `change-template.md` frontmatter `lifecycle` block. Extended so it
+models **every step that can run in the mode** and carries current cumulative state:
+
+- `phases` now covers `frame → review → deliver → verify → sync → archive` (standard/strict; light =
+  `frame`+`deliver`), each with a **per-phase `mode`** (mixed rigor is machine-readable — #5) and, for
+  review/verify/sync, a `verdict`. No standard/strict step is schemaless (#2).
+- A new **`current:` rollup** (`tests`, `contract`, `decisions`, `traceability`, `syncState`,
+  `archiveReadiness`) is the **single authoritative home for cumulative figures**; `lifecycle.md`
+  renders it as a `Current:` line + `Mode`/`Verdict` columns.
+- **Reconcile-on-write rule:** every writing command sets its own phase entry + reconciles `current`
+  + re-renders `lifecycle.md`. Prose §Delivery/§Verification dashboards are per-pass snapshots tagged
+  by run id — appended, never back-edited — so a historical figure (e.g. the pass-1 "15 decisions")
+  stays a correct snapshot while current lives in `current` (#1).
+- Cross-ref hygiene (#4): a propose/review self-review checklist item — every `*-DEC-*` id cited in
+  `change.md` exists and points at the entry that records the fact.
+
+Wired into `chaos-propose/apply/review/verify/sync/archive` (both skill trees). The `secure-task-api`
+demo instance was retrofitted to the extended schema as the reference example.

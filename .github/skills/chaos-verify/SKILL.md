@@ -82,9 +82,14 @@ artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`, `decision-ev
 ```
 
 Audit `.chaos/changes/<change-id>/decision-events.md` and `.chaos/changes/<change-id>/waivers.md`
-if present. Update the lifecycle recommendation only with user confirmation. Do not edit
-production code. The legacy `.chaos/verification/` folder may be READ for compatibility but is
-no longer the preferred output location; do not migrate it. See `.chaos/changes/README.md`.
+if present. Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set
+`frontmatter.lifecycle.phases.verify` (`status`, `at`, `run`, `mode` = the verify rigor, `verdict`)
+— this is the phase that was previously left unwritten — and reconcile `lifecycle.current` (`tests`,
+`contract`, `traceability`, `decisions`, `archiveReadiness`), then re-render `lifecycle.md` (Verify
+row + Current line) with user confirmation. A re-verify appends a new `### Verification — pass N` block
+(per-pass snapshot, run-id-tagged); never back-edit a prior pass. Do not edit production code. The
+legacy `.chaos/verification/` folder may be READ for compatibility but is no longer the preferred
+output location; do not migrate it. See `.chaos/changes/README.md`.
 
 When verification cannot be completed, still record the outcome — a `## Verification` entry on `change.md` (or the legacy report on old changes) with `BLOCKED` or `INSUFFICIENT_EVIDENCE` and concrete next actions.
 

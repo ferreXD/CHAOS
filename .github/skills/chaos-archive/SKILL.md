@@ -64,10 +64,22 @@ Write (v0 change-scoped layout):
 .chaos/changes/<change-id>/archive-report.md
 ```
 
-Update `Status: Archived` and the Archive row in `.chaos/changes/<change-id>/lifecycle.md`
-only with confirmation. The legacy `.chaos/archive-reports/` folder may be READ for
-compatibility but is no longer the preferred output location; do not migrate it. Route
-shared governance closure to `chaos:sync`. See `.chaos/changes/README.md`.
+Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set the `change.md`
+frontmatter `lifecycle.status: Archived` and `lifecycle.phases.archive` (`status: complete`, `at`,
+`run`, `mode`), reconcile `lifecycle.current.archiveReadiness`, then re-render `Status: Archived` and
+the Archive row in `.chaos/changes/<change-id>/lifecycle.md` — only with confirmation. The legacy
+`.chaos/archive-reports/` folder may be READ for compatibility but is no longer the preferred output
+location; do not migrate it. Route shared governance closure to `chaos:sync`. See
+`.chaos/changes/README.md`.
+
+## Repository context (vNext)
+
+The archive report may include repository context
+(`.github/skills/chaos-shared/reference/repository-context-contract.md`), tool profile
+`archive` (least privilege, read-only): branch, review request (PR) / linked work item if
+available, CI status if available, and context confidence. **Do not** require MCP for archive;
+local git fallback is sufficient. Include the shared **Repository Context** section when
+context is resolved.
 
 ## Todo Candidates (optional)
 
