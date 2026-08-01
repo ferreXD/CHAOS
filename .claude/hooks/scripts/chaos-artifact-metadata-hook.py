@@ -431,6 +431,34 @@ def _scalarize_branch(value: Any, repo_root: str) -> str:
     return run_git(repo_root, ["branch", "--show-current"]) or "unknown"
 
 
+def looks_like_stringified_structure(value: Any) -> bool:
+    """True when a scalar slot holds a stringified dict/list.
+
+    A pre-fix hook (or a hand edit) could leave `branch: "{'name': 'main', ...}"` — a Python repr
+    parked in a slot the schema says is a plain scalar. Detecting it lets the update path repair
+    the block instead of carrying the corruption forever (the update path never rebuilds
+    `repositoryContext` on its own).
+    """
+    if not isinstance(value, str):
+        return False
+    s = value.strip()
+    return (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]"))
+
+
+def repair_repository_context(existing: Any, resolved: Any) -> Tuple[Any, bool]:
+    """Replace only the malformed scalar slots of a stored repositoryContext. Returns (value, repaired)."""
+    if not isinstance(existing, dict):
+        return existing, False
+    resolved = resolved if isinstance(resolved, dict) else {}
+    repaired = dict(existing)
+    changed = False
+    for key in ("branch", "reviewRequest"):
+        if looks_like_stringified_structure(repaired.get(key)):
+            repaired[key] = resolved.get(key)
+            changed = True
+    return (repaired, True) if changed else (existing, False)
+
+
 def _scalarize_review_request(value: Any) -> Optional[str]:
     """Coerce a reviewRequest to a compact scalar (id/url/title) or None — never `str(dict)`."""
     if isinstance(value, dict):
@@ -812,6 +840,18 @@ def process_file(abs_path: str, rel_path: str, repo_root: str, policy: Dict[str,
             if material_change or policy.get("allowAuditOnlyStamp", False):
                 new_meta["lastAuditedAt"] = now_iso
                 new_meta["lastAuditedBy"] = identity
+                changed = True
+            # Self-heal a corrupt block. The update path otherwise copies existing metadata
+            # verbatim, so a stringified `branch`/`reviewRequest` written by a pre-fix hook would
+            # persist forever. Repair it in place (timestamps untouched — this is not a body edit).
+            repaired_rc, rc_repaired = repair_repository_context(
+                new_meta.get("repositoryContext"), fields["repositoryContext"]
+            )
+            if rc_repaired:
+                new_meta["repositoryContext"] = repaired_rc
+                issues.append(
+                    Issue("INFO", "REPOSITORY_CONTEXT_REPAIRED", "Rebuilt stringified repositoryContext scalars")
+                )
                 changed = True
             did_stamp = changed
 

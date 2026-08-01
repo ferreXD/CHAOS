@@ -145,3 +145,47 @@ models **every step that can run in the mode** and carries current cumulative st
 
 Wired into `chaos-propose/apply/review/verify/sync/archive` (both skill trees). The `secure-task-api`
 demo instance was retrofitted to the extended schema as the reference example.
+
+## Addendum 2 (2026-08-01) — closure completeness, projection purity, enum, serialization
+
+Second artifact quality-grade review, over a *fresh* full-lifecycle run (`secure-task-api`, strict, escalated
+light → standard → strict, archived). The previous addendum's schema work verified: all six phases, per-phase
+`mode`, and the `current` rollup were produced **natively**, and the per-pass snapshot mechanism worked as
+designed. Four new findings were fixed:
+
+1. **Archive closure claimed completeness it did not have.** The report asserted `UNCLASSIFIED: none` while
+   classifying 12 of 14 decision entries. Fixes: a **canonical decision-entry scan rule** in
+   `change-template.md` §2 — an entry is `^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)` in the **ledger**
+   (`decision-events.md`); prose/grouping headings are not entries, and legacy reports' nested `###`
+   decision subsections are report structure, not the ledger. `chaos:archive` must now enumerate by that
+   rule, emit **one row per entry**, record `N enumerated / N classified`, and may claim completeness only
+   when it balances; unmatched entries become `UNCLASSIFIED` rather than vanishing. Missing scan prefixes
+   (`CR-`, `ARC-`, `SYNC-`, `RETRO-`) were added, and the `### PREFIX-DEC-XXX` register templates were
+   reconciled to the `##` shape so writers and scanners agree. The same rule now defines
+   `lifecycle.current.decisions` (closing the earlier heading-vs-entry counting nit).
+2. **`lifecycle.md` invented a cell** (a `Frame` verdict with no frontmatter backing). Fixes: every phase may
+   now carry an optional `verdict` (frame `READY_FOR_REVIEW`, deliver `APPLIED`/`PARTIALLY_APPLIED`), plus a
+   hard **purity rule** — render exactly what exists, absent ⇒ `—`, **never synthesize a value and never add
+   an unbacked row/line**. Root causes removed: `chaos-propose`'s divergent 4-column stub template (now a
+   pointer to §3, one source), and the unbacked writes by `chaos-code-review` / `chaos-retro` (now optional
+   `codeReview` / `retro` phases set in frontmatter first) and `chaos-help`'s read of a `Current Next Command`
+   field that no longer exists (now derived from `status` + `phases`).
+3. **`archiveReadiness` held a terminal value.** The rollup enum now admits `ARCHIVED | ARCHIVED_WITH_DEBT`
+   — readiness pre-archive (verify-set), outcome post-archive (archive-set). The archive **report's**
+   `archive_readiness` field and the whole verify side stay the 3-value readiness.
+4. **`repositoryContext` serialized as a Python dict repr.** Not a defect in `main`: `a3229c6` already added
+   `_scalarize_branch`/`_scalarize_review_request` + a `_yaml_scalar` structured-value safety net. The demo
+   worktree was running a **pre-fix copy** of the hook (and the old broad `.chaos/**/*.md` managed set).
+   Fixes: synced the hook + narrowed managed set to the demo; made the hook **self-healing** — the update
+   path previously copied existing metadata verbatim, so a stringified `branch`/`reviewRequest` persisted
+   forever; it now detects and rebuilds those scalars in place (6 corrupted demo files healed on one pass);
+   and added `.claude/hooks/scripts/test_chaos_artifact_metadata_hook.py`. **The test is the durable fix** —
+   `a3229c6`'s verification was ad-hoc and never committed, which is exactly why the defect could survive on
+   a branch. The suite fails against the pre-fix hook and passes against the fixed one.
+
+**Sequencing note.** Three of these four (1–3) are *writer-discipline* defects — the class a deterministic
+Stage-B renderer eliminates by construction (it enumerates mechanically, projects only what exists, and
+validates against the schema). Item 4 is the counterpoint: a deterministic-tool defect, whose durable fix is a
+test. This round is not wasted on Stage B — per the roadmap, A's formats **are** B's schemas, so the scan
+rule, purity rule, and enum are literally the renderer's spec. But the returns are diminishing:
+**next step is the Stage-B renderer, not a third artifact-nit cycle.**

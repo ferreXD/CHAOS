@@ -6,8 +6,10 @@ This does not mean every decision becomes an ADR immediately. It means no meanin
 
 ## Required Decision Event format
 
+Canonical entry heading shape + scan rule: `chaos-shared/reference/change-template.md` §2 — an entry is a level-2 heading `## PROP-DEC-<nnn>`.
+
 ```md
-### PROP-DEC-XXX — <short title>
+## PROP-DEC-<nnn> — <short title>
 
 Command: chaos:propose
 Change ID: <change-id>

@@ -10,6 +10,8 @@ READY_WITH_DEBT
 NOT_READY
 ```
 
+Note: the `change.md` frontmatter rollup `lifecycle.current.archiveReadiness` carries this value pre-archive; `chaos:archive` later overwrites it with its terminal outcome (`ARCHIVED` / `ARCHIVED_WITH_DEBT`). A terminal value there is expected post-archive and is not a verify-side enum violation — verify itself only ever emits the 3 statuses above.
+
 ## READY
 
 Use only when:

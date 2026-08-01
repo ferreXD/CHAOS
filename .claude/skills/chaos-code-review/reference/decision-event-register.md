@@ -19,8 +19,10 @@ CR-DEC-002
 
 ## Event shape
 
+Canonical entry heading shape + scan rule: `chaos-shared/reference/change-template.md` §2 — an entry is a level-2 heading `## CR-DEC-<nnn>`.
+
 ```md
-### CR-DEC-001 — <short title>
+## CR-DEC-<nnn> — <short title>
 
 Command: chaos:code-review
 Change ID / Scope: <change-id | pr#N | since:<ref> | scope:<path>>

@@ -165,25 +165,10 @@
     "copilotOnly": 6,
     "hash": "8080a3d53c192977"
   },
-  "skills/chaos-apply/SKILL.md": {
-    "claudeOnly": 8,
-    "copilotOnly": 3,
-    "hash": "0b7b3f12ba95e172"
-  },
   "skills/chaos-apply/reference/csharp-implementation-specialist-contract.md": {
     "claudeOnly": 7,
     "copilotOnly": 6,
     "hash": "d50cb0fad565a381"
-  },
-  "skills/chaos-apply/reference/decision-event-register.md": {
-    "claudeOnly": 16,
-    "copilotOnly": 0,
-    "hash": "5a643b9376560560"
-  },
-  "skills/chaos-apply/reference/output-contract.md": {
-    "claudeOnly": 9,
-    "copilotOnly": 0,
-    "hash": "7af7f4e25d2d7612"
   },
   "skills/chaos-archaeology/SKILL.md": {
     "claudeOnly": 5,
@@ -195,20 +180,15 @@
     "copilotOnly": 0,
     "hash": "4d49610339e603ad"
   },
-  "skills/chaos-archive/SKILL.md": {
-    "claudeOnly": 6,
-    "copilotOnly": 0,
-    "hash": "0cc079dd7ffafec4"
-  },
   "skills/chaos-archive/reference/install-checklist.md": {
-    "claudeOnly": 36,
+    "claudeOnly": 39,
     "copilotOnly": 1,
-    "hash": "344bf62cab305adc"
+    "hash": "148873d7ca767a07"
   },
   "skills/chaos-code-review/SKILL.md": {
-    "claudeOnly": 14,
+    "claudeOnly": 1,
     "copilotOnly": 1,
-    "hash": "b9a6b9b3aa69e602"
+    "hash": "3a85f4dca774e479"
   },
   "skills/chaos-code-review/reference/config-awareness.md": {
     "claudeOnly": 1,
@@ -276,9 +256,9 @@
     "hash": "4d6e66b7847d8348"
   },
   "skills/chaos-propose/SKILL.md": {
-    "claudeOnly": 6,
+    "claudeOnly": 1,
     "copilotOnly": 1,
-    "hash": "62005a4a7b268ad6"
+    "hash": "3a85f4dca774e479"
   },
   "skills/chaos-propose/reference/openspec-integration-contract.md": {
     "claudeOnly": 3,
@@ -309,26 +289,6 @@
     "claudeOnly": 3,
     "copilotOnly": 1,
     "hash": "ebe549b3d4a7f32c"
-  },
-  "skills/chaos-retro/SKILL.md": {
-    "claudeOnly": 8,
-    "copilotOnly": 3,
-    "hash": "f50c6c0f689e8c9d"
-  },
-  "skills/chaos-review/SKILL.md": {
-    "claudeOnly": 10,
-    "copilotOnly": 5,
-    "hash": "e2ea0bd6356f68ec"
-  },
-  "skills/chaos-review/reference/question-bank.md": {
-    "claudeOnly": 70,
-    "copilotOnly": 0,
-    "hash": "d2084e7ddb4f583e"
-  },
-  "skills/chaos-review/reference/ux-flow.md": {
-    "claudeOnly": 1,
-    "copilotOnly": 0,
-    "hash": "26b5ea9af58b1be6"
   },
   "skills/chaos-shared/reference/change-scoped-artifact-layout.md": {
     "claudeOnly": 0,
@@ -366,9 +326,9 @@
     "hash": "7e2f357db59b6ec1"
   },
   "skills/chaos-sync/SKILL.md": {
-    "claudeOnly": 15,
-    "copilotOnly": 9,
-    "hash": "d18e7b115f820726"
+    "claudeOnly": 1,
+    "copilotOnly": 1,
+    "hash": "390bc41b20076f6d"
   },
   "skills/chaos-todo/SKILL.md": {
     "claudeOnly": 2,
@@ -394,16 +354,6 @@
     "claudeOnly": 2,
     "copilotOnly": 2,
     "hash": "cd58917ca187a5bf"
-  },
-  "skills/chaos-verify/SKILL.md": {
-    "claudeOnly": 10,
-    "copilotOnly": 2,
-    "hash": "aeda973d82e9b6aa"
-  },
-  "skills/chaos-verify/reference/verification-contract.md": {
-    "claudeOnly": 17,
-    "copilotOnly": 0,
-    "hash": "8a48721dab04a73b"
   },
   "skills/openspec-apply-change/SKILL.md": {
     "claudeOnly": 1,

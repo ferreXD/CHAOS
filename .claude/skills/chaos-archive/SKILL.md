@@ -40,7 +40,9 @@ Read these references before acting:
 6. Check verification gate.
 7. If `--sync-first`, perform/guidance sync-first flow before archive.
 8. If `--dry-run`, write dry-run readiness report and stop.
-9. Audit tasks, decision events, waivers, accepted risks, and debt.
+9. Audit tasks, decision events, waivers, accepted risks, and debt. The decision-event
+   closure matrix must reconcile — `N enumerated` (per the §2 scan rule) `/ N classified`,
+   balanced — before any verdict is emitted (`reference/decision-event-closure.md`).
 10. Ask runtime closure questions for material unresolved items.
 11. Present archive execution plan.
 12. Execute/guidance OpenSpec archive only after allowed.
@@ -64,7 +66,9 @@ Write (v0 change-scoped layout):
 
 Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set the `change.md`
 frontmatter `lifecycle.status: Archived` and `lifecycle.phases.archive` (`status: complete`, `at`,
-`run`, `mode`), reconcile `lifecycle.current.archiveReadiness`, then re-render `Status: Archived` and
+`run`, `mode`), reconcile `lifecycle.current.archiveReadiness` — archive sets it to its own terminal
+outcome, `ARCHIVED` or `ARCHIVED_WITH_DEBT` (the archive **report's** `archive_readiness` field stays
+the 3-value readiness `READY | READY_WITH_DEBT | NOT_READY`) — then re-render `Status: Archived` and
 the Archive row in `.chaos/changes/<change-id>/lifecycle.md` — only with confirmation. The legacy
 `.chaos/archive-reports/` folder may be READ for compatibility but is no longer the preferred output
 location; do not migrate it. Route shared governance closure to `chaos:sync`. See

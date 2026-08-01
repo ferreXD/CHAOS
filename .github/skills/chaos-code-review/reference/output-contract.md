@@ -11,9 +11,18 @@ Change-scoped review (`<change-id>` known):
 Also update, with confirmation:
 
 ```text
-.chaos/changes/<change-id>/lifecycle.md          # Last updated + Code Review note
+.chaos/changes/<change-id>/change.md             # set chaosMetadata.lifecycle.phases.codeReview
+.chaos/changes/<change-id>/lifecycle.md          # re-rendered from frontmatter (CodeReview row)
 .chaos/changes/<change-id>/decision-events.md    # when CR-DEC-* recorded
 ```
+
+Frontmatter first, then project: set the optional
+`chaosMetadata.lifecycle.phases.codeReview` entry (`status`, `at`, `run`, `mode`, `verdict`)
+in `change.md`, then re-render `lifecycle.md` per
+`chaos-shared/reference/change-template.md` §3 — the CodeReview row renders only because that
+phase now exists in the frontmatter. Purity rule (§3, hard): never write a row, line, or
+field into `lifecycle.md` that has no frontmatter backing (no `Last updated`, no free-form
+"Code Review note").
 
 Non-change-scoped review (PR / since / scope / staged / working):
 

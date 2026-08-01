@@ -135,6 +135,11 @@ sync_load: LOW | MEDIUM | HIGH
 retro_recommended: YES | NO
 ```
 
+Note: the report's `archive_readiness` field stays this 3-value readiness. The `change.md`
+frontmatter rollup `lifecycle.current.archiveReadiness` additionally admits the terminal values
+`ARCHIVED | ARCHIVED_WITH_DEBT`, which archive writes there on completion (per
+`chaos-shared/reference/change-template.md`).
+
 ## Knowledge classification
 
 Every material finding must include:
@@ -151,10 +156,11 @@ fixability: FIXABLE_NOW | NEEDS_USER_DECISION | NEEDS_VERIFY | NEEDS_APPLY | NEE
 1. Do not archive a blocked verification silently.
 2. Do not hide waivers or accepted risks.
 3. Do not silently classify decision events.
-4. Do not mutate ADRs/rules/architecture/decision indexes from this command.
-5. Do not let `--yes` bypass unresolved decisions.
-6. Do not let `--force-waiver` produce a clean `ARCHIVED` verdict.
-7. Archive with a governance override must be named, justified, confidence-downgraded, and routed to sync/retro.
-8. If OpenSpec archive fails or cannot be confirmed, final verdict cannot be `ARCHIVED`.
-9. If base specs cannot be confirmed after archive, final confidence is capped at MEDIUM.
-10. If verification evidence is missing, final readiness is at best `READY_WITH_DEBT`. Verification evidence is `change.md` §Delivery/§Verification when `change.md` is present (any mode), else a legacy `verification.md`.
+4. Do not silently omit decision events. Enumerate every entry in `decision-events.md` per the §2 scan rule (`chaos-shared/reference/change-template.md`), give each exactly one closure-matrix row (`UNCLASSIFIED` if nothing fits), and state the reconciliation (`N enumerated / N classified`) — the numbers must balance before any verdict or completeness claim.
+5. Do not mutate ADRs/rules/architecture/decision indexes from this command.
+6. Do not let `--yes` bypass unresolved decisions.
+7. Do not let `--force-waiver` produce a clean `ARCHIVED` verdict.
+8. Archive with a governance override must be named, justified, confidence-downgraded, and routed to sync/retro.
+9. If OpenSpec archive fails or cannot be confirmed, final verdict cannot be `ARCHIVED`.
+10. If base specs cannot be confirmed after archive, final confidence is capped at MEDIUM.
+11. If verification evidence is missing, final readiness is at best `READY_WITH_DEBT`. Verification evidence is `change.md` §Delivery/§Verification when `change.md` is present (any mode), else a legacy `verification.md`.
