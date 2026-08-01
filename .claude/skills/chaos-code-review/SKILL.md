@@ -108,9 +108,15 @@ Also rely on the driver's own procedure: the `code-reviewer` skill
    Event with a sync action.
 8. Produce the final verdict with confidence, evidence coverage, and assumption load.
 9. Write the report to the scope-correct path (unless `--dry-run`/`--no-write`). For
-   change-scoped reviews, update `.chaos/changes/<change-id>/lifecycle.md`
-   (`Last updated`, and a Code Review note) with confirmation, and record `CR-DEC-*` events
-   in `.chaos/changes/<change-id>/decision-events.md`.
+   change-scoped reviews, with confirmation set the optional
+   `chaosMetadata.lifecycle.phases.codeReview` entry (`status`, `at`, `run`, `mode`,
+   `verdict`) in `.chaos/changes/<change-id>/change.md`, then re-render
+   `.chaos/changes/<change-id>/lifecycle.md` from the frontmatter — the CodeReview row
+   renders only because that phase now exists. Purity rule
+   (`chaos-shared/reference/change-template.md` §3, hard): never write a row, line, or
+   field into `lifecycle.md` that has no frontmatter backing (no `Last updated`, no
+   free-form notes). Record `CR-DEC-*` events in
+   `.chaos/changes/<change-id>/decision-events.md`.
 10. Recommend the next command.
 
 ## UX rule

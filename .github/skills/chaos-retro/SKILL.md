@@ -23,11 +23,23 @@ Convert lifecycle evidence into actionable workflow improvements.
 ## Output
 
 For change retros, write (v0 change-scoped layout): `.chaos/changes/<change-id>/retro.md`,
-record retro actions under the change folder, and update the Retro row in
-`.chaos/changes/<change-id>/lifecycle.md` with confirmation. Periodic retros remain at
+record retro actions under the change folder, and — with confirmation — set the optional
+`chaosMetadata.lifecycle.phases.retro` entry (`status`, `at`, `run`, `mode`, `verdict`) in
+`.chaos/changes/<change-id>/change.md`, then re-render
+`.chaos/changes/<change-id>/lifecycle.md` from the frontmatter — the Retro row renders only
+because that phase now exists (purity rule, `chaos-shared/reference/change-template.md` §3:
+never write a row or field into `lifecycle.md` with no frontmatter backing). Periodic retros remain at
 `.chaos/retros/periodic-<period-or-date>-retro.md`. The legacy `.chaos/retros/<change-id>-retro.md`
 location may be READ for compatibility but is no longer preferred; do not migrate it.
 See `.chaos/changes/README.md`.
+
+## Repository context (vNext, optional)
+
+When easily available, `chaos:retro` may use **review request (PR) / review metadata** (e.g.
+reviewers, linked items) from the provider-neutral repository context
+(`.github/skills/chaos-shared/reference/repository-context-contract.md`, read-only) to enrich
+learning signals. It does **not** require MCP, CLI, or provider context; local git fallback is
+sufficient.
 
 ## Required reference files
 
@@ -39,9 +51,9 @@ Read the files in `reference/` before executing the command.
 material improvement actions, prompt-tuning follow-up, workflow/policy improvements, or docs
 improvements, using the shared fields in
 `.github/skills/chaos-todo/reference/todo-candidate-contract.md`. Apply the same
-overfitting guardrails as the retro action register itself — a one-off lesson is not
-automatically a todo. `chaos:retro` does not create durable todo items — only `chaos:todo`
-curates `.chaos/todo/items/`.
+overfitting guardrails as the retro action register itself (`reference/avoid-overfitting-policy.md`)
+— a one-off lesson is not automatically a todo. `chaos:retro` does not create durable todo
+items — only `chaos:todo` curates `.chaos/todo/items/`.
 
 ## Hard boundary
 

@@ -5,10 +5,12 @@
 ## Use the lifecycle manifest when available
 
 When a change id is known and `.chaos/changes/<change-id>/lifecycle.md` exists, read it
-first. Its `Current Next Command`, phase checklist, and `Status` are the highest-priority
-signal for the recommendation. Fall back to artifact presence (per-change folder first,
-then legacy scattered folders) only when the manifest is missing. Canonical layout:
-`.chaos/changes/README.md`.
+first. It is a **generated view** of `change.md` frontmatter (`chaos-shared/reference/change-template.md`
+§3) and carries no next-command field: derive the recommendation from its `Status` plus the phase
+table — `Framed` → review, `Approved` → apply, `Delivered` → verify, `Archived` → terminal — treating
+the first `Pending` phase as the next step. That is the highest-priority signal. Fall back to artifact
+presence (per-change folder first, then legacy scattered folders) only when the view is missing.
+Canonical layout: `.chaos/changes/README.md`.
 
 ## Recommendation format
 

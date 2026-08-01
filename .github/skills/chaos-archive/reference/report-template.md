@@ -10,7 +10,7 @@
 | Verification verdict | `<verdict>` |
 | OpenSpec validation | `<Passed|Failed|Skipped|Unknown>` |
 | Tasks complete | `<Yes|No|Partial|Unknown>` |
-| Decision events | `<N found, M unclassified, K sync-required>` |
+| Decision events | `<N enumerated / N classified (must balance), M unclassified, K sync-required>` |
 | Waivers | `<N>` |
 | Accepted risks | `<N>` |
 | Spec sync required | `<Yes|No|Unknown>` |
@@ -125,8 +125,14 @@ Result:
 
 ## 10. Decision Event Closure Audit
 
+Reconciliation: `<N enumerated (§2 scan rule) / N classified>` — the two numbers MUST balance.
+
 | ID | Source | Type | Closure Status | Sync Action | Retro Topic | Confidence |
 |---|---|---|---|---|---|---|
+
+One row per enumerated decision entry (§2 scan rule, `chaos-shared/reference/change-template.md`) —
+entries matching no closure bucket are rowed as `UNCLASSIFIED`, never omitted. `UNCLASSIFIED: none`
+may only be claimed when the reconciliation line balances.
 
 ## 11. Waiver / Accepted Risk Ledger
 
@@ -172,7 +178,10 @@ chaos:retro <change-id>
 
 ## 15. Runtime Closure Decisions
 
-### ARC-DEC-001 — <title>
+## ARC-DEC-<nnn> — <title>
+
+<!-- H2 + <nnn> is the canonical decision-entry shape (§2 scan rule,
+     chaos-shared/reference/change-template.md); keep it when mirroring into decision-events.md. -->
 
 Command: chaos:archive  
 Change ID: `<change-id>`  

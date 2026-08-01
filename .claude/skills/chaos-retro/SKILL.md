@@ -23,8 +23,12 @@ Convert lifecycle evidence into actionable workflow improvements.
 ## Output
 
 For change retros, write (v0 change-scoped layout): `.chaos/changes/<change-id>/retro.md`,
-record retro actions under the change folder, and update the Retro row in
-`.chaos/changes/<change-id>/lifecycle.md` with confirmation. Periodic retros remain at
+record retro actions under the change folder, and — with confirmation — set the optional
+`chaosMetadata.lifecycle.phases.retro` entry (`status`, `at`, `run`, `mode`, `verdict`) in
+`.chaos/changes/<change-id>/change.md`, then re-render
+`.chaos/changes/<change-id>/lifecycle.md` from the frontmatter — the Retro row renders only
+because that phase now exists (purity rule, `chaos-shared/reference/change-template.md` §3:
+never write a row or field into `lifecycle.md` with no frontmatter backing). Periodic retros remain at
 `.chaos/retros/periodic-<period-or-date>-retro.md`. The legacy `.chaos/retros/<change-id>-retro.md`
 location may be READ for compatibility but is no longer preferred; do not migrate it.
 See `.chaos/changes/README.md`.

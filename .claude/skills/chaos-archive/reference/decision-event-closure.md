@@ -28,10 +28,20 @@ Decision IDs may include:
 ```text
 PROP-DEC-*
 REV-DEC-*
-APP-DEC-*
-VFY-DEC-*
+APP-DEC-*   (alias: APPLY-DEC-*)
+VFY-DEC-*   (alias: VER-DEC-*)
+CR-DEC-*
+SYNC-DEC-*
+ARC-DEC-*
+RETRO-DEC-*
 ESC-*
 ```
+
+The canonical definition of what counts as a decision entry is the **§2 scan rule** in
+`chaos-shared/reference/change-template.md`: a level-2 heading matching
+`^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)`. Any other `##` heading in `decision-events.md`
+(narrative/grouping sections such as "Dependent decisions" or "Runtime note") is NOT an
+entry. Enumerate with that rule; never eyeball a heading count.
 
 On `change.md`-based changes (any mode) the approval lives as the `approves-change: true`
 marker on the approving decision entry in `decision-events.md` — there is no `approval.md`;
@@ -111,3 +121,16 @@ Include:
 | ID | Source | Type | Closure Status | Sync Action | Retro Topic | Confidence |
 |---|---|---|---|---|---|---|
 ```
+
+**Enumerate-and-reconcile obligation (hard):**
+
+1. Enumerate every decision entry in `decision-events.md` using the §2 scan rule
+   (`chaos-shared/reference/change-template.md`) before classifying anything.
+2. The matrix MUST contain **exactly one row per enumerated entry** — no entry may be
+   omitted. An entry that matches no closure bucket is recorded as `UNCLASSIFIED`,
+   never dropped.
+3. The report MUST state the reconciliation explicitly (e.g. `14 enumerated / 14 classified`)
+   and the two numbers MUST balance. If they do not balance, the audit is incomplete —
+   fix the matrix; do not emit a verdict.
+4. A completeness claim (`UNCLASSIFIED: none`) is only permitted when the reconciliation
+   balances.

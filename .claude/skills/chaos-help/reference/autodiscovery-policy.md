@@ -29,7 +29,7 @@ as a signal; those exist only on legacy changes without `change.md`.
 | `.chaos/context.md` + `.chaos/constitution.md` exist | initialized |
 | fresh `.chaos/status-report.md` with READY/STRONG | ready for proposal |
 | `.chaos/changes/<id>/change.md` exists | current model (any mode): read frontmatter lifecycle + §Review/§Delivery first |
-| `.chaos/changes/<id>/lifecycle.md` exists | read its `Current Next Command` first |
+| `.chaos/changes/<id>/lifecycle.md` exists | generated view of `chaosMetadata.lifecycle` — it carries no next-command field; derive next command from `lifecycle.status` + the `phases` block (Framed → review, Approved → apply, Delivered → verify, Archived → terminal) |
 | `openspec/changes/<id>/proposal.md` exists | proposal exists |
 | `change.md` present: §Review verdict missing / status `Framed` | review likely next |
 | `change.md` present: §Delivery missing / status `Approved` | apply likely next |

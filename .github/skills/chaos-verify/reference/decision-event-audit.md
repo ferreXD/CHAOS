@@ -56,10 +56,12 @@ If a decision was made during apply but not recorded, `chaos:verify` may ask the
 
 This does not replace the original missing decision, but creates a syncable correction.
 
+Canonical entry heading shape + scan rule: `chaos-shared/reference/change-template.md` §2 — an entry is a level-2 heading `## VFY-DEC-<nnn>`.
+
 Example:
 
 ```md
-### VFY-DEC-001 — Record untracked persistence decision
+## VFY-DEC-001 — Record untracked persistence decision
 
 Command: chaos:verify
 Change ID: add-task-comments

@@ -47,6 +47,24 @@ Mandatory, non-inferable behaviours:
 Produce a governance-grade, evidence-based, read-only code review with CHAOS confidence and
 decision auditability, reusing the `code-reviewer` driver for the actual review procedure.
 
+## Repository context (vNext)
+
+Resolve the provider-neutral repository context contract
+(`.github/skills/chaos-shared/reference/repository-context-contract.md`) to source the diff,
+using the `codeReview` tool profile (least privilege, read-only). MCP is optional; degrade
+through CLI → local git.
+
+- **GitHub** — prefer the current review-request (PR) diff via GitHub MCP or `gh pr diff`;
+  use linked issues and, if configured, code/security context; fall back to `git diff` against
+  the merge-base.
+- **Azure DevOps** — prefer the current review-request (PR) diff via Azure DevOps MCP or
+  `az repos pr`; use linked work items and build-validation status; fall back to `git diff`
+  against the merge-base.
+
+Record in the report: repository context source, diff source, changed files inspected, linked
+issue/work-item context if available, and a confidence cap when only local git was available.
+Include the shared **Repository Context** section.
+
 ## Required references
 
 Before operating, read these reference files (and the shared policies above):
@@ -58,6 +76,9 @@ Before operating, read these reference files (and the shared policies above):
 - `reference/decision-event-register.md`
 - `reference/report-template.md`
 - `reference/output-contract.md`
+- `.github/skills/chaos-shared/reference/repository-context-contract.md`
+- `.github/skills/chaos-shared/reference/repository-context-resolution-policy.md`
+- `.github/skills/chaos-shared/reference/mcp-tool-profiles.md`
 
 Also rely on the driver's own procedure: the `code-reviewer` skill
 (`authority-model.md`, `review-workflow.md`, `skill-applicability-policy.md`,
@@ -89,9 +110,15 @@ Also rely on the driver's own procedure: the `code-reviewer` skill
    Event with a sync action.
 8. Produce the final verdict with confidence, evidence coverage, and assumption load.
 9. Write the report to the scope-correct path (unless `--dry-run`/`--no-write`). For
-   change-scoped reviews, update `.chaos/changes/<change-id>/lifecycle.md`
-   (`Last updated`, and a Code Review note) with confirmation, and record `CR-DEC-*` events
-   in `.chaos/changes/<change-id>/decision-events.md`.
+   change-scoped reviews, with confirmation set the optional
+   `chaosMetadata.lifecycle.phases.codeReview` entry (`status`, `at`, `run`, `mode`,
+   `verdict`) in `.chaos/changes/<change-id>/change.md`, then re-render
+   `.chaos/changes/<change-id>/lifecycle.md` from the frontmatter — the CodeReview row
+   renders only because that phase now exists. Purity rule
+   (`chaos-shared/reference/change-template.md` §3, hard): never write a row, line, or
+   field into `lifecycle.md` that has no frontmatter backing (no `Last updated`, no
+   free-form notes). Record `CR-DEC-*` events in
+   `.chaos/changes/<change-id>/decision-events.md`.
 10. Recommend the next command.
 
 ## UX rule

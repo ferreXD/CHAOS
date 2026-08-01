@@ -6,8 +6,10 @@ This does not mean every decision is immediately an ADR. It means `chaos:sync` h
 
 ## Decision Event fields
 
+Canonical entry heading shape + scan rule: `chaos-shared/reference/change-template.md` §2 — an entry is a level-2 heading `## APP-DEC-<nnn>`.
+
 ```md
-### APP-DEC-XXX — <short title>
+## APP-DEC-<nnn> — <short title>
 
 Command: chaos:apply
 Change ID: <change-id>

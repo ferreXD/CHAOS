@@ -4,8 +4,10 @@ Every material decision or remediation choice made during `chaos:review` must be
 
 ## Required Decision Event format
 
+Canonical entry heading shape + scan rule: `chaos-shared/reference/change-template.md` §2 — an entry is a level-2 heading `## REV-DEC-<nnn>`.
+
 ```md
-### REV-DEC-XXX — <short title>
+## REV-DEC-<nnn> — <short title>
 
 Command: chaos:review
 Change ID: <change-id>

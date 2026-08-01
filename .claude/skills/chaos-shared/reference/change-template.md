@@ -26,7 +26,8 @@ commands and the future renderer parse them.
 MUST, before it finishes: (a) set **its own** `lifecycle.phases.<step>` entry (`status`, `at`, `run`,
 `mode`, plus `verdict` for review/verify/sync), advance `lifecycle.status` if the step changes it, and
 (b) reconcile the `lifecycle.current` rollup to present values (test counts, contract met/total,
-decision-events count, traceability, syncState, archiveReadiness). Then re-render `lifecycle.md` (§3).
+decision count **per the §2 scan rule**, traceability, syncState, archiveReadiness). Then re-render
+`lifecycle.md` (§3) — as a **lossless projection and nothing more** (§3 purity rule).
 The prose §Delivery / §Verification dashboards are **per-pass snapshots, tagged by their run id, and are
 appended — never back-edited**: each records the figures as of that pass. The **only** authoritative
 *current* cumulative state is `lifecycle.current` (rendered in `lifecycle.md`). A reader must never take
@@ -50,22 +51,26 @@ chaosMetadata:
     # phases models EVERY step that can run in the mode, so no step is ever schemaless.
     # Light: frame + deliver only. Standard/strict: the full lifecycle below (a phase stays
     # `pending` until its step runs). Each entry carries its own `mode` (per-phase rigor —
-    # review/verify/sync may auto-escalate above the framing `mode` above); review/verify/sync
-    # also carry a `verdict`.
+    # a later phase may auto-escalate above the framing `mode` above) and MAY carry a
+    # `verdict` — every phase accepts one; write it when the step produces a verdict.
     phases:
-      frame:   { status: complete, at: "<ISO-8601>", run: "<commandRunId>", mode: <mode> }
+      frame:   { status: complete, at: "<ISO-8601>", run: "<commandRunId>", mode: <mode>, verdict: READY_FOR_REVIEW }
       review:  { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
-      deliver: { status: pending,  at: null, run: null, mode: null }
+      deliver: { status: pending,  at: null, run: null, mode: null, verdict: null }   # APPLIED | PARTIALLY_APPLIED
       verify:  { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
       sync:    { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
-      archive: { status: pending,  at: null, run: null, mode: null }                  # standard/strict
+      archive: { status: pending,  at: null, run: null, mode: null, verdict: null }   # standard/strict
+      # Optional, only when the step actually runs (they are not part of the core path):
+      codeReview: { status: pending, at: null, run: null, mode: null, verdict: null }
+      retro:      { status: pending, at: null, run: null, mode: null, verdict: null }
     current:               # authoritative CURRENT cumulative rollup — reconciled on every write
       tests: null          # "<passed>/<total>"           (once delivered)
       contract: null       # "<met>/<total>"
-      decisions: null      # integer count of decision-events.md entries
+      decisions: null      # integer count of decision ENTRIES per the §2 scan rule
       traceability: null   # "<satisfied>/<partial>/<missing>" (strict; omit when N/A)
       syncState: null      # RECONCILED | PARTIALLY_RECONCILED | ... (once sync runs)
-      archiveReadiness: null # READY | READY_WITH_DEBT | NOT_READY (once verified)
+      archiveReadiness: null # READY | READY_WITH_DEBT | NOT_READY | ARCHIVED | ARCHIVED_WITH_DEBT
+                             # readiness pre-archive (set by verify); the outcome post-archive
 ---
 
 # <change-id> — <one-line title>
@@ -137,6 +142,25 @@ Escalation warning (when it happens) goes directly under the H1, so it is unmiss
 Same file name and anatomy as always; entries are **appended, never rewritten** — a state change
 edits the `status:` line only. No narrative retelling of the question.
 
+**Canonical scan rule — what counts as a decision entry.** A decision entry is a level-2 heading
+matching:
+
+```text
+^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)
+```
+
+Known prefixes: `PROP-` · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` · `ARC-` ·
+`RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
+narrative or grouping sections such as "Dependent decisions" or "Runtime note" — is NOT an entry.**
+This single rule governs everywhere decisions are enumerated or counted:
+`lifecycle.current.decisions`, the `chaos:archive` closure matrix, sync reconciliation, and audits.
+Enumerate with it; never eyeball a heading count.
+
+**Scope:** the rule addresses the **ledger** — `.chaos/changes/<change-id>/decision-events.md`. Legacy
+narrative reports embed their decision events as `###` subsections nested under a `## … Decision
+Events` heading; that nesting is correct *inside a report* and is not the ledger. A command writing
+to the ledger always uses the `##` entry shape above, whatever shape a report template shows.
+
 ```markdown
 ## <PREFIX>-DEC-<nnn> — <question, one line>
 
@@ -178,7 +202,7 @@ Current: tests <N/N> · contract <N/N> · decisions <N> · traceability <s/p/m> 
 
 | Phase | Status | Mode | Verdict | Date | Pointer |
 |---|---|---|---|---|---|
-| Frame | Complete | <mode> | — | <date> | change.md#contract |
+| Frame | Complete | <mode> | <verdict or —> | <date> | change.md#contract |
 | Review | Pending | — | — | — | change.md#review |
 | Deliver | Pending | — | — | — | change.md#delivery |
 | Verify | Pending | — | — | — | change.md#verification |
@@ -187,7 +211,19 @@ Current: tests <N/N> · contract <N/N> · decisions <N> · traceability <s/p/m> 
 ```
 
 Light renders only the `Frame` and `Deliver` rows and omits the `Current` fields that never populate
-(no traceability/sync/archive on the collapsed path). Standard/strict render all rows.
+(no traceability/sync/archive on the collapsed path). Standard/strict render all rows. The optional
+`codeReview` / `retro` phases render as extra rows **only when those phases exist in the frontmatter**.
+
+**Purity rule (hard).** `lifecycle.md` is a **lossless projection of `chaosMetadata.lifecycle` and
+nothing more**:
+
+- Render **exactly** the fields present in the frontmatter. A cell whose backing key is absent or
+  `null` renders `—`. **Never synthesize a value** — if the frontmatter carries no `verdict` for a
+  phase, the Verdict cell is `—`, not an inferred status.
+- **Never add a row, line, or field that has no frontmatter backing** (no `Last updated`, no free-form
+  notes, no phase row that is not in `phases`). If a command needs to record something here, it must
+  first exist in the schema — extend `phases`/`current`, then render it.
+- The fix direction is always source-first: write the frontmatter, then project. Never the reverse.
 
 ## 4. Legacy compatibility
 

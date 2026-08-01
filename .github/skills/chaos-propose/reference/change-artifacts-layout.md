@@ -47,24 +47,17 @@ the optional `pre-proposal-brief.md` is written here — never to the legacy
 OpenSpec has not minted a change id. See
 `reference/openspec-integration-contract.md` ("If OpenSpec is not available").
 
-## Lifecycle stub template (`lifecycle.md` — generated state view)
+## Lifecycle stub (`lifecycle.md` — generated state view)
 
 Authoritative state lives in the `change.md` frontmatter (`chaosMetadata.lifecycle`);
 `lifecycle.md` is a **view** of it — never a second source of truth, never narrative — edited
-only at phase transitions (format: `chaos-shared/reference/change-template.md` §3, all modes):
+only at phase transitions.
 
-```md
-# Lifecycle — <change-id>
-
-Status: <Framed | Approved | Delivered | Rejected | Escalated | Archived>
-Mode: <light | standard | strict> · Escalated-from: <none | light>
-OpenSpec: openspec/changes/<change-id> · Run(s): <frame-run-id> · <deliver-run-id>
-
-| Phase | Status | Date | Pointer |
-|---|---|---|---|
-| Frame | Complete | <date> | change.md#contract |
-| Deliver | Pending | — | change.md#delivery |
-```
+The `lifecycle.md` shape is defined in **one place only**:
+`chaos-shared/reference/change-template.md` §3 — the 6-column phase table
+(`| Phase | Status | Mode | Verdict | Date | Pointer |`) plus the `Current:` rollup line.
+Write the stub in exactly that format (all modes; light renders only its Frame/Deliver rows,
+per §3) and obey its purity rule. Do not copy or restyle the template here.
 
 Legacy `lifecycle.md` manifests (the phase-per-artifact table listing `proposal-review.md`,
 `approval.md`, `apply-report.md`, `verification.md`, `archive-report.md`, …) remain readable

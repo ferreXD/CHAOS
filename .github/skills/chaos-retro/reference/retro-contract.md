@@ -57,9 +57,14 @@ read-only for compat, do not migrate):
 .chaos/changes/<change-id>/retro.md
 ```
 
-Record retro actions under the change folder and update the Retro row in
-`.chaos/changes/<change-id>/lifecycle.md` with confirmation. Route durable
-rule/gate/prompt updates to `chaos:sync` (do not promote them here).
+Record retro actions under the change folder. With confirmation, set the optional
+`chaosMetadata.lifecycle.phases.retro` entry (`status`, `at`, `run`, `mode`, `verdict`) in
+`.chaos/changes/<change-id>/change.md`, then re-render
+`.chaos/changes/<change-id>/lifecycle.md` from the frontmatter — the Retro row renders only
+because that phase now exists. Purity rule (`chaos-shared/reference/change-template.md` §3,
+hard): never write a Retro row (or any row/field) into `lifecycle.md` that has no
+frontmatter backing. Route durable rule/gate/prompt updates to `chaos:sync`
+(do not promote them here).
 
 For periodic retros (remain global):
 
