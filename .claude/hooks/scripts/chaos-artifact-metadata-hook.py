@@ -44,10 +44,37 @@ DEFAULT_POLICY: Dict[str, Any] = {
     "warnOnMissingMetadataInContributorHooks": True,
 }
 
+# Only command-generated CHAOS artifacts whose type infer_artifact() recognizes — deliberately
+# NOT a broad ".chaos/**/*.md", which would first-stamp hand-authored docs (assessments,
+# validation, todo, roadmap) as artifactType:unknown. Kept in sync with the shipped
+# policies.artifactMetadataManagedFiles in .chaos/config.yaml.
 DEFAULT_MANAGED: Dict[str, List[str]] = {
-    "include": [".chaos/**/*.md"],
+    "include": [
+        ".chaos/changes/**/*.md",
+        ".chaos/doctor/**/*.md",
+        ".chaos/sync-reports/**/*.md",
+        ".chaos/archaeology/**/*.md",
+        ".chaos/rules/**/*.md",
+        ".chaos/gates/**/*.md",
+        ".chaos/decisions/**/*.md",
+        ".chaos/commands/**/*.md",
+        ".chaos/status-report.md",
+        ".chaos/bootstrap-report.md",
+        ".chaos/architecture.md",
+        ".chaos/context.md",
+        ".chaos/constitution.md",
+        ".chaos/README.md",
+    ],
     "optional": ["docs/adr/**/*.md", "docs/decision-log/**/*.md"],
-    "exclude": ["README.md", "AGENTS.md"],
+    "exclude": [
+        "README.md",
+        "AGENTS.md",
+        ".chaos/assessments/**/*.md",
+        ".chaos/validation/**/*.md",
+        ".chaos/todo/**/*.md",
+        ".chaos/roadmap/**/*.md",
+        ".chaos/interactions/**/*.md",
+    ],
 }
 
 _CHANGE_SCOPED_FILENAME_TYPES = {
@@ -260,6 +287,13 @@ def _yaml_scalar(value: Any) -> str:
         return "true" if value else "false"
     if isinstance(value, int):
         return str(value)
+    if isinstance(value, (dict, list)):
+        # Safety net: a structured value must never be emitted as a Python repr
+        # (`str(dict)` -> "{'name': 'main'}"), which is neither valid structured YAML
+        # nor stable across dict key ordering. Emit deterministic, valid JSON instead.
+        # Upstream callers should coerce to scalars (see _scalarize_* helpers); this only
+        # fires if a new structured field slips through.
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
     s = str(value)
     if s == "" or s.strip() != s or re.search(r"[:#\[\]{}]", s) or s.lower() in ("null", "true", "false", "~"):
         return json.dumps(s)
@@ -382,14 +416,70 @@ def read_json_file(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _scalarize_branch(value: Any, repo_root: str) -> str:
+    """Coerce a branch value to a plain branch-name scalar.
+
+    `.chaos/runtime/session-context.json` may store `branch` as a structured object
+    (`{name, isDefaultBranch, upstream, ...}`); the chaosMetadata schema wants a plain string.
+    Never emit `str(dict)`.
+    """
+    if isinstance(value, dict):
+        name = value.get("name")
+        value = name if isinstance(name, str) and name else None
+    if isinstance(value, str) and value:
+        return value
+    return run_git(repo_root, ["branch", "--show-current"]) or "unknown"
+
+
+def looks_like_stringified_structure(value: Any) -> bool:
+    """True when a scalar slot holds a stringified dict/list.
+
+    A pre-fix hook (or a hand edit) could leave `branch: "{'name': 'main', ...}"` — a Python repr
+    parked in a slot the schema says is a plain scalar. Detecting it lets the update path repair
+    the block instead of carrying the corruption forever (the update path never rebuilds
+    `repositoryContext` on its own).
+    """
+    if not isinstance(value, str):
+        return False
+    s = value.strip()
+    return (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]"))
+
+
+def repair_repository_context(existing: Any, resolved: Any) -> Tuple[Any, bool]:
+    """Replace only the malformed scalar slots of a stored repositoryContext. Returns (value, repaired)."""
+    if not isinstance(existing, dict):
+        return existing, False
+    resolved = resolved if isinstance(resolved, dict) else {}
+    repaired = dict(existing)
+    changed = False
+    for key in ("branch", "reviewRequest"):
+        if looks_like_stringified_structure(repaired.get(key)):
+            repaired[key] = resolved.get(key)
+            changed = True
+    return (repaired, True) if changed else (existing, False)
+
+
+def _scalarize_review_request(value: Any) -> Optional[str]:
+    """Coerce a reviewRequest to a compact scalar (id/url/title) or None — never `str(dict)`."""
+    if isinstance(value, dict):
+        for key in ("id", "url", "title"):
+            v = value.get(key)
+            if isinstance(v, str) and v:
+                return v
+        return None
+    if isinstance(value, str):
+        return value or None
+    return None
+
+
 def resolve_repository_context(repo_root: str) -> Tuple[Dict[str, Any], str]:
     session = read_json_file(os.path.join(repo_root, ".chaos", "runtime", "session-context.json"))
     if session and session.get("provider"):
         return (
             {
                 "provider": session.get("provider", "unknown"),
-                "branch": session.get("branch") or run_git(repo_root, ["branch", "--show-current"]) or "unknown",
-                "reviewRequest": session.get("reviewRequest"),
+                "branch": _scalarize_branch(session.get("branch"), repo_root),
+                "reviewRequest": _scalarize_review_request(session.get("reviewRequest")),
                 "contextSource": session.get("contextSource", "session-context"),
                 "confidence": session.get("confidence", "HIGH"),
             },
@@ -750,6 +840,18 @@ def process_file(abs_path: str, rel_path: str, repo_root: str, policy: Dict[str,
             if material_change or policy.get("allowAuditOnlyStamp", False):
                 new_meta["lastAuditedAt"] = now_iso
                 new_meta["lastAuditedBy"] = identity
+                changed = True
+            # Self-heal a corrupt block. The update path otherwise copies existing metadata
+            # verbatim, so a stringified `branch`/`reviewRequest` written by a pre-fix hook would
+            # persist forever. Repair it in place (timestamps untouched — this is not a body edit).
+            repaired_rc, rc_repaired = repair_repository_context(
+                new_meta.get("repositoryContext"), fields["repositoryContext"]
+            )
+            if rc_repaired:
+                new_meta["repositoryContext"] = repaired_rc
+                issues.append(
+                    Issue("INFO", "REPOSITORY_CONTEXT_REPAIRED", "Rebuilt stringified repositoryContext scalars")
+                )
                 changed = True
             did_stamp = changed
 
