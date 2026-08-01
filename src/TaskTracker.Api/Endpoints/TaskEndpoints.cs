@@ -15,7 +15,11 @@ public static class TaskEndpoints
 {
     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/tasks");
+        // Group-level auth + rate limiting: a route added here later is protected by default,
+        // rather than depending on someone remembering to decorate it.
+        var group = app.MapGroup("/tasks")
+            .RequireAuthorization()
+            .RequireRateLimiting(Policies.TaskRateLimit);
 
         // GET /tasks — returns every task in the store. No filtering (yet).
         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));

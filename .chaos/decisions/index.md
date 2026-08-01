@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: "chaos:sync"
-  lastWrittenAt: "2026-07-19T12:27:49+02:00"
+  lastWrittenAt: "2026-08-01T18:42:51+02:00"
   lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T12:27:49+02:00"
+  lastAuditedAt: "2026-08-01T18:42:51+02:00"
   lastAuditedBy: Pablo Ferreira
   repositoryContext:
     provider: github
@@ -19,7 +19,7 @@ chaosMetadata:
     identitySource: git-config
     timestampSource: local-system
     confidence: MEDIUM
-    bodyHash: "sha256:3be54d67f5693b974743f0bfa12389dca72d5bb23cc65090409002d6168442ef"
+    bodyHash: "sha256:1149f4cc9625478a22257e11c9e21f98bb3a2f968c376d21ed4914dd9eab9706"
 ---
 
 # Decisions Index — Task Tracker API
@@ -44,9 +44,16 @@ chaosMetadata:
 | Project identity | `.chaos/bootstrap-report.md` (Decision #1+#3) | accepted (human-confirmed) | `type=dotnet`, `language=csharp`, name kept `CHAOS` | `dotnet build/test` validation is consistent | rename to `TaskTracker`? (deferred) | resolved node↔dotnet |
 | Protected-file policy | `.chaos/bootstrap-report.md` (reconciliation 2/2 = keep-current-policy) | accepted (human-confirmed) | Keep `allowStatus/SyncToEdit=true`; guard with `requirePatchPreview` | status/sync may edit `AGENTS.md` / `README.md` only via a previewed, confirmed patch | — | deviation retained by choice |
 | Invalid filter value | `docs/decision-log/2026-07-19-task-filter-validation.md` | accepted (human-confirmed) | Unrecognized `status`/`priority` value → `400 Bad Request` (names and out-of-range; parsed case-insensitively) | list endpoints validate filter inputs and reject unknown values with `400` | — | resolved (PROP-DEC-001 → REV/APP/ARC → decision log) |
+| API authentication + transport | `docs/adr/2026-08-01-api-authentication-posture.md` (**ADR-0001**) | accepted (human-confirmed, REV-DEC-004 — "Risk accepted") | JWT bearer on `/tasks`, app-terminated TLS, no forwarded headers (R-008), dev-only issuance behind two independent gates | `/tasks` requires a bearer token; app fails to start without credential configuration | production token issuer (RK-5); per-caller authorization (RK-4) | supersedes the architecture auth non-goal — reconciled 2026-08-01 |
 
 ## ADR status handling
 
-No `docs/adr/` files exist. `[FACT]`. When ADRs are introduced, `Proposed` ADRs must
-not be treated as accepted working posture without explicit human confirmation (see the
-constitution and the init question bank).
+One ADR exists: **ADR-0001** (`docs/adr/2026-08-01-api-authentication-posture.md`),
+Status: **Accepted**, human-confirmed via REV-DEC-004 on 2026-08-01. `[FACT]`.
+
+`Proposed` ADRs must still not be treated as accepted working posture without explicit
+human confirmation (see the constitution and the init question bank).
+
+> **Naming:** `ADR-0001` is a **display ID assigned in this index only**
+> (`policies.artifactNaming`). The physical filename stays date-prefixed and slug-based
+> and is never renamed to a sequential ID.

@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: unknown
-  lastWrittenAt: "2026-07-19T11:01:58+02:00"
+  lastWrittenAt: "2026-08-01T18:41:27+02:00"
   lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T11:01:58+02:00"
+  lastAuditedAt: "2026-08-01T18:41:27+02:00"
   lastAuditedBy: Pablo Ferreira
   repositoryContext:
     provider: github
@@ -19,7 +19,7 @@ chaosMetadata:
     identitySource: git-config
     timestampSource: local-system
     confidence: LOW
-    bodyHash: "sha256:7d86ee20d0e02d068025211ea839e429db57fc6f1e4638bd2a2f9b46f8a827f7"
+    bodyHash: "sha256:972f5913ad860638b0319778ed520f0e70a0b278288455d43b950b863f04473c"
 ---
 
 # Architecture — Task Tracker API
@@ -54,7 +54,8 @@ public shape, unless a decision says otherwise.
   registered as a **singleton**, seeded at construction. State is **not durable** across
   restarts. `[FACT]` — `Domain/TaskStore.cs`.
 - Local run: `dotnet run --project src/TaskTracker.Api` → `http://localhost:5080`.
-  `[FACT]`. No production hosting defined. `[UNKNOWN]`.
+  `[FACT]`. Target exposure is the **public internet** (PROP-DEC-002, 2026-08-01); no
+  concrete host or CD target is defined yet. `[FACT]` intent / `[UNKNOWN]` host.
 
 ## Data access posture
 
@@ -72,8 +73,15 @@ combined with AND). `[FACT]` — endpoint remark + demo README.
 
 ## Authentication / authorization posture
 
-None. The API is open. `[FACT]`. Any auth is out of scope and would be strict,
-decision-bearing work. `[UNKNOWN]` for future intent.
+JWT bearer required on every `/tasks` route; `GET /` stays anonymous as a liveness
+signal. Signing key, issuer and audience come from configuration outside the repository
+and the app **fails to start** without them. The app terminates TLS (`UseHsts` +
+`UseHttpsRedirection`); `UseForwardedHeaders` is deliberately **not** registered (rule
+R-008). A development-only token issuance endpoint exists behind two independent gates
+(`IsDevelopment()` **and** an opt-in flag defaulting off, applied at route-registration
+time). `[FACT]` — see [ADR-0001](../docs/adr/2026-08-01-api-authentication-posture.md).
+
+Per-caller authorization and production token issuance remain out of scope. `[FACT]`
 
 ## Observability / release safety posture
 
@@ -88,16 +96,21 @@ No external integrations. All effects are in-process against the in-memory store
 
 ## Testing / release posture
 
-- `tests/TaskTracker.Tests/TaskEndpointsTests.cs`: 5 integration tests that boot the app
-  in-memory via `WebApplicationFactory<Program>` and exercise CRUD. `Program` is exposed
-  as `public partial class Program { }` specifically to enable this. `[FACT]`.
+- `tests/TaskTracker.Tests/`: **34 integration tests** — the 5 original CRUD tests
+  (updated to authenticate), plus 29 covering authentication, edge hardening and the dev
+  issuance gates — that boot the app in-memory via `WebApplicationFactory<Program>`.
+  `Program` is exposed as `public partial class Program { }` specifically to enable this.
+  `[FACT]`.
 - This green baseline is what `chaos:apply` extends and `chaos:verify` traces against.
 - Default validation commands: `dotnet build`, `dotnet test`. `[FACT]` — `.chaos/config.yaml`.
 
 ## Non-goals
 
 - Persistence / durability across restarts.
-- Authentication / authorization / multi-tenant concerns.
+- Per-caller authorization (`TaskItem` has no owner field) and multi-tenancy.
+  > **Note:** authentication and transport hardening are **no longer non-goals** —
+  > superseded by [ADR-0001](../docs/adr/2026-08-01-api-authentication-posture.md)
+  > (`secure-task-api`, 2026-08-01).
 - Horizontal scale-out (singleton in-memory store is single-instance by design).
 
 ## Confidence and open questions

@@ -1,25 +1,25 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace TaskTracker.Tests;
 
 /// <summary>
-/// Integration tests that boot the real API in-memory via <see cref="WebApplicationFactory{T}"/>
-/// and exercise the CRUD endpoints over HTTP. These lock in the current (pre-filtering) behavior
-/// and give the CHAOS apply/verify steps a green baseline to build on.
+/// Integration tests that boot the real API in-memory and exercise the CRUD endpoints over HTTP.
+/// These lock in the pre-existing behaviour and give the CHAOS apply/verify steps a green
+/// baseline. Since secure-task-api, every /tasks call must present a bearer token - the assertions
+/// about status and body are unchanged, only the client is authenticated.
 /// </summary>
-public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class TaskEndpointsTests : IClassFixture<TestApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestApiFactory _factory;
 
-    public TaskEndpointsTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public TaskEndpointsTests(TestApiFactory factory) => _factory = factory;
 
     [Fact]
     public async Task Get_tasks_returns_the_seeded_tasks()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClient();
 
         var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
 
@@ -31,7 +31,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Post_creates_a_task_and_get_by_id_returns_it()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClient();
 
         var response = await client.PostAsJsonAsync(
             "/tasks", new { title = "Write tests", status = "Open", priority = "High" });
@@ -50,7 +50,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Put_updates_an_existing_task()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClient();
         var created = await (await client.PostAsJsonAsync(
             "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
             .Content.ReadFromJsonAsync<TaskDto>();
@@ -67,7 +67,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Delete_removes_a_task()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClient();
         var created = await (await client.PostAsJsonAsync(
             "/tasks", new { title = "Temporary", status = "Open", priority = "Low" }))
             .Content.ReadFromJsonAsync<TaskDto>();
@@ -82,7 +82,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Post_with_blank_title_is_rejected()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClient();
 
         var response = await client.PostAsJsonAsync(
             "/tasks", new { title = "", status = "Open", priority = "Low" });
@@ -91,5 +91,5 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+    internal record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
 }

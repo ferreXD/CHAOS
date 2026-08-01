@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: "chaos:sync"
-  lastWrittenAt: "2026-08-01T10:33:00+02:00"
+  lastWrittenAt: "2026-08-01T18:49:36+02:00"
   lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-08-01T10:33:00+02:00"
+  lastAuditedAt: "2026-08-01T18:49:36+02:00"
   lastAuditedBy: Pablo Ferreira
   repositoryContext:
     provider: github
@@ -19,7 +19,7 @@ chaosMetadata:
     identitySource: git-config
     timestampSource: local-system
     confidence: MEDIUM
-    bodyHash: "sha256:7d3ed3e444c36a68bc3ea61987cb3993b05159974f12bfa1b143f2a3524e9db4"
+    bodyHash: "sha256:f6d303c0050ff669a17fe543919e0acf8d4ce535d3738949525c9cd38242b65a"
 ---
 
 # Rules Index — Task Tracker API
@@ -38,6 +38,8 @@ chaosMetadata:
 | R-006 | Protected files: previewed edits only | major | `AGENTS.md`, root `README.md` | config `policies.protectedFiles` (reconciliation 2/2 = keep-current-policy) | `chaos:status`/`chaos:sync` may edit these files only via a shown, confirmed patch preview (`requirePatchPreview`); never a silent write. | A status/sync edit without a patch preview + confirmation. | None (patch-preview + confirmation is the path). |
 | R-007 | Validate before archive | major | `chaos:archive` | gates (see gates index) | A change is archived only after `chaos:verify` evidence and (standard+) OpenSpec validation. | Archiving without verification evidence. | `--light` may relax; record accepted risk. |
 | R-008 | Forwarded headers only from trusted proxies | blocker | `src/TaskTracker.Api/**` | `secure-task-api` REV-001 → REV-DEC-001 (2026-08-01) | `X-Forwarded-*` may be honoured only from an explicitly configured trusted proxy set. `ForwardedHeadersOptions.KnownProxies`/`KnownNetworks` are populated from configuration and are **never** both left empty while the middleware is registered. | `app.UseForwardedHeaders()` is registered while both `KnownProxies` and `KnownNetworks` are empty (ASP.NET Core then skips its trust check and accepts forwarded headers from **every** caller), or either list is cleared to "make it work". | None. To ignore forwarded headers, do not register the middleware — that is the safe default, not an empty trusted set. |
+| R-009 | Rate limiting precedes authentication on public surfaces | major | `src/TaskTracker.Api/**` | `secure-task-api` REV-002 → REV-DEC-002 (2026-08-01) | On any surface reachable by untrusted callers, `UseRateLimiter()` is registered **before** `UseAuthentication()`/`UseAuthorization()`, so a request that fails authentication still consumes a permit. Endpoints that are deliberately anonymous carry their own rate-limiting policy. | `UseAuthentication()` or `UseAuthorization()` registered before `UseRateLimiter()` on a publicly-exposed app; or a publicly reachable anonymous endpoint with no rate-limiting policy attached. | Waiver with rationale only where an upstream gateway demonstrably throttles unauthenticated traffic; the gateway must be named as the enforcement point in the waiver. |
+| R-010 | Environment-gated auth bypasses need two independent gates | blocker | `src/TaskTracker.Api/**` | `secure-task-api` REV-003 → REV-DEC-003, design D7 (2026-08-01) | Any endpoint that weakens authentication in a named environment — dev token minters, test hooks, impersonation, auth stubs — is gated on **both** the hosting environment **and** an explicit configuration flag that defaults to disabled, and the gate is applied at route-**registration** time so the route is absent (`404`) rather than present-and-refusing when either gate fails. | Such an endpoint guarded only by `IsDevelopment()`; or guarded by a runtime check inside a mapped handler rather than by conditional registration; or a gating flag whose default is enabled. | None. To remove the risk, do not ship the endpoint — that is the safe default, not a single gate. |
 
 New rules are added as decisions promote them (via `chaos:sync`). Keep statements
 testable — each rule must have a checkable violation criterion.

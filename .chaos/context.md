@@ -5,9 +5,9 @@ chaosMetadata:
   artifactScope: repository
   changeId: null
   sourceCommand: unknown
-  lastWrittenAt: "2026-07-19T11:02:03+02:00"
+  lastWrittenAt: "2026-08-01T18:42:31+02:00"
   lastWrittenBy: Pablo Ferreira
-  lastAuditedAt: "2026-07-19T11:02:03+02:00"
+  lastAuditedAt: "2026-08-01T18:42:31+02:00"
   lastAuditedBy: Pablo Ferreira
   repositoryContext:
     provider: github
@@ -19,7 +19,7 @@ chaosMetadata:
     identitySource: git-config
     timestampSource: local-system
     confidence: LOW
-    bodyHash: "sha256:9f62bc651761897801a45f1f6b36521e949c6323dd4fc1e617adeebbc169ac33"
+    bodyHash: "sha256:5e0214b76bdd9d1f808ae2ab3c9dce58483f839248bb2eabde43225a03c282cd"
 ---
 
 # Project Context — Task Tracker API
@@ -61,12 +61,15 @@ A **task** is an immutable record: `Id` (GUID), `Title`, `Status`, `Priority`,
 
 | Flow | Route(s) | Notes |
 |---|---|---|
-| Health check | `GET /` | `{ "service": "task-tracker", "status": "ok" }` `[FACT]` |
-| List tasks | `GET /tasks` | Returns **all** tasks, unfiltered (the demo gap) `[FACT]` |
-| Get one | `GET /tasks/{id:guid}` | `200` or `404` `[FACT]` |
-| Create | `POST /tasks` | `201 Created`; `400` if `Title` blank `[FACT]` |
-| Replace | `PUT /tasks/{id:guid}` | `200` or `404`; `400` if `Title` blank `[FACT]` |
-| Delete | `DELETE /tasks/{id:guid}` | `204` or `404` `[FACT]` |
+| Health check | `GET /` | `{ "service": "task-tracker", "status": "ok" }`; anonymous, rate limited `[FACT]` |
+| List tasks | `GET /tasks` | Returns **all** tasks, unfiltered (the demo gap); requires bearer token, `401` without one `[FACT]` |
+| Get one | `GET /tasks/{id:guid}` | `200` or `404`; requires bearer token, `401` without one `[FACT]` |
+| Create | `POST /tasks` | `201 Created`; `400` if `Title` blank; requires bearer token, `401` without one `[FACT]` |
+| Replace | `PUT /tasks/{id:guid}` | `200` or `404`; `400` if `Title` blank; requires bearer token, `401` without one `[FACT]` |
+| Delete | `DELETE /tasks/{id:guid}` | `204` or `404`; requires bearer token, `401` without one `[FACT]` |
+
+> Every `/tasks` route is additionally rate limited (`429` when exceeded) and rejects
+> oversized bodies (`413`). See [ADR-0001](../docs/adr/2026-08-01-api-authentication-posture.md).
 
 ## Constraints
 
@@ -77,9 +80,15 @@ A **task** is an immutable record: `Id` (GUID), `Title`, `Status`, `Priority`,
 
 ## Environments
 
-- **Local dev only** at this stage: `dotnet run --project src/TaskTracker.Api`, listens on
-  `http://localhost:5080`. No deployment/CD target is defined for the API. `[FACT]` /
-  `[UNKNOWN]` for any hosted environment.
+- **Local dev today:** `dotnet run --project src/TaskTracker.Api`, listens on
+  `http://localhost:5080`. `[FACT]`
+- Since `secure-task-api` the app **requires** `Auth:SigningKey`, `Auth:Issuer` and
+  `Auth:Audience` from configuration outside the repository and **will not start** without
+  them — local dev and CI must supply them (user-secrets, environment variables, or the
+  platform secret store). `[FACT]`
+- Intended exposure is the **public internet** (PROP-DEC-002, 2026-08-01); no concrete
+  deployment/CD target is defined yet. `[FACT]` intent / `[UNKNOWN]` for any hosted
+  environment.
 
 ## Glossary
 
@@ -91,13 +100,17 @@ A **task** is an immutable record: `Id` (GUID), `Title`, `Status`, `Priority`,
 
 ## Known facts vs assumptions
 
-- `[FACT]` The API, tests (5 integration tests via `WebApplicationFactory<Program>`), and
+- `[FACT]` The API, tests (34 integration tests via `WebApplicationFactory<Program>`), and
   the demo scenario exist and are inspected.
 - `[ASSUMPTION · MEDIUM]` There are two copies of the app on this branch: the tracked
   `examples/task-tracker/dotnet/` and the working-tree root copy (`src/`, `tests/`,
   `TaskTracker.sln`, currently untracked). Governance treats the **root solution** as the
   active subject; the `examples/` copy is the published reference cut. Confirm on merge.
-- `[UNKNOWN]` Persistence, auth, and multi-user concerns are out of scope for the demo.
+- `[FACT]` Authentication **is** now in scope and delivered: JWT bearer on `/tasks`, edge
+  hardening, app-terminated TLS — see
+  [ADR-0001](../docs/adr/2026-08-01-api-authentication-posture.md).
+- `[UNKNOWN]` Persistence and multi-user / per-caller authorization remain out of scope for
+  the demo.
 
 ## Scope decisions and track handling
 
