@@ -192,6 +192,42 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(out["K4"]["dimensions"]["review"], 2)
         self.assertEqual(out["K4"]["newStops"], 0)
 
+    def test_inline_adapter_roundtrip(self):
+        import subprocess
+        import tempfile
+        here = os.path.dirname(os.path.abspath(__file__))
+        with tempfile.TemporaryDirectory() as td:
+            map_path = os.path.join(td, "map.json")
+            json.dump(MAP, open(map_path, "w", encoding="utf-8"))
+            payload = {"checkpoint": "K1", "intent": "tighten health response",
+                       "scope": "scope: src/App/Program.cs",
+                       "declaredTriggers": ["sensitive-surface:auth"],
+                       "mode": None, "mapFile": map_path}
+            ppath = os.path.join(td, "p.json")
+            json.dump(payload, open(ppath, "w", encoding="utf-8"))
+            spath = os.path.join(td, "state.json")
+            out = subprocess.run([sys.executable, os.path.join(here, "classify.py"),
+                                  "--inline", ppath, "--state", spath],
+                                 capture_output=True, text=True, check=True)
+            verdict = json.loads(out.stdout)
+            self.assertEqual(verdict["newlyFired"][0]["trigger"], "M2")
+            self.assertEqual(verdict["newlyFired"][0]["by"], "declared")
+            state = json.load(open(spath, encoding="utf-8"))
+            self.assertEqual(state["checkpointsRun"], ["K1"])
+            # second checkpoint continues from persisted state (monotone)
+            payload["checkpoint"] = "K3"
+            payload["numstatFile"] = os.path.join(td, "n.txt")
+            open(payload["numstatFile"], "w", encoding="utf-8").write("3\t1\tsrc/App/Program.cs\n")
+            json.dump(payload, open(ppath, "w", encoding="utf-8"))
+            out2 = subprocess.run([sys.executable, os.path.join(here, "classify.py"),
+                                   "--inline", ppath, "--state", spath],
+                                  capture_output=True, text=True, check=True)
+            verdict2 = json.loads(out2.stdout)
+            self.assertEqual(verdict2["newlyFired"], [])  # M2 already fired; nothing new
+            self.assertEqual(verdict2["dimensions"]["verify"], 1)
+            state2 = json.load(open(spath, encoding="utf-8"))
+            self.assertEqual(state2["checkpointsRun"], ["K1", "K3"])
+
     def test_adjudication_cannot_touch_mechanical_or_refire(self):
         sections = {"frontmatter": "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n",
                     "intent": "x", "scope": "scope: src/App/F.cs"}

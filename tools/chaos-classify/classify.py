@@ -621,14 +621,68 @@ def sanitized_packet(seed_id, checkpoint, sections, verdict_scan, state):
     return packet
 
 
+def _read(path):
+    with open(path, encoding="utf-8-sig") as f:
+        return f.read()
+
+
+def load_inline(payload_path):
+    """Repo/skill adapter (step-4 wiring): a command feeds the classifier a JSON payload —
+    {checkpoint, intent, scope, declaredTriggers, mode, postureFiles[], ledgerFile?,
+     numstatFile?, patchFile?, mapFile}. File contents are read here; the core stays pure."""
+    p = json.loads(_read(payload_path))
+    decl = ", ".join(p.get("declaredTriggers", []))
+    fm = "chaosMetadata:\n  mode: %s\n  declaredTriggers: [%s]\n" % (p.get("mode") or "null", decl)
+    if p.get("selfReview"):
+        fm += "  selfReview: %s\n" % p["selfReview"]
+    sections = {"frontmatter": fm,
+                "intent": p.get("intent", ""),
+                "scope": p.get("scope", "")}
+    if p.get("postureFiles"):
+        sections["posture"] = "\n\n".join(_read(f) for f in p["postureFiles"])
+    for key, fkey in (("ledger", "ledgerFile"), ("numstat", "numstatFile"),
+                      ("patch", "patchFile")):
+        if p.get(fkey):
+            sections[key] = _read(p[fkey])
+    return p, sections
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Stage-C trigger classifier (deterministic core)")
-    ap.add_argument("seed", help="corpus seed file (fixture adapter)")
-    ap.add_argument("--checkpoints", default=None, help="comma list, e.g. K1,K3")
+    ap.add_argument("seed", nargs="?", help="corpus seed file (fixture adapter)")
+    ap.add_argument("--inline", default=None, metavar="PAYLOAD",
+                    help="repo/skill adapter: classify one checkpoint from a JSON payload")
+    ap.add_argument("--state", default=None,
+                    help="classifier state file (read if present, written back after) — "
+                         "the change folder's classification-state.json")
+    ap.add_argument("--checkpoints", default=None, help="comma list, e.g. K1,K3 (seed mode)")
     ap.add_argument("--adjudication", default=None, help="adjudication-results JSON file")
     ap.add_argument("--map", default=None, help="path-class map (default: corpus assets)")
     args = ap.parse_args(argv)
 
+    if args.inline:
+        payload, sections = load_inline(args.inline)
+        map_path = payload.get("mapFile") or args.map
+        if not map_path:
+            ap.error("--inline needs mapFile in the payload or --map")
+        with open(map_path, encoding="utf-8-sig") as f:
+            map_data = json.load(f)
+        state = None
+        if args.state and os.path.exists(args.state):
+            state = json.loads(_read(args.state))
+        adj = None
+        if args.adjudication:
+            adj = json.loads(_read(args.adjudication))  # inline form: {"raises": [...]}
+        verdict, state = classify(sections, payload["checkpoint"], state, adj, map_data)
+        if args.state:
+            with open(args.state, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=1)
+        json.dump(verdict, sys.stdout, indent=2)
+        print()
+        return 0
+
+    if not args.seed:
+        ap.error("need a seed file or --inline PAYLOAD")
     sections = load_seed(args.seed)
     map_data = load_map(args.seed, args.map)
     expected = json.loads(sections["expected"]) if "expected" in sections else {}

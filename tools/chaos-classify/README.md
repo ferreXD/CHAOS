@@ -35,6 +35,23 @@ python -m unittest discover -s tools/chaos-classify            # unit suite
 
 Single seed: `python tools/chaos-classify/classify.py <seed.md> [--adjudication FILE]`.
 
+## Wiring adapter (step 4 — commands call this)
+
+```text
+python tools/chaos-classify/classify.py --inline payload.json \
+    --state .chaos/changes/<id>/classification-state.json [--adjudication raises.json]
+```
+
+`payload.json`: `{checkpoint, intent, scope, declaredTriggers, mode, postureFiles[],
+mapFile, ledgerFile?, numstatFile?, patchFile?}` — the command reads nothing itself; the
+adapter reads the named files, the core stays pure. The **two-call pattern per checkpoint**:
+(1) scan call → read the verdict's candidates/demoted list; (2) the command performs the
+adjudication pass per `adjudication-prompt.md` and calls again with `--adjudication`
+(`{"raises": [...]}` form). Running the same checkpoint twice is safe — firings dedupe; the
+second verdict is authoritative. `--state` is the classifier's working state
+(`classification-state.json` in the change folder — deliberately NOT a Stage-B `records/`
+artifact).
+
 ## Implementation notes (operationalizations, documented not silent)
 
 - **MR-7 / 410 tombstone:** a route re-registered to return `Results.StatusCode(410)` counts as

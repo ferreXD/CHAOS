@@ -188,6 +188,26 @@ Escalation events use the same shape with the `ESC-` prefix:
 - kept-work: <one line — what FRAME output seeds the standard path>
 ```
 
+**Stage-C trigger events** (progressive rigor; design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`; commands wired to the classifier record
+one per fired trigger — under C these replace mode escalation):
+
+```markdown
+## TRG-001 — trigger fired: M2 sensitive-surface
+
+- status: RECORDED (<date>) [· run: <commandRunId>]
+- trigger: M1|M2|M3|M4|M5|X1|X2|X3 · by: scan|adjudication|declared · surface: <class or none>
+- cite: <the input line/section pair that justified the firing>
+- dimensions-after: stops <n> · evidence.targeted <n> · evidence.breadth <n> · review <n> · verify <n> · openspec <n> · adr <n>
+```
+
+`TRG-` headings are **deliberately NOT decision entries** under the §2 scan rule (they must not
+inflate `lifecycle.current.decisions` or the M4 decision-density count). The classifier's
+machine state lives in `.chaos/changes/<change-id>/classification-state.json` (the
+`tools/chaos-classify --state` file — the classifier's own working state, not a Stage-B
+`records/` artifact; the frontmatter classification block is deferred until Stage-B's writer
+fate is decided, so C stays unwelded from B).
+
 ## 3. `lifecycle.md` — generated state view
 
 Authoritative state lives in `change.md` frontmatter (`chaosMetadata.lifecycle`). `lifecycle.md`

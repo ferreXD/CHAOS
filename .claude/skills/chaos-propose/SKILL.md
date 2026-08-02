@@ -61,12 +61,28 @@ Before operating, read the reference files in this skill (and the shared policie
 - `reference/change-artifacts-layout.md`
 - `reference/question-bank.md`
 - `.claude/skills/chaos-shared/reference/change-template.md` (universal change artifacts)
+- `docs/design/2026-08-02-stage-c-progressive-rigor.md` (progressive rigor — the classification contract, C-1..C-14)
+- `tools/chaos-classify/README.md` + `tools/chaos-classify/adjudication-prompt.md` (the pinned semantic-layer contract; part of the classifier's tested surface — do not paraphrase it, read it)
 
 ## Workflow
 
-1. Parse mode. If absent, infer mode from risk and tell the user why.
+1. Parse the preset flag as a **floor vector** (Stage-C progressive rigor, design
+   `docs/design/2026-08-02-stage-c-progressive-rigor.md` §8): no flag/`--light` = zero floors,
+   `--standard`/`--strict` = the §8 floor vectors. Floors only raise; they never suppress a
+   fired trigger. There is **no mode inference** — classification (step 3) is the inference.
 2. Discover CHAOS/OpenSpec/ADR context.
-3. Classify change and risk.
+3. **Classify (checkpoint K1).** Build the classifier payload — intent text, predicted scope
+   (including planned NEW paths, or M5 false-fires at deliver time), `declaredTriggers`, the
+   preset — and run the deterministic core:
+   `python tools/chaos-classify/classify.py --inline <payload.json> --state .chaos/changes/<change-id>/classification-state.json`
+   with `postureFiles` = the repo's architecture/posture docs and `mapFile` =
+   `.chaos/path-class-map.json` (absent map ⇒ path-class scans are blind: say so, lean on
+   adjudication, and record the gap). Then perform the **adjudication pass yourself** per the
+   pinned contract `tools/chaos-classify/adjudication-prompt.md` (rules 1–14: raise-only,
+   cites mandatory) and merge raises via `--adjudication`. Record one `TRG-*` ledger event per
+   fired trigger (`chaos-shared/reference/change-template.md` §2). The resulting **dimension
+   vector drives every obligation below**; `reference/risk-classification.md` still informs
+   which questions to ask, never the rigor level.
 4. Assess evidence coverage.
 5. Load archaeology only when available and relevant; require it only when risk/classification demands it.
 6. Detect missing material context or decisions.
@@ -76,7 +92,12 @@ Before operating, read the reference files in this skill (and the shared policie
    - let the user answer, defer, accept risk, or stop;
    - record each material answer as a `PROP-DEC-*` Decision Event.
 8. Present the Approach Alignment Checkpoint. STOP and wait for explicit confirmation.
-9. After user confirmation, run the **hard OpenSpec invocation gate** (mechanical, in order):
+9. After user confirmation, run the **OpenSpec gate at the classified depth** (see
+   "Dimension-driven obligations" below): `openspec 2` → the full hard invocation gate
+   (mechanical, in order, as sub-steps 1–8); `openspec 1` → invoke OpenSpec for a **delta spec
+   only** (sub-steps 1–5 scoped to the delta); `openspec 0` → **skip OpenSpec entirely** — the
+   contract lives in `change.md` §Contract; record the skip and the zero-trigger classification
+   in the frame facts. Full-gate sub-steps:
    1. Detect OpenSpec availability (`.chaos/config.yaml` `project.specEngine`/`toolchain.openspec`, or `/opsx:propose`, `openspec` CLI, `openspec/changes/`).
    2. Invoke OpenSpec via one acceptable path — `/opsx:propose`, the `openspec-propose` skill, or driving the `openspec` CLI (all first-class; see "CHAOS overlay invocation rules" in `reference/openspec-integration-contract.md`). Pass the CHAOS brief as input and let OpenSpec own artifact paths. Do not hand-write artifacts when OpenSpec is available; if no path can run, there is no automatic fallback — go to degraded mode (6).
    3. Confirm the OpenSpec change folder exists (`openspec/changes/<change-id>/`).
@@ -101,17 +122,20 @@ Before operating, read the reference files in this skill (and the shared policie
     **No `proposal-report.md`.**
 12. Recommend `chaos:review <change-id>`.
 
-## Light mode: collapsed FRAME workflow
+## The collapsed FRAME (universal base)
 
-On `--light`, `chaos:propose` owns **FRAME** of the collapsed two-phase lifecycle
+**Every change starts here** (Stage-C kills modes as paths; historically this was the `--light`
+path). `chaos:propose` owns **FRAME** of the collapsed two-phase lifecycle
 (FRAME → human answers → `chaos:apply` delivers; design:
-`docs/design/2026-07-24-artifact-model-roadmap.md`). Steps 1–7 above still apply, with the
-evidence scan **scoped**: read only the files/modules the intent names + the rules index + the
-architecture posture. No repo-wide discovery sweeps; no assessments/archaeology unless the change
-touches them. Then, instead of steps 8–12:
+`docs/design/2026-07-24-artifact-model-roadmap.md` +
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`). Steps 1–7 above still apply, with the
+evidence scan **scoped by the evidence dimensions**: at base, read only the files/modules the
+intent names + the rules index + the architecture posture (no repo-wide sweeps);
+`evidence.targeted 1` adds the docs the fired triggers cite; `evidence.breadth` ≥ 1 adds
+module-level understanding (2 = broad archaeology). Then, instead of steps 8–12:
 
-1. Run the **hard OpenSpec invocation gate** exactly as step 9 (OpenSpec is unchanged in every
-   mode).
+1. Run the **OpenSpec gate at the classified depth** exactly as step 9 (full set / delta /
+   skip per the `openspec` dimension).
 2. Write the change folder per the light layout (`reference/change-artifacts-layout.md`):
    lean decision entries in `decision-events.md`, then emit `records/contract.json` +
    `records/frame.pass-01.facts.json` per `chaos-shared/reference/record-emission.md`
@@ -134,23 +158,40 @@ touches them. Then, instead of steps 8–12:
    (mustStop). Next command after answers: `chaos:apply` (mode is inferred from `change.md`;
    `chaos:review` is not part of the light path).
 
-**Auto-escalation valve (one-way, never ask):** escalate to `--standard` when the change crosses
-an architecture non-goal/posture, surfaces more than `modes.light.maxMaterialDecisions` material
-decisions (config, default 2), fails the self-review checklist, or OpenSpec is unavailable
-(degraded mode). On escalation the skill **keeps the `change.md` model** — it never drops into a
-legacy report path. Records are emitted at FRAME completion, so escalation needs no artifact
-surgery:
+**Progressive-rigor ratchet (replaces the auto-escalation valve).** There are no mode
+escalations under Stage-C: a trigger fires, dimensions raise, obligations grow — **monotone
+within the change** (design C-8). What the valve used to detect maps onto triggers: posture
+crossing → M1 · more than 2 material decisions → M4 (the old `maxMaterialDecisions` is M4's
+threshold, unchanged) · self-review fail → X2 · scope spill (at deliver) → M5.
 
-- Append an `ESC-*` entry to `decision-events.md` (auto-escalation). A **human-decided** mode
-  change instead carries `- escalates: <from> → <to>` on its decision entry. The renderer
-  derives the `> ⚠ escalated…` H1 warnings and frontmatter `escalatedFrom` from that ledger
-  chain — never hand-write them.
-- The frame record simply completes at the **target** mode's depth (its `mode` field is the
-  final framing mode), and rendering reflects the escalation automatically.
-- Always: announce it and continue on the target-mode path reusing all FRAME output.
-- **Never emit `proposal-report.md` or `proposal-review.md` on an escalated change.**
+- Record one `TRG-*` ledger event per firing (`change-template.md` §2) — never hand-write ⚠
+  H1 warnings for triggers; `ESC-*`/`escalatedFrom` remain only on legacy changes.
+- OpenSpec-degraded is no longer an escalation: when the `openspec` dimension ≥ 1 and no
+  OpenSpec path can run, apply degraded-mode handling (one decision, cap confidence); at
+  `openspec 0` nothing degrades.
+- The frame record completes at the classified depth; rendering reflects it automatically.
+- **Never emit `proposal-report.md` or `proposal-review.md`.**
 
-Never downgrade automatically.
+The system never lowers a fired dimension. A **human** may, via a recorded override decision
+entry (rationale + which dimension, from → to) — never silently (design C-8).
+
+## Dimension-driven obligations (Stage-C)
+
+The classification vector — not the flag — sets the obligations (design §4–§10; the flag only
+floors them):
+
+| Dimension | 0 (base) | 1 | 2 |
+|---|---|---|---|
+| openspec | skip OpenSpec; contract lives in `change.md` (record the skip) | delta spec only | full set (hard invocation gate) |
+| evidence.targeted | scoped scan | also read the docs the fired triggers cite | — |
+| evidence.breadth | scoped scan | module-level understanding of the touched surface | broad archaeology |
+| review | inline self-review line | recommend review folded into verify | standalone `chaos:review` before implementation |
+| verify | contract + tests | trigger-relevant safeguard checks (the trigger id says which) | full verify orchestration |
+| adr | — | decision-log entry in the ledger | ADR required — `sync-action: CREATE_ADR`; verify blocks READY without it |
+| stops | the floor approval stop (`approves-change`) | K1-fired materiality **folds its named questions into the approval decision's presentation** — never a second stop at K1 | preset floor 2 adds the DELIVER-exit sign-off |
+
+Mid-flight (K3, `chaos:apply`'s checkpoint) is the only place a trigger creates a NEW stop, and
+only when no ANSWERED same-surface decision already covers it (MR-3 stop satisfaction).
 
 ## UX rule
 
