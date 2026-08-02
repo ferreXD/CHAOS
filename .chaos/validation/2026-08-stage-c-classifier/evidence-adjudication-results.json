@@ -1,0 +1,287 @@
+{
+ "SC-01-frozen-auth": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "auth",
+     "cite": "intent 'Require API-key authentication on the /tasks endpoints ... missing or incorrect key -> 401' x non-goals 'Authentication / authorization / multi-tenant concerns' and auth posture 'None. The API is open. [FACT]'",
+     "breaking": false
+    }
+   ]
+  },
+  "K3": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "auth",
+     "cite": "patch ApiKeyMiddleware x auth non-goals (checkpoint-fresh re-raise; dedupes)",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-10-readme-typo": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-01-innocuous-crossing": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "intent 'remember the task list between requests so we don't rebuild it every time' x data access posture 'The store is the single source of truth in memory.'",
+     "breaking": false
+    }
+   ]
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-18-dep-patch-bump": {
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-02-frozen-softdelete": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "intent 'add a nullable deletedAt timestamp to the task model' x posture boundary 'not in the store's public shape, unless a decision says otherwise'",
+     "breaking": false
+    }
+   ]
+  },
+  "K3": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "patch SoftDelete/DeletedAt x boundary posture (checkpoint-fresh re-raise; dedupes)",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-11-small-rename": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-02-mega-rename": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-15-schema-migration": {
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-21-message-broker": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "integration",
+     "cite": "intent 'Publish task lifecycle events to RabbitMQ' x posture 'No external integrations. All effects are in-process. [FACT]'",
+     "breaking": false
+    },
+    {
+     "trigger": "M3",
+     "surface": "contract-dependency",
+     "cite": "intent 'add the RabbitMQ.Client dependency' x scope csproj",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-03-frozen-concurrency": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "intent 'integer version on the task (starts at 1, increments on every successful update)' x posture boundary 'not in the store's public shape, unless a decision says otherwise'",
+     "breaking": false
+    }
+   ]
+  },
+  "K3": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "patch TaskItem Version field x boundary posture (checkpoint-fresh re-raise; dedupes)",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-12-config-secret-rotate": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M2",
+     "surface": "auth",
+     "cite": "intent 'Rotate the uptime-webhook Token in appsettings.json: replace the committed value' x scope appsettings.json \u2014 committed credential material, scan blind at K1",
+     "breaking": false
+    }
+   ]
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-03-map-gap": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": [
+    {
+     "trigger": "M2",
+     "surface": "auth",
+     "cite": "patch 'tools/ops/smoke/demo-signing.key: +-----BEGIN RSA PRIVATE KEY-----' \u2014 committed private key material on a path the scan's map missed",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-17-breaking-api": {
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-04-light-count": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-13-middleware-context": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-04-scope-spill": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-07-underspec-secure": {
+  "K1": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "auth",
+     "cite": "intent 'Secure it with an API key' x non-goal 'Authentication / authorization' + 'Any auth is out of scope and would be strict, decision-bearing work'",
+     "breaking": false
+    },
+    {
+     "trigger": "M2",
+     "surface": "auth",
+     "cite": "intent 'Secure it with an API key so it's not just anyone hitting it' x scope 'src/TaskTracker.Api/' \u2014 no auth-classed path for the scan to see",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-19-new-dependency": {
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-05-light-statusfilter": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-06-light-titlelen": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-14-db-index": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-05-declared-trigger": {
+  "K1": {
+   "raises": []
+  }
+ },
+ "SC-09-underspec-concurrent": {
+  "K1": {
+   "raises": []
+  }
+ },
+ "SC-16-parser-refactor": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "SC-08-underspec-delete": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": [
+    {
+     "trigger": "M1",
+     "surface": "data-store",
+     "cite": "patch 'public record TaskItem(... DateTimeOffset? DeletedAt = null)' x posture boundary 'new behaviour belongs at the endpoint/query boundary, not in the store's public shape, unless a decision says otherwise'",
+     "breaking": false
+    }
+   ]
+  }
+ },
+ "SC-20-log-config": {
+  "K1": {
+   "raises": []
+  },
+  "K3": {
+   "raises": []
+  }
+ },
+ "ADV-06-strict-floor": {
+  "K1": {
+   "raises": []
+  }
+ }
+}
