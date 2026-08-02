@@ -42,7 +42,7 @@ for.
 
 | P | Statement | Seeds that pin it |
 |---|---|---|
-| P1 | mechanical-only ⇒ stops/adr/openspec/evidence.targeted stay at floor | ADV-02 · SC-13 · SC-16 · SC-18 |
+| P1 | mechanical-only ⇒ stops/adr/openspec/evidence.targeted stay at floor | ADV-02 · SC-13 · SC-16 · SC-18 · SC-22 (added via changelog, closes O-9) |
 | P2 | materiality-only ⇒ review ≤ 1 and evidence.breadth = 0 (absent floors) | every seed whose fired set is M-only |
 | P3 | no preset/adjudication lowers a fired level; floors create no trigger records | ADV-06 + harness-level check on all seeds |
 | P4 | checkpoint replay is monotone per dimension | SC-07 · SC-08 · SC-09 + every multi-checkpoint seed |

@@ -91,6 +91,7 @@ golden-scenario recasts of the two-axis assessment's S1–S15. All 27 rows have 
 | SC-19 new-dependency (S11b) | golden | K3 | M3 scan (new direct dep, non-breaking) ⇒ openspec 1 + adr 1, no stop | — |
 | SC-20 log-config (S12) | golden | K1,K3 | zero (demo PII class empty — O-5) | — |
 | SC-21 message-broker (S13, synthetic-extended posture) | golden | K1 | M1 adj (integration: "No external integrations" [FACT]) + M3 scan (new dep) + X1 ⇒ **distinct surfaces ⇒ openspec 2**, adr 2, review 2; fold ⇒ 0 new stops; MEDIUM | P6 |
+| SC-22 selfreview-fail (added, closes O-9) | mechanical | K4 | X2 scan ⇒ review 2 + verify 1, **zero stops** (C-3); scan-only checkpoint, no adjudication | P1 |
 
 Excluded from the S1–S15 recast, with reasons: **S4** (auth policy — band already covered by
 SC-01/SC-07), **S9** (new endpoint — identical to SC-04), **S14** (service extraction — S13's
@@ -125,6 +126,11 @@ NOT a C v1 dimension; observation O-6).
   re-calibrated, ADV-06 changes via changelog entry, not silently.
 
 ## 7. Changelog
+
+- 2026-08-02 (step 4c prerequisite) — **SC-22 added** (corpus 27 → 28): the K4 / X2
+  self-review-fail seed closing observation O-9 before `chaos:verify` is wired. K4 is
+  scan-only (C-12) — no blind judging involved. acceptance.md's P1 seed list gains SC-22.
+  The original 27 rows are untouched.
 
 - 2026-08-02 — corpus registered: 27-row manifest, wave-1 (15 seeds) encoded, acceptance bar
   frozen. C-13/C-14 decided during authoring (creator, same day). Assistant-authored; pending
