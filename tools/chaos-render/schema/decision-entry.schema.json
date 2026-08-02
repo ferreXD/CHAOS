@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.local/schema/chaos-render/1/decision-entry.schema.json",
+  "title": "CHAOS Decision Entry (canonical parse)",
+  "description": "The canonical parsed shape of one ledger entry in decision-events.md. The ledger itself stays agent-written, append-only markdown; this schema is the PARSE CONTRACT the renderer's ledger parser yields, not a file format agents write. Grammar: an entry is a level-2 heading matching ^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>) - <title> followed by one '- key: value' line per field (no continuation lines). Any other ## heading in the ledger is narrative and is NOT an entry (canonical scan rule, change-template.md section 2). Unknown keys are tolerated and preserved verbatim in extras.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "kind", "status", "knowledge", "confidence"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\\d{3}$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "kind": {
+      "type": "string",
+      "description": "Derived: status.state RECORDED => recorded (command-made); otherwise surfaced (human-answered, must carry runtimeDecision). ESC-* entries parse under escalation-event.schema.json instead.",
+      "enum": ["surfaced", "recorded"]
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "state", "consumed"],
+      "properties": {
+        "raw": { "type": "string", "minLength": 1 },
+        "state": { "type": "string", "enum": ["OPEN", "ANSWERED", "RESOLVED-IN-ARM", "RECORDED"] },
+        "consumed": { "type": "boolean", "description": "True when the status line carries the '· CONSUMED' suffix." },
+        "by": { "type": ["string", "null"] },
+        "date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "run": {
+          "type": ["string", "null"],
+          "description": "RECORDED entries may carry '· run: <commandRunId>' on the status line.",
+          "pattern": "^RUN-[A-Za-z0-9][A-Za-z0-9-]*$"
+        }
+      }
+    },
+    "runtimeDecision": {
+      "type": ["string", "null"],
+      "description": "Interaction-runtime decision id; required for surfaced entries, null for recorded ones.",
+      "pattern": "^DEC-[A-Za-z0-9][A-Za-z0-9-]*$"
+    },
+    "options": {
+      "type": "array",
+      "description": "From '- options: A <label> - <one line> · B ...'. Confirmation-type entries have unlettered options (key: null).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "label"],
+        "properties": {
+          "key": { "type": ["string", "null"], "pattern": "^[A-Z]$" },
+          "label": { "type": "string", "minLength": 1 },
+          "summary": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "recommendation": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["key"],
+      "properties": {
+        "key": { "type": ["string", "null"], "pattern": "^[A-Z]$" },
+        "label": { "type": ["string", "null"] },
+        "rationale": { "type": ["string", "null"] }
+      }
+    },
+    "answer": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": ["string", "null"], "pattern": "^[A-Z]$" },
+        "label": { "type": ["string", "null"] },
+        "rationale": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "whyMaterial": { "type": ["string", "null"] },
+    "impact": { "type": ["string", "null"] },
+    "syncAction": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["tokens"],
+      "properties": {
+        "tokens": {
+          "type": "array",
+          "description": "'+'-combined on the ledger line (e.g. 'CREATE_ADR + UPDATE_CHAOS_RULES').",
+          "items": {
+            "type": "string",
+            "enum": ["NONE", "CREATE_ADR", "UPDATE_CHAOS_RULES", "AMEND_OPENSPEC_SPEC", "RECORD_ACCEPTED_RISK"]
+          }
+        },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "knowledge": { "type": "string", "enum": ["FACT", "INFERENCE", "ASSUMPTION", "UNKNOWN"] },
+    "confidence": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
+    "approvesChange": {
+      "type": "boolean",
+      "description": "Exactly one entry per change carries true (validated across the ledger, not per entry)."
+    },
+    "conditions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "type": {
+      "type": ["string", "null"],
+      "enum": ["EVIDENCE_WAIVER", "DESIGN_DECISION", "DEFERRED_DECISION", null]
+    },
+    "severity": { "type": ["string", "null"], "enum": ["BLOCKING", "MAJOR", "MINOR", "ADVISORY", null] },
+    "fixability": { "type": ["string", "null"] },
+    "evidence": { "type": ["string", "null"] },
+    "interactionType": { "type": ["string", "null"] },
+    "escalates": {
+      "type": ["object", "null"],
+      "description": "Set when this entry's answer changed the change's mode (e.g. the human standard->strict escalation). Feeds the H1 escalation-warning chain together with ESC-* events.",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "enum": ["light", "standard", "strict"] },
+        "to": { "type": "string", "enum": ["light", "standard", "strict"] }
+      }
+    },
+    "decision": { "type": ["string", "null"], "description": "Recorded-kind: what was decided (one line)." },
+    "rationale": { "type": ["string", "null"], "description": "Recorded-kind: why." },
+    "detail": { "type": ["string", "null"], "description": "Recorded-kind: optional elaboration line." },
+    "followUpOwner": { "type": ["string", "null"] },
+    "extras": {
+      "type": "object",
+      "description": "Unknown '- key: value' lines, preserved verbatim (key order kept by the parser).",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
