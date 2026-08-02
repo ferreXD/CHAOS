@@ -51,6 +51,7 @@ Append-only. Entry shape: `chaos-shared/reference/change-template.md` §2.
 - options: A strict — exact source manifest, mandatory `chaos:review`, ADR for the new auth posture, blocking evidence gaps stop the proposal · B standard-with-recorded-rationale — normal depth, rationale recorded, confidence capped · C stop
 - recommendation: A — auth/security is a HIGH/CRITICAL risk trigger and the architecture calls auth "strict, decision-bearing work"
 - answer: A strict — rationale: "The most reasonable answer here"
+- escalates: standard → strict
 - impact: `mode: strict`, `escalatedFrom: standard`. Adds the exact source manifest, the risk table and the traceability section to `change.md`; makes `chaos:review` mandatory before implementation; makes the auth-posture ADR a contract statement rather than a deferred follow-up; makes the missing archaeology a blocking gap requiring a waiver (PROP-DEC-006).
 - sync-action: NONE
 - why-material: sets evidence depth, whether `chaos:review` is mandatory, and whether an ADR blocks readiness

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "review",
+  "pass": 1,
+  "changeId": "secure-task-api",
+  "sourceCommand": "chaos:review",
+  "run": "RUN-2026-08-01-chaos-review-secure-task-api-252c7b",
+  "mode": "strict",
+  "verdict": "READY_WITH_CONDITIONS",
+  "at": "2026-08-01T15:45:00Z",
+  "assessment": { "confidence": "MEDIUM", "evidenceCoverage": "COMPLETE", "assumptionLoad": "MEDIUM" },
+  "confidenceLimiters": [
+    { "kind": "FACT", "text": "The `chaos-interaction` MCP tools were unavailable; the runtime CLI fallback was used, capping effective confidence at MEDIUM." },
+    { "kind": "FACT", "text": "This review examined artifacts authored earlier in the same session. Independent re-review before implementation would raise confidence." },
+    { "kind": "INFERENCE", "confidence": "MEDIUM", "text": "REV-002's severity depends on ASP.NET Core middleware-ordering behaviour that is not yet written as code; it is a specification gap inferred from the design, not an observed defect." }
+  ],
+  "commentary": "The proposal is internally coherent and OpenSpec-valid: `openspec validate secure-task-api --strict` passes, all four artifacts are `done`, the 10 spec requirements map onto the 14 contract statements, and the tasks are ordered and actionable. Three findings block or qualify approval.\n\n**REV-001 is the blocker.** `modes.md` (--strict) makes missing ADR/rule alignment blocking, and this change contradicts committed governance that nothing updates: `.chaos/architecture.md` §Non-goals line 100 lists \"Authentication / authorization / multi-tenant concerns\", and its §Authentication/authorization posture reads \"None. The API is open.\" Task 5.1 creates an ADR that would contradict both, with no recorded obligation to reconcile them — so `chaos:sync` gets no signal and the architecture document would keep misdescribing the system after archive. The strict guardrail in `guided-amendment-policy.md` (\"ADR conflicts require governance decision/ADR handling; do not paper over them with tasks.md edits\") is why the recommended remedy records a governance obligation rather than only editing tasks.\n\n**REV-002 is a threat-model gap, not a formatting one.** Framing fixed exposure at `public-internet`, where the untrusted population is by definition the unauthenticated one — yet the edge-hardening spec never distinguishes authenticated from unauthenticated callers, `design.md` D5 partitions on \"the authenticated caller where available\", and tasks 2.3/3.1 put `RequireAuthorization()` and the limiter on the same group without pinning middleware order. If authorization runs first, 401s consume no permit and the JWT signature-verification path can be flooded for free. `GET /` sits outside the group and is unthrottled entirely.\n\n**REV-003 is the honesty check on the whole change.** Issuance was scoped out consistently and deliberately (RK-5), so this was not a defect — but the consequence was that tests go green while the deployed API is uncallable. The human resolved it with **dev-only issuance, against the review recommendation of shipping as scoped**. That is their call and it is implemented, but the review's objection stands on the record: a development-gated token minter on a service heading for public-internet exposure is exactly the kind of thing that survives to production. The mitigation is therefore deliberately paranoid — two independent gates, flag default-off, route unmapped rather than guarded (design D7) — and the residual is tracked as RK-8 with Critical impact. Approval condition 1 exists to stop that mitigation eroding during implementation.\n\nTwo framing-time observations survive review unchanged: the `[CONFLICT · LOW]` between the \"Easier for PoC\" rationale and a `public-internet`/`strict` posture is real but the resulting choices are still defensible, and the PROP-DEC-006 archaeology waiver holds — the source manifest plus the 5-test baseline are adequate equivalent evidence for ~150 lines across six files.",
+  "facts": {
+    "scope": {
+      "paths": ["src/TaskTracker.Api/**", "tests/TaskTracker.Tests/**", "docs/adr/**"],
+      "rulesInPlay": ["R-001", "R-002", "R-003", "R-004", "R-005", "R-008"]
+    },
+    "openspecValidation": { "result": "PASSED", "note": "re-run after remediation" },
+    "findings": [
+      {
+        "id": "REV-001",
+        "severity": "BLOCKING",
+        "summary": "`.chaos/architecture.md` still lists auth under §Non-goals and states \"the API is open\"; nothing reconciled it",
+        "status": "RESOLVED_DURING_REVIEW",
+        "decision": "REV-DEC-001"
+      },
+      {
+        "id": "REV-002",
+        "severity": "MAJOR",
+        "summary": "rate limiting did not demonstrably cover unauthenticated callers; middleware order unpinned and `GET /` unthrottled",
+        "status": "RESOLVED_DURING_REVIEW",
+        "decision": "REV-DEC-002"
+      },
+      {
+        "id": "REV-003",
+        "severity": "MAJOR",
+        "summary": "no token issuer existed, so the delivered API would be uncallable",
+        "status": "RESOLVED_DURING_REVIEW",
+        "decision": "REV-DEC-003",
+        "note": "as **accepted risk with mitigation** — resolution chose dev-only issuance **against the review recommendation**, adding RK-8"
+      },
+      {
+        "id": "REV-004",
+        "severity": "ADVISORY",
+        "summary": "the CORS \"no wildcard with credentials\" wording is imprecise for bearer-token auth, where CORS credentials mean cookies",
+        "status": "OPEN",
+        "note": "cosmetic"
+      },
+      {
+        "id": "REV-005",
+        "severity": "ADVISORY",
+        "summary": "task 4.8 asserts `413`, but an oversized JSON body can surface as `400` via `BadHttpRequestException` depending on how the limit is enforced; the test pins the intended behaviour, so the risk is a failing test rather than a silent gap",
+        "status": "OPEN"
+      }
+    ]
+  }
+}

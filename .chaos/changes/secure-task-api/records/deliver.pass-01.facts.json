@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "secure-task-api",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-01-chaos-apply-secure-task-api-70104b",
+  "mode": "strict",
+  "verdict": "APPLIED",
+  "at": "2026-08-01T16:05:00Z",
+  "assessment": { "confidence": "MEDIUM", "evidenceCoverage": "COMPLETE", "assumptionLoad": "LOW" },
+  "todoCandidates": [
+    { "title": "Production token issuer", "ref": "RK-5", "note": "the dev-only endpoint does not make a deployed API usable." },
+    { "title": "Per-caller authorization", "ref": "RK-4", "note": "`TaskItem` has no owner; any valid token can mutate any task." },
+    { "title": "Unreachable partition branch", "ref": "APPLY-DEC-002", "note": "see Deviation 2; needs a spec decision, not a code tweak." },
+    { "title": "CORS and HSTS test coverage", "note": "both are code-evidenced only; closing them needs a real HTTP host in the test setup." }
+  ],
+  "facts": {
+    "build": { "command": "dotnet build TaskTracker.sln", "warnings": 0, "errors": 0 },
+    "tests": { "command": "dotnet test", "passed": 34, "total": 34, "note": "5 baseline updated + 29 new" },
+    "coverage": [
+      { "statement": "C-001", "covered": true, "evidence": "test", "refs": ["AuthenticationTests.Every_task_route_rejects_anonymous_requests (5 cases)"] },
+      { "statement": "C-002", "covered": true, "evidence": "test", "refs": ["AuthenticationTests — signature, expiry, issuer, audience (4 tests)"] },
+      { "statement": "C-003", "covered": true, "evidence": "test", "refs": ["TaskEndpointsTests — 5 baseline tests updated to authenticate"] },
+      { "statement": "C-004", "covered": true, "evidence": "test", "refs": ["AuthenticationTests.Liveness_endpoint_stays_anonymous"] },
+      { "statement": "C-005", "covered": true, "evidence": "test", "refs": ["AuthenticationTests.Startup_fails_when_the_signing_key_is_missing"] },
+      { "statement": "C-006", "covered": true, "evidence": "test", "refs": ["DevTokenEndpointTests — 5 tests: Production+flag-on, Staging+flag-on, Development+flag-off, flag-absent"] },
+      { "statement": "C-007", "covered": true, "evidence": "test", "refs": ["EdgeHardeningTests.Authenticated_caller_exceeding_the_limit_gets_429"] },
+      { "statement": "C-008", "covered": true, "evidence": "test", "refs": ["EdgeHardeningTests.Unauthenticated_flood_is_throttled"] },
+      { "statement": "C-009", "covered": true, "evidence": "test", "refs": ["EdgeHardeningTests.Liveness_endpoint_is_rate_limited"] },
+      { "statement": "C-010", "covered": true, "evidence": "code", "refs": ["`Program.cs` builds the policy from `Cors:AllowedOrigins` via `WithOrigins(...)`; `AllowAnyOrigin()` and `AllowCredentials()` are absent"], "whyNotTest": "CORS is enforced by the browser, not the server; an in-memory `TestServer` cannot exercise a real preflight meaningfully" },
+      { "statement": "C-011", "covered": true, "evidence": "code", "refs": ["`UseHsts()` registered when not Development, `UseHttpsRedirection()` always; nosniff + `Referrer-Policy` asserted by 3 tests across `2xx`/`401`/`429`/`413`"], "whyNotTest": "`UseHsts` only emits over HTTPS, and the in-memory test server has no HTTPS endpoint. The `nosniff` + `Referrer-Policy` portion **is** test-covered on `2xx`, `401`, `429` and `413`" },
+      { "statement": "C-012", "covered": true, "evidence": "test", "refs": ["EdgeHardeningTests.Oversized_body_is_rejected_with_413_and_no_mutation"] },
+      { "statement": "C-013", "covered": true, "evidence": "test", "refs": ["EdgeHardeningTests.Forwarded_headers_cannot_shift_the_rate_limit_partition; grep over `src/` confirms `UseForwardedHeaders` absent"] },
+      { "statement": "C-014", "covered": true, "evidence": "test", "refs": ["`dotnet build` 0/0; `dotnet test` 34/34"] },
+      { "statement": "C-015", "covered": true, "evidence": "test", "refs": ["grep over `Domain/**` and `Contracts/**` returns no `Microsoft.AspNetCore.*`, no auth type"] },
+      { "statement": "C-016", "covered": true, "evidence": "test", "refs": ["`TaskState` unchanged; only `TaskStatus` occurrences are the pre-existing comment in `Domain/TaskItem.cs`"] },
+      { "statement": "C-017", "covered": true, "evidence": "doc", "refs": ["docs/adr/2026-08-01-api-authentication-posture.md (new)"], "whyNotTest": "an ADR is a document; existence and content were inspected directly" }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "`dotnet build` 0/0; `dotnet test` 34/34. The 5 baseline tests were **updated to authenticate, not deleted** — each still asserts its original status and body." },
+      { "id": "R-004", "status": "pass", "evidence": "`grep` over `Domain/**` and `Contracts/**` returns no `Microsoft.AspNetCore.*`, no auth type. Auth lives entirely in `Program.cs` and the endpoint group." },
+      { "id": "R-005", "status": "pass", "evidence": "`TaskState` unchanged; the only `TaskStatus` occurrences are the pre-existing explanatory comment in `Domain/TaskItem.cs`." },
+      { "id": "R-008", "status": "pass", "evidence": "`UseForwardedHeaders` is **not registered** — verified by grep over `src/`, by the inline note at `Program.cs:116`, and behaviourally by `EdgeHardeningTests.Forwarded_headers_cannot_shift_the_rate_limit_partition`, which proves a caller-supplied `X-Forwarded-For` cannot mint a fresh rate-limit bucket." }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Program.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/appsettings.json", "change": "modified" },
+      { "path": "src/TaskTracker.Api/TaskTracker.Api.csproj", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TestApiFactory.cs", "change": "added" },
+      { "path": "tests/TaskTracker.Tests/AuthenticationTests.cs", "change": "added" },
+      { "path": "tests/TaskTracker.Tests/EdgeHardeningTests.cs", "change": "added" },
+      { "path": "tests/TaskTracker.Tests/DevTokenEndpointTests.cs", "change": "added" },
+      { "path": "docs/adr/2026-08-01-api-authentication-posture.md", "change": "added" }
+    ],
+    "deviations": [
+      { "summary": "Options types live in `Program.cs`, not a new `Security/` folder", "decision": "APPLY-DEC-001" },
+      { "summary": "The rate-limiter's \"authenticated caller\" partition branch is unreachable as designed", "decision": "APPLY-DEC-002" }
+    ],
+    "scopeDrift": { "status": "NO_DRIFT", "risk": "LOW", "note": "every changed file is inside the approved scope list" },
+    "approvalConditions": [
+      { "index": 1, "status": "SATISFIED", "note": "`Program.cs:129` guards `app.MapPost(\"/dev/token\", …)` with `app.Environment.IsDevelopment() && auth.EnableDevTokenEndpoint`; the route is never mapped when either gate fails. Five tests in `DevTokenEndpointTests` assert `404`. `chaos:verify` still owns confirming this independently." },
+      { "index": 2, "status": "PENDING", "note": "not discharged by apply, by design. The ADR states what it supersedes; `chaos:sync` must edit `.chaos/architecture.md` and `.chaos/context.md` (patch-previewed under R-006)." }
+    ]
+  }
+}

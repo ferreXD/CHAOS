@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "secure-task-api",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-01-chaos-verify-secure-task-api-4efeab",
+  "mode": "strict",
+  "verdict": "READY_WITH_DEBT",
+  "at": "2026-08-01T16:20:00Z",
+  "assessment": { "confidence": "MEDIUM", "evidenceCoverage": "COMPLETE", "assumptionLoad": "LOW" },
+  "verdictRationale": "Nothing here blocks archive. Confidence is MEDIUM rather than HIGH because five requirements are PARTIAL, two contract statements rest on code inspection instead of a test, VFY-002 is inferred rather than executed, and approval condition 2 is still outstanding. Per the archive-readiness rubric that is precisely READY_WITH_DEBT: archive may proceed, but as `ARCHIVED_WITH_DEBT`.",
+  "facts": {
+    "archiveReadiness": "READY_WITH_DEBT",
+    "checks": {
+      "build": { "warnings": 0, "errors": 0, "note": "re-run independently" },
+      "tests": { "passed": 34, "total": 34, "note": "re-run independently" },
+      "contract": { "ticked": 17, "total": 17, "note": "2 rest on code inspection rather than a test (below)" },
+      "openspec": { "validation": "PASS", "isComplete": true, "tasks": { "done": 39, "total": 39 } },
+      "scopeDrift": { "status": "NO_DRIFT", "note": "every changed file is inside the approved scope list" },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "build and tests re-run independently, green" },
+        { "id": "R-004", "status": "pass", "evidence": "grep re-run over `Domain/**`, clean" },
+        { "id": "R-005", "status": "pass", "evidence": "`TaskState` unchanged" },
+        { "id": "R-008", "status": "pass", "evidence": "`UseForwardedHeaders` absent; partition test green" }
+      ]
+    },
+    "approvalConditions": [
+      {
+        "index": 1,
+        "status": "CONFIRMED",
+        "detail": "The review made this verify's job. **The dev issuance gate is registration-time.**\n`app.MapPost(\"/dev/token\", …)` at `Program.cs:143` sits inside\n`if (app.Environment.IsDevelopment() && auth.EnableDevTokenEndpoint)` at `Program.cs:142`; a grep\nover `src/` confirms it is the **only** registration of that path. Five tests in\n`DevTokenEndpointTests` assert `404` for Production+flag-on, Staging+flag-on,\nDevelopment+flag-off, and flag-absent-entirely. `[FACT · HIGH]`\n\nOne honest limit: a `404` on its own cannot distinguish \"route absent\" from \"route present and\nrefusing\". What settles it is the code inspection above, not the status code. The RK-8 mitigation\nholds as designed."
+      },
+      {
+        "index": 2,
+        "status": "NOT_DISCHARGED",
+        "detail": "`.chaos/architecture.md` still lists auth under §Non-goals and still says \"None. The API is\nopen.\" That is `chaos:sync`'s edit to make under R-006 patch preview, not apply's or verify's.\nThe ADR states what it supersedes, and REV-DEC-001 carries the sync obligation. Until sync runs,\ncommitted governance misdescribes the system — part of why this is READY_WITH_DEBT, not READY."
+      }
+    ],
+    "traceability": [
+      { "requirement": "Task routes require an authenticated caller", "capability": "api-authentication", "implementation": "`TaskEndpoints.cs` group `.RequireAuthorization()`", "test": "`Every_task_route_rejects…` (5 cases) + 2 more", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Invalid and expired credentials are rejected", "capability": "api-authentication", "implementation": "`Program.cs` `TokenValidationParameters`", "test": "4 tests (signature, expiry, issuer, audience)", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "The liveness endpoint stays anonymous", "capability": "api-authentication", "implementation": "`MapGet(\"/\")` outside the group", "test": "`Liveness_endpoint_stays_anonymous`", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Credential config is external and validated at startup", "capability": "api-authentication", "implementation": "`AuthOptions.Load` fail-fast", "test": "`Startup_fails_when_the_signing_key_is_missing`", "status": "PARTIAL", "confidence": "MEDIUM" },
+      { "requirement": "Dev-only issuance behind two independent gates", "capability": "api-authentication", "implementation": "`Program.cs:142-143`", "test": "5 `DevTokenEndpointTests`", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Production token issuance is out of scope", "capability": "api-authentication", "implementation": "no refresh/revoke route exists", "test": "grep + `DevTokenEndpointTests`", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Rate limiting applies to unauthenticated traffic", "capability": "api-edge-hardening", "implementation": "`UseRateLimiter()` at `:126` before `UseAuthentication()` at `:128`", "test": "`Unauthenticated_flood_is_throttled` + 1 more", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "The liveness endpoint is rate limited", "capability": "api-edge-hardening", "implementation": "`RequireRateLimiting(LivenessRateLimit)`", "test": "`Liveness_endpoint_is_rate_limited` + 1 more", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Task routes are rate limited per caller", "capability": "api-edge-hardening", "implementation": "`Policies.TaskRateLimit` fixed window", "test": "`Authenticated_caller_exceeding_the_limit_gets_429`", "status": "PARTIAL", "confidence": "MEDIUM" },
+      { "requirement": "Cross-origin access is an explicit allow-list", "capability": "api-edge-hardening", "implementation": "`WithOrigins(config)`, no `AllowAnyOrigin`/`AllowCredentials`", "test": null, "status": "PARTIAL", "confidence": "MEDIUM" },
+      { "requirement": "Security headers on every response", "capability": "api-edge-hardening", "implementation": "first middleware at `:89`", "test": "3 tests across `2xx`/`401`/`429`/`413`", "status": "SATISFIED", "confidence": "HIGH" },
+      { "requirement": "Transport is secured by the application", "capability": "api-edge-hardening", "implementation": "`UseHsts`/`UseHttpsRedirection`; no `UseForwardedHeaders`", "test": "`Forwarded_headers_cannot_shift_the_rate_limit_partition`", "status": "PARTIAL", "confidence": "MEDIUM" },
+      { "requirement": "Oversized request bodies are rejected", "capability": "api-edge-hardening", "implementation": "`Content-Length` guard at `:98`", "test": "`Oversized_body_is_rejected_with_413…`", "status": "PARTIAL", "confidence": "MEDIUM" }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "the \"no credential value in any tracked file\" scenario is not satisfied",
+        "detail": "`tests/TaskTracker.Tests/TestApiFactory.cs:19` declares\n`public const string SigningKey = \"test-signing-key-that-is-long-enough-for-hmac-sha256\"`. The\napi-authentication scenario says \"no signing key, token or credential value is present in any\ntracked file\". This is **not a security defect** — the value is test-only, is never referenced by\nproduction configuration, and `appsettings.json` remains clean — but the scenario as written is\nfalse once that file is committed. Fix by narrowing the scenario to *production* credential\nmaterial, or by generating the test key at runtime. Not archive-blocking."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "MINOR",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "the 413 guard only fires when `Content-Length` is present",
+        "detail": "The middleware tests `context.Request.ContentLength > limits.MaxRequestBodyBytes`; a chunked\nrequest (`Transfer-Encoding: chunked`, no `Content-Length`) yields `null`, the lifted comparison is\nfalse, and the request falls through to Kestrel's `MaxRequestBodySize` — which is exactly the\n`400`-instead-of-`413` path REV-005 predicted. No test covers the chunked case, and it was not\nexecuted during verification, hence INFERENCE rather than FACT.",
+        "recommendation": "a chunked-body test"
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "`ClockSkew = TimeSpan.Zero` has no spec or decision backing",
+        "detail": "A deliberate tightening (an expired token is expired, instead of the 5-minute default grace),\ndocumented in the ADR's Consequences — but present in no spec requirement and no decision event,\nso nothing would catch its removal.",
+        "recommendation": "a spec scenario"
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "`413` responses bypass rate limiting",
+        "detail": "The body-size middleware sits at `:98`, before `UseRateLimiter()` at `:126`, so oversized requests\nare answered without consuming a permit. This does **not** violate the spec, which requires only\nthat the limiter precede *authentication*, and the check is cheap (a header comparison, no body\nread). Recorded so the ordering is a decision rather than an accident."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "confirms APPLY-DEC-002",
+        "detail": "The rate limiter's authenticated-caller partition branch is genuinely unreachable: `UseRateLimiter`\nprecedes `UseAuthentication`, so `context.User` is never populated when the key is computed. Both\nrequirements are implemented literally; resolving the tension needs a spec amendment.",
+        "confirms": "APPLY-DEC-002"
+      }
+    ]
+  }
+}

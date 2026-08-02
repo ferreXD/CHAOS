@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "sync",
+  "pass": 1,
+  "changeId": "secure-task-api",
+  "sourceCommand": "chaos:sync",
+  "run": "RUN-2026-08-01-chaos-sync-secure-task-api-417916",
+  "mode": "strict",
+  "verdict": "PARTIALLY_RECONCILED",
+  "at": "2026-08-01T16:35:00Z",
+  "assessment": { "confidence": "HIGH", "evidenceCoverage": "COMPLETE", "assumptionLoad": "LOW" },
+  "commentary": "The change-scoped side is fully reconciled: 13 decision events classified, lifecycle state written, no OPEN decisions, OpenSpec still valid, nothing shared touched.\n\nWhat remains is not a defect in this change — it is work that a contributor-safe scope is deliberately not allowed to do. Six governance items are queued for a maintainer, and one of them is review **approval condition 2**: `.chaos/architecture.md` still tells readers the API has no authentication. Archiving before that is reconciled means archiving with the architecture document knowingly wrong, which is the debt `chaos:verify` already priced into `READY_WITH_DEBT`.\n\n**Recommended order:** `chaos:sync --adrs` and `chaos:sync --rules` (maintainer) to discharge SYNC-001…SYNC-005, then `chaos:archive secure-task-api`. Archiving first is legitimate — the change is `READY_WITH_DEBT`, not blocked — but it closes the change with the governance mismatch still live.",
+  "todoCandidates": [
+    { "title": "Maintainer sync for SYNC-001/SYNC-002", "ref": "SYNC-001", "note": "architecture and context still describe a pre-auth system. Highest-value item here." },
+    { "title": "`chaos:sync --adrs`", "ref": "SYNC-004", "note": "index the first ADR and correct the \"No `docs/adr/` files exist\" assertion in the decisions index." },
+    { "title": "`chaos:sync --rules`", "ref": "SYNC-005", "note": "promote candidates R-009 and R-010." },
+    { "title": "Spec amendment for APPLY-DEC-002 / VFY-005", "ref": "APPLY-DEC-002", "note": "the unreachable partition-key clause." }
+  ],
+  "facts": {
+    "invocation": { "scope": "change", "roleLevel": "contributor-safe", "dryRun": false },
+    "sourceManifest": [
+      { "source": ".chaos/changes/secure-task-api/change.md", "status": "verified", "note": "strict; Delivered; §Review, §Delivery, §Verification all present" },
+      { "source": ".chaos/changes/secure-task-api/decision-events.md", "status": "verified", "note": "13 entries, none OPEN" },
+      { "source": ".chaos/changes/secure-task-api/lifecycle.md", "status": "verified", "note": "Frame/Review/Deliver/Verify complete" },
+      { "source": "openspec/changes/secure-task-api/", "status": "verified", "note": "`validate --strict` PASS, `isComplete: true`" },
+      { "source": ".chaos/architecture.md", "status": "drift", "finding": "SYNC-001" },
+      { "source": ".chaos/context.md", "status": "drift", "finding": "SYNC-002" },
+      { "source": ".chaos/decisions/index.md", "status": "drift", "finding": "SYNC-003" },
+      { "source": ".chaos/rules/index.md", "status": "drift", "finding": "SYNC-005" },
+      { "source": "docs/adr/2026-08-01-api-authentication-posture.md", "status": "verified", "note": "new; unindexed (SYNC-004), no `chaosMetadata` (SYNC-006)" },
+      { "source": "openspec/specs/", "status": "empty", "note": "delta specs unpromoted — `chaos:archive`'s job, not sync's" }
+    ],
+    "openspec": { "validation": "PASS", "isComplete": true, "tasks": { "done": 39, "total": 39 } },
+    "authority": { "contextSource": "local-git", "confidence": "LOW", "note": "no MCP/provider context, so authority confidence is LOW — acceptable because contributor-safe change sync does not require provider-backed facts" },
+    "driftFindings": [
+      { "id": "SYNC-001", "category": "architecture posture", "severity": "HIGH", "knowledge": "FACT", "confidence": "HIGH", "summary": "`.chaos/architecture.md` §Non-goals still lists \"Authentication / authorization / multi-tenant concerns\", and §Authentication/authorization posture still reads \"None. The API is open.\" Both are false as of delivery.", "action": { "kind": "RECOMMEND", "target": "maintainer sync", "note": "this is review approval condition 2" } },
+      { "id": "SYNC-002", "category": "project context", "severity": "HIGH", "knowledge": "FACT", "confidence": "HIGH", "summary": "`.chaos/context.md` §Known facts still carries \"`[UNKNOWN]` Persistence, auth, and multi-user concerns are out of scope for the demo\", and §Environments still says local-dev-only with no deployment target — contradicted by PROP-DEC-002 (`public-internet`).", "action": { "kind": "RECOMMEND", "target": "maintainer sync" } },
+      { "id": "SYNC-003", "category": "decisions index", "severity": "MEDIUM", "knowledge": "FACT", "confidence": "HIGH", "summary": "`.chaos/decisions/index.md` §ADR status handling asserts \"No `docs/adr/` files exist. `[FACT]`.\" One now exists.", "action": { "kind": "RECOMMEND", "target": "chaos:sync --adrs" } },
+      { "id": "SYNC-004", "category": "ADR indexing", "severity": "MEDIUM", "knowledge": "FACT", "confidence": "HIGH", "summary": "`docs/adr/2026-08-01-api-authentication-posture.md` has no display ID and no index row. Per `artifactNaming`, sequential IDs are assigned in indexes only — so the filename is correct and only the index entry is missing.", "action": { "kind": "RECOMMEND", "target": "chaos:sync --adrs" } },
+      { "id": "SYNC-005", "category": "rules", "severity": "MEDIUM", "knowledge": "INFERENCE", "confidence": "MEDIUM", "summary": "Two reusable invariants emerged that no rule captures — see rule candidates R-009 and R-010.", "action": { "kind": "RECOMMEND", "target": "chaos:sync --rules" } },
+      { "id": "SYNC-006", "category": "artifact metadata", "severity": "LOW", "knowledge": "FACT", "confidence": "HIGH", "summary": "The ADR carries no `chaosMetadata` frontmatter. `config.artifactMetadataManagedFiles` lists `docs/adr/**/*.md` under **optional**, not `include`, so this is advisory rather than a policy violation.", "action": { "kind": "DEFER" } }
+    ],
+    "decisionReconciliation": [
+      { "decision": "ESC-001", "classification": "escalation record", "promotions": [ { "token": "NO_PROMOTION", "state": "closed" } ] },
+      { "decision": "PROP-DEC-001", "classification": "scope (authn-plus-edge)", "promotions": [ { "token": "OPENSPEC_UPDATE", "state": "done", "note": "already reflected in spec deltas" } ] },
+      { "decision": "PROP-DEC-002", "classification": "exposure (public-internet)", "promotions": [ { "token": "ADR_CANDIDATE", "state": "satisfied", "note": "ADR covers it in Context" }, { "token": "CONTEXT_RECONCILIATION", "state": "blocked", "note": "`.chaos/context.md` still contradicts it (SYNC-002)" } ] },
+      { "decision": "PROP-DEC-003", "classification": "rigor (strict)", "promotions": [ { "token": "NO_PROMOTION", "state": "closed" } ] },
+      { "decision": "PROP-DEC-004", "classification": "credential mechanism (JWT bearer)", "promotions": [ { "token": "ADR_REQUIRED", "state": "satisfied", "note": "ADR exists; index entry pending (SYNC-004)" } ] },
+      { "decision": "PROP-DEC-005", "classification": "transport (app terminates TLS)", "promotions": [ { "token": "ADR_REQUIRED", "state": "satisfied", "note": "ADR covers it" }, { "token": "RULE_UPDATE", "state": "candidate", "note": "R-008 interaction worth a rule note" } ] },
+      { "decision": "PROP-DEC-006", "classification": "archaeology waiver", "promotions": [ { "token": "ACCEPTED_RISK", "state": "done", "note": "recorded in `decision-events.md`. No `waivers.md` written — that file belongs to the legacy layout, and the `change.md` model keeps waivers in the ledger" } ] },
+      { "decision": "REV-DEC-001", "classification": "governance obligation", "promotions": [ { "token": "RULE_UPDATE", "state": "blocked", "note": "the condition-2 item — blocked at this role level" }, { "token": "ADR_REQUIRED", "state": "blocked" } ] },
+      { "decision": "REV-DEC-002", "classification": "rate limiting precedes auth", "promotions": [ { "token": "OPENSPEC_UPDATE", "state": "done", "note": "spec/design/tasks amended during review" }, { "token": "RULE_UPDATE", "state": "candidate" } ] },
+      { "decision": "REV-DEC-003", "classification": "dev-only issuance", "promotions": [ { "token": "ACCEPTED_RISK", "state": "done", "note": "RK-8 accepted by the human (\"Risk accepted\"). Currently visible only inside the change folder and the ADR" }, { "token": "RULE_UPDATE", "state": "candidate" } ] },
+      { "decision": "REV-DEC-004", "classification": "approval", "promotions": [ { "token": "NO_PROMOTION", "state": "closed", "note": "`approves-change: true`" } ] },
+      { "decision": "APPLY-DEC-001", "classification": "options placement", "promotions": [ { "token": "NO_PROMOTION", "state": "closed" } ] },
+      { "decision": "APPLY-DEC-002", "classification": "dead partition branch", "promotions": [ { "token": "OPENSPEC_UPDATE", "state": "pending", "note": "needs a spec amendment; confirmed by VFY-005" }, { "token": "FOLLOW_UP_CHANGE", "state": "pending" } ] }
+    ],
+    "appliedActions": [
+      { "action": "Write change-scoped sync report", "file": ".chaos/changes/secure-task-api/sync-report.md", "result": "created" },
+      { "action": "Set `lifecycle.phases.sync`", "file": "change.md frontmatter", "result": "complete · verdict PARTIALLY_RECONCILED" },
+      { "action": "Reconcile `lifecycle.current.syncState`", "file": "change.md frontmatter", "result": "PARTIALLY_RECONCILED" },
+      { "action": "Re-render lifecycle view", "file": "lifecycle.md", "result": "Sync row updated" }
+    ],
+    "notModified": [
+      ".chaos/architecture.md", ".chaos/context.md", ".chaos/decisions/index.md",
+      ".chaos/rules/index.md", "docs/adr/**", "AGENTS.md", "README.md"
+    ],
+    "ruleCandidates": [
+      { "id": "R-009", "source": "REV-DEC-002", "statement": "Where a surface is reachable by untrusted callers, the rate limiter is registered before authentication/authorization so that rejected requests consume a permit.", "violationCriterion": "`UseAuthentication()`/`UseAuthorization()` registered before `UseRateLimiter()` on a publicly-exposed app.", "severity": "major" },
+      { "id": "R-010", "source": "REV-DEC-003", "statement": "Any endpoint that weakens authentication in a named environment (test hooks, dev token minters, impersonation) is gated on the environment AND an opt-in flag defaulting to off, and is applied at route-registration time so the route is absent rather than present-and-refusing.", "violationCriterion": "Such an endpoint guarded only by `IsDevelopment()`, or guarded by a runtime check inside a mapped handler.", "severity": "blocker" }
+    ],
+    "gateCandidates": [],
+    "debt": [
+      { "item": "SYNC-001 architecture posture", "reason": "shared governance, out of role scope", "impact": "Committed governance actively misdescribes the delivered system. Review approval condition 2 stays open", "followUp": "maintainer sync before archive" },
+      { "item": "SYNC-002 context posture", "reason": "shared governance, out of role scope", "impact": "Same class as SYNC-001, lower blast radius", "followUp": "maintainer sync" },
+      { "item": "SYNC-003 / SYNC-004 ADR indexing", "reason": "shared governance, out of role scope", "impact": "The first ADR is invisible to the decisions index", "followUp": "chaos:sync --adrs" },
+      { "item": "SYNC-005 rule candidates", "reason": "shared governance, out of role scope", "impact": "R-009/R-010 invariants live only in this change's history", "followUp": "chaos:sync --rules" },
+      { "item": "SYNC-006 ADR metadata", "reason": "advisory (optional path in config)", "impact": "provenance only", "followUp": "defer" },
+      { "item": "APPLY-DEC-002 / VFY-005 spec amendment", "reason": "needs a spec decision, not a sync action", "impact": "a spec clause is unreachable as written", "followUp": "follow-up change" },
+      { "item": "VFY-001, VFY-002", "reason": "verification findings, not governance drift", "impact": "spec-vs-test mismatch; chunked-body `413` gap", "followUp": "follow-up change / chaos:todo" }
+    ],
+    "consistencyChecks": [
+      { "check": "`change.md` lifecycle vs `lifecycle.md` view", "result": "PASS", "note": "consistent after this write" },
+      { "check": "Decision-event ids cross-referenced in `change.md` all resolve", "result": "PASS", "note": "13/13" },
+      { "check": "No OPEN decision events", "result": "PASS" },
+      { "check": "OpenSpec validation still green after sync", "result": "PASS", "note": "sync touched no OpenSpec artifact" },
+      { "check": "No shared-governance file modified", "result": "PASS", "note": "verified against the will-not-modify list" },
+      { "check": "No production code modified", "result": "PASS" }
+    ],
+    "rollup": { "driftLoad": "MEDIUM", "decisionLoad": "LOW", "ruleImpact": "MEDIUM", "gateImpact": "NONE", "adrImpact": "MEDIUM", "manualFollowUpRequired": true }
+  }
+}

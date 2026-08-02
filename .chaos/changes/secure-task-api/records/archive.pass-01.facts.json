@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "archive",
+  "pass": 1,
+  "changeId": "secure-task-api",
+  "sourceCommand": "chaos:archive",
+  "run": "RUN-2026-08-01-chaos-archive-secure-task-api-7ef4f8",
+  "mode": "strict",
+  "verdict": "ARCHIVED_WITH_DEBT",
+  "at": "2026-08-01T19:05:00Z",
+  "assessment": { "confidence": "HIGH", "evidenceCoverage": "COMPLETE", "assumptionLoad": "LOW" },
+  "verdictRationale": "Confidence is HIGH here (versus MEDIUM at verification) because every archive-time claim was re-executed or re-grepped rather than inherited: build, tests, OpenSpec validation, the drift re-check, and the six source-of-truth confirmations. The MEDIUM-confidence items from verification are carried as *named debt*, not as uncertainty about the archive itself.",
+  "commentary": "`secure-task-api` is closed. It began as `chaos:propose \"secure the API before we expose it\" --light`, auto-escalated light → standard on an architecture non-goal crossing, then standard → strict by human decision, and ends archived with 13 requirements promoted into the base specs.\n\nFifteen decisions were surfaced to the human and none was decided by a command. Three review findings were remediated before implementation, one of them (REV-002, unauthenticated rate limiting) a genuine threat-model gap rather than a documentation nit. Two durable rules — R-009 and R-010 — came out of the review and now constrain future work; R-010 in particular converts a one-off RK-8 mitigation into an enforceable invariant.\n\nNext: `chaos:retro secure-task-api` is worth running — this lifecycle produced several process observations (the light-valve escalation chain, the sync-before-archive ordering, and a recurring interaction-runtime defect) that are more valuable as process improvements than as per-change notes.",
+  "todoCandidates": [
+    { "title": "RK-5 production token issuer", "ref": "RK-5", "note": "highest functional gap; the API is not independently usable." },
+    { "title": "APPLY-DEC-002 spec amendment", "ref": "APPLY-DEC-002", "note": "the unreachable partition-key clause." },
+    { "title": "VFY-002 chunked-body `413` test", "ref": "VFY-002", "note": "the only inferred (unexecuted) finding in the change." },
+    { "title": "VFY-001 spec scenario narrowing", "ref": "VFY-001", "note": "or generate the test signing key at runtime." },
+    { "title": "SYNC-006", "ref": "SYNC-006", "note": "ADR `chaosMetadata`, or move `docs/adr/**` to `include`." },
+    { "title": "Interaction-runtime defect (4 occurrences this session)", "note": "`createDecision` writes the decision artifact before validating the session transition, stranding a `waiting` decision when the session is `ready-to-resume`. Cost two run IDs; worth fixing in `tools/chaos-interaction-runtime`." },
+    { "title": "OpenSpec size warning", "note": "\"more than 10 deltas\"; consider splitting changes of this size at framing time." }
+  ],
+  "facts": {
+    "gate": {
+      "decision": "ARC-DEC-002",
+      "verificationRun": "RUN-2026-08-01-chaos-verify-secure-task-api-4efeab",
+      "forceWaiver": false,
+      "governanceOverride": false
+    },
+    "preArchiveValidation": [
+      { "check": "`dotnet build`", "result": "0 warnings / 0 errors" },
+      { "check": "`dotnet test`", "result": "34/34" },
+      { "check": "`openspec validate secure-task-api --strict`", "result": "PASS" },
+      { "check": "Tasks", "result": "39/39 ticked" },
+      { "check": "Contract", "result": "17/17 ticked" },
+      { "check": "Governance drift re-grep", "result": "none", "note": "zero stale auth claims in `architecture.md`, `context.md`, `decisions/index.md`" },
+      { "check": "R-009 / R-010 present", "result": "yes" }
+    ],
+    "closureMatrix": [
+      { "decision": "ESC-001", "source": "propose", "classification": "escalation", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "retroTopic": "light-valve behaviour", "confidence": "HIGH" },
+      { "decision": "PROP-DEC-001", "source": "propose", "classification": "scope", "closure": "OPENSPEC_AMENDED", "syncAction": { "tokens": ["NONE"] }, "confidence": "HIGH" },
+      { "decision": "PROP-DEC-002", "source": "propose", "classification": "exposure", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"], "note": "reconciled 2026-08-01" }, "confidence": "HIGH" },
+      { "decision": "PROP-DEC-003", "source": "propose", "classification": "rigor", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "confidence": "HIGH" },
+      { "decision": "PROP-DEC-004", "source": "propose", "classification": "credential mechanism", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"], "note": "ADR-0001 indexed" }, "retroTopic": "PoC-rationale vs strict posture", "confidence": "HIGH" },
+      { "decision": "PROP-DEC-005", "source": "propose", "classification": "transport", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"], "note": "ADR-0001" }, "confidence": "HIGH" },
+      { "decision": "PROP-DEC-006", "source": "propose", "classification": "archaeology waiver", "closure": "ACCEPTED_RISK", "syncAction": { "tokens": ["RECORD_ACCEPTED_RISK"] }, "retroTopic": "waiver-equivalence claim", "confidence": "MEDIUM" },
+      { "decision": "REV-DEC-001", "source": "review", "classification": "governance obligation", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"], "note": "discharged by `--adrs`" }, "confidence": "HIGH" },
+      { "decision": "REV-DEC-002", "source": "review", "classification": "spec + rule", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"], "note": "R-009 promoted" }, "confidence": "HIGH" },
+      { "decision": "REV-DEC-003", "source": "review", "classification": "accepted risk + rule", "closure": "ACCEPTED_RISK", "syncAction": { "tokens": ["RECORD_ACCEPTED_RISK"], "note": "bounded by R-010" }, "retroTopic": "dev-bypass pattern", "confidence": "HIGH" },
+      { "decision": "REV-DEC-004", "source": "review", "classification": "approval (`approves-change: true`)", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "confidence": "HIGH" },
+      { "decision": "APPLY-DEC-001", "source": "apply", "classification": "design placement", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "confidence": "HIGH" },
+      { "decision": "APPLY-DEC-002", "source": "apply", "classification": "unreachable spec clause", "closure": "FOLLOW_UP_CHANGE_REQUIRED", "syncAction": { "tokens": ["AMEND_OPENSPEC_SPEC"] }, "retroTopic": "spec-vs-ordering conflict", "confidence": "HIGH" },
+      { "decision": "ARC-DEC-001", "source": "archive", "classification": "deferral", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "retroTopic": "value of sync-before-archive", "confidence": "HIGH" },
+      { "decision": "ARC-DEC-002", "source": "archive", "classification": "archive-with-debt", "closure": "CLOSED", "syncAction": { "tokens": ["NONE"] }, "confidence": "HIGH" }
+    ],
+    "openspecArchive": {
+      "command": "openspec archive secure-task-api --yes",
+      "archivedAs": "2026-08-01-secure-task-api",
+      "totals": { "added": 13, "modified": 0, "removed": 0, "renamed": 0 },
+      "promotions": [
+        { "capability": "api-authentication", "op": "create", "requirements": 6 },
+        { "capability": "api-edge-hardening", "op": "create", "requirements": 7 }
+      ],
+      "warnings": ["Consider splitting changes with more than 10 deltas."]
+    },
+    "sourceOfTruth": {
+      "status": "CONFIRMED",
+      "checks": [
+        { "check": "Active change removed", "result": "PASS", "note": "`openspec/changes/` now contains only `archive/`" },
+        { "check": "Archived at expected location", "result": "PASS", "note": "`openspec/changes/archive/2026-08-01-secure-task-api/`" },
+        { "check": "Proposal/design/specs/tasks preserved in archive", "result": "PASS", "note": "all four present" },
+        { "check": "Base specs updated from deltas", "result": "PASS", "note": "`openspec/specs/api-authentication/spec.md` (6 requirements), `openspec/specs/api-edge-hardening/spec.md` (7)" },
+        { "check": "`openspec list` reflects closure", "result": "PASS", "note": "\"No active changes found.\"" },
+        { "check": "CHAOS archive report written", "result": "PASS", "note": "this file" }
+      ]
+    },
+    "acceptedRisks": [
+      {
+        "ref": "PROP-DEC-006",
+        "risk": null,
+        "condition": "strict brownfield archaeology requirement",
+        "acceptedBy": "vscode-user",
+        "date": "2026-08-01",
+        "rationale": "Not needed",
+        "impact": "none observed — the source manifest plus the 5-test baseline were claimed as equivalent evidence, and verification did not contradict that",
+        "confidenceImpact": "none (equivalence accepted)",
+        "followUp": null
+      },
+      {
+        "ref": "REV-DEC-003",
+        "risk": "RK-8",
+        "condition": "shipping a development-gated auth bypass on a service intended for public exposure",
+        "acceptedBy": "vscode-user",
+        "date": "2026-08-01",
+        "rationale": "Risk accepted",
+        "impact": "Critical **if** it reaches a deployed environment",
+        "confidenceImpact": "verification confidence held at MEDIUM",
+        "followUp": "**bounded by R-010** (blocker) — future work cannot repeat the pattern behind a single gate"
+      }
+    ],
+    "debt": [
+      { "item": "RK-8 dev issuance endpoint", "reason": "deliberate, human-accepted", "impact": "Critical if deployed; mitigated by two registration-time gates + 5 tests", "route": "`chaos:retro`; constrained by R-010" },
+      { "item": "RK-5 no production token issuer", "reason": "scoped out at framing", "impact": "a real deployment is not usable until an issuer exists", "route": "follow-up change" },
+      { "item": "VFY-001 test signing key vs spec scenario", "reason": "spec wording broader than intended", "impact": "not a security defect; the scenario as written is false", "route": "follow-up change — narrow the scenario or generate the key at runtime" },
+      { "item": "VFY-002 chunked-body `413` gap", "reason": "`Content-Length`-only guard", "impact": "a chunked oversized body may surface as `400`; **inferred, not executed**", "route": "follow-up change — add a chunked-body test" },
+      { "item": "APPLY-DEC-002 unreachable partition branch", "reason": "spec clause conflicts with mandated middleware order", "impact": "a spec clause can never execute", "route": "spec amendment" },
+      { "item": "SYNC-006 ADR `chaosMetadata`", "reason": "advisory (`docs/adr/**` is `optional` in config)", "impact": "provenance only", "route": "defer" }
+    ],
+    "debtLoad": "MEDIUM"
+  }
+}
