@@ -64,14 +64,19 @@ No silent amendment of governance artifacts.
 
 **`change.md` first (all modes):** when `.chaos/changes/<change-id>/change.md` exists — any
 mode, not just light — verify against it: read §Contract + §Delivery first (plus §Review,
-`decision-events.md`, and the `lifecycle.md` view) and do **not** demand
-`apply-report.md`/`verification.md`. Standalone post-hoc verification appends a compact
-`## Verification` table to `change.md` (build/tests/contract/rules + confidence-labelled
-verdict) instead of writing `verification.md`. Depth scales with mode: light = table only;
-standard = short prose allowed where it earns its place; strict = fuller analysis + extras,
-with any section > ~80 lines overflowing to `appendix/<section>.md` (one-line summary + link
-in place). Presence of `change.md` selects this layout — mode does not. Formats:
-`chaos-shared/reference/change-template.md`.
+`decision-events.md`, the `records/` and the `lifecycle.md` view) and do **not** demand
+`apply-report.md`/`verification.md`. The output is the **verify phase record** — emit
+`records/verify.pass-NN.facts.json` per `chaos-shared/reference/record-emission.md`: envelope
+`verdict` (`READY | READY_WITH_DEBT | NOT_READY`), the completing run id, `mode` = the verify
+rigor, `assessment`, and `facts`: `archiveReadiness`, independently re-run `checks`
+(build/tests/contract/openspec/scopeDrift/rules — the renderer **cross-checks** these against
+the deliver record and the contract), `approvalConditions` (status per condition of the
+approving entry, analysis in `detail`), the strict `traceability` matrix (the rollup is
+derived from rows, never asserted), and `findings` (`VFY-###`, severity, knowledge,
+confidence, `detail`, optional `confirms` decision ref). "Why this verdict" goes in
+`verdictRationale`. Then render: `python tools/chaos-render/render.py <change-id> --write` —
+the renderer appends the `### Verification — pass N` snapshot to `change.md`; never hand-write
+it. Presence of `change.md` selects this layout — mode does not.
 
 **Legacy fallback (`change.md` absent — old/archived changes only):** read change-folder
 artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`, `decision-events.md`,
@@ -82,16 +87,19 @@ artifacts (`lifecycle.md`, `apply-report.md`, `proposal-review.md`, `decision-ev
 ```
 
 Audit `.chaos/changes/<change-id>/decision-events.md` and `.chaos/changes/<change-id>/waivers.md`
-if present. Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set
-`frontmatter.lifecycle.phases.verify` (`status`, `at`, `run`, `mode` = the verify rigor, `verdict`)
-— this is the phase that was previously left unwritten — and reconcile `lifecycle.current` (`tests`,
-`contract`, `traceability`, `decisions`, `archiveReadiness`), then re-render `lifecycle.md` (Verify
-row + Current line) with user confirmation. A re-verify appends a new `### Verification — pass N` block
-(per-pass snapshot, run-id-tagged); never back-edit a prior pass. Do not edit production code. The
-legacy `.chaos/verification/` folder may be READ for compatibility but is no longer the preferred
+if present (the decision-event audit paragraph is **derived by the renderer** from the ledger
+scan — never hand-counted). The renderer sets `phases.verify` — the phase that was previously
+left unwritten — reconciles `lifecycle.current` (`tests`, `contract`, `traceability`,
+`decisions`, `archiveReadiness`) from the records, and re-renders `lifecycle.md`. A re-verify
+emits the next pass record (`verify.pass-02.facts.json` → a new `### Verification — pass N`
+block); a pass record is never rewritten. Do not edit production code. The legacy
+`.chaos/verification/` folder may be READ for compatibility but is no longer the preferred
 output location; do not migrate it. See `.chaos/changes/README.md`.
 
-When verification cannot be completed, still record the outcome — a `## Verification` entry on `change.md` (or the legacy report on old changes) with `BLOCKED` or `INSUFFICIENT_EVIDENCE` and concrete next actions.
+When verification cannot be completed, emit **no phase record** (a blocked attempt is not a
+completed pass — the phase renders as attempted via its runtime session): report `BLOCKED` or
+`INSUFFICIENT_EVIDENCE` with concrete next actions in the run summary, and record a ledger
+entry when the blocker is material. On old changes the legacy report carries the outcome.
 
 ## Todo Candidates (optional)
 

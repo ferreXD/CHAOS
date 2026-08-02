@@ -20,7 +20,7 @@ Mandatory for every model (especially weaker ones such as Sonnet). Full rules:
 - A recommendation is not a decision; a displayed plan is not approval.
 - Delegate C#/.NET work to the C# implementation specialist within task boundaries; the orchestrator owns user decisions (the specialist returns findings/options/evidence, it does not ask final user decisions).
 - Record every decision as a Decision Event; label findings with knowledge type + confidence.
-- Write the apply report under `.chaos/changes/<change-id>/apply-report.md` (legacy `.chaos/apply-reports/` is read-only for compat).
+- Write the apply report under `.chaos/changes/<change-id>/apply-report.md` (legacy `.chaos/apply-reports/` is read-only for compat). **Exception — light-deliver:** when `.chaos/changes/<change-id>/change.md` has `chaosMetadata.mode: light`, follow the skill's Light-deliver contract instead: output is the `change.md` §Delivery dashboard, no apply-report.
 
 ### Sonnet-safe execution checklist
 
@@ -48,7 +48,7 @@ Mandatory behaviour:
 6. Delegate C#/.NET implementation to the C# implementation specialist only within task boundaries.
 7. Classify discovered amendments and ask whether to add now, amend OpenSpec first, defer, accept risk, or stop.
 8. Record every decision as a Decision Event.
-9. Write `.chaos/changes/<change-id>/apply-report.md` (legacy `.chaos/apply-reports/<change-id>-apply-report.md` is READ-only for compatibility, not a write target).
+9. Write `.chaos/changes/<change-id>/apply-report.md` (legacy `.chaos/apply-reports/<change-id>-apply-report.md` is READ-only for compatibility, not a write target). On light-deliver: the `change.md` §Delivery dashboard instead (see golden rule above).
 10. Recommend `chaos:verify <change-id>`.
 
 Config requirement:

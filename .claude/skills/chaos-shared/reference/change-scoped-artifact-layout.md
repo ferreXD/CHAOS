@@ -22,6 +22,9 @@ Resolve `<change-id>` from the invocation/OpenSpec change, and resolve the base 
   change.md               # the change story (all modes): §Intent/§Contract/§Review/§Delivery
   lifecycle.md            # lifecycle manifest / generated state view (status + links)
   decision-events.md      # PROP-DEC-*/REV-DEC-*/APP-DEC-*/ESC-*/... events (append-only)
+  records/                # Stage-B source records: contract.json + <phase>.pass-NN.facts.json
+                          # (formats: chaos-shared/reference/record-emission.md)
+  appendix/               # renderer-managed overflow sections (~80-line rule)
   archive-report.md       # chaos:archive
   sync-report.md          # chaos:sync --change <change-id>
   retro.md                # chaos:retro <change-id>
@@ -31,6 +34,12 @@ Resolve `<change-id>` from the invocation/OpenSpec change, and resolve the base 
 Canonical `change.md` / decision-entry / `lifecycle.md` formats:
 `chaos-shared/reference/change-template.md`. Approval is the `approves-change: true` marker
 on the approving decision entry — no `approval.md`.
+
+**Renderer-owned artifacts (Stage B):** `change.md`, `lifecycle.md`, `sync-report.md`,
+`archive-report.md` and `appendix/*` are projected from `records/` + the ledger by
+`python tools/chaos-render/render.py <change-id> --write`. Commands emit records and render;
+they never hand-write or hand-edit these files (protocol:
+`chaos-shared/reference/record-emission.md`).
 
 Legacy per-change reports — read-only, present only on old changes that predate `change.md`
 (never produced for new changes in any mode):

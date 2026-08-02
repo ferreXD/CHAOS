@@ -49,9 +49,7 @@ You may:
 - Inspect OpenSpec change artifacts.
 - Inspect CHAOS reports and governance files.
 - Run or guide OpenSpec validation/archive/status commands when permitted.
-- Write `.chaos/changes/<change-id>/archive-report.md` and update `Status: Archived` in
-  `.chaos/changes/<change-id>/lifecycle.md` with confirmation (v0 change-scoped layout; legacy
-  `.chaos/archive-reports/` read-only for compat, do not migrate).
+
 - Ask the user to classify unresolved closure items.
 
 You must not:

@@ -86,21 +86,20 @@ Before operating, read the reference files in this skill (and the shared policie
    5. Run OpenSpec validation (`openspec validate <change-id> --strict`) when available; record run/not-run/failed honestly.
    6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard asks one decision and STOPs, then caps confidence; light auto-escalates to standard first (the light valve); record the degraded-mode decision event.
    7. Only after the gate, apply CHAOS wrapping (confidence, decision events, archaeology references, lifecycle, review routing, governance recommendations).
-   8. Record the **OpenSpec Invocation Proof** in `change.md` §Contract (see `reference/openspec-integration-contract.md`).
+   8. Record the **OpenSpec Invocation Proof** in the frame record's `facts.openspec` block — the renderer projects it into `change.md` §OpenSpec Invocation (see `reference/openspec-integration-contract.md`).
 10. Re-read/re-evaluate amended proposal artefacts when runtime decisions changed them.
 11. When a change id is known, initialize the change folder `.chaos/changes/<change-id>/`
-    per `reference/change-artifacts-layout.md`: write `change.md` (§Intent + §Contract +
-    §Review verdict line — formats in `chaos-shared/reference/change-template.md`;
-    frontmatter `artifactType: change`, `mode: standard|strict`) at mode depth, record
-    proposal-time decision events in `.chaos/changes/<change-id>/decision-events.md`, and
-    write the `lifecycle.md` generated-view stub (status `Framed`), linking decisions from
-    `change.md`. **Initialize the full frontmatter `lifecycle` block** (per
-    `chaos-shared/reference/change-template.md`): `phases.frame` = complete with `mode`
-    (the framing mode) + run id, and `review`/`deliver`/`verify`/`sync`/`archive` as `pending`
-    (standard/strict; light seeds only `deliver` pending); seed the `lifecycle.current` rollup
-    (`decisions` = current entry count; the rest `null` until delivered). Depth scales by mode: standard = short prose allowed per section; strict =
-    fuller analysis + extra sections (risk, traceability matrix) + the overflow rule (any
-    section > ~80 lines → `appendix/<section>.md`, leaving a one-line summary + link).
+    per `reference/change-artifacts-layout.md`: record proposal-time decision events in
+    `.chaos/changes/<change-id>/decision-events.md` (hand-appended, as always), then **emit
+    the FRAME records** per `chaos-shared/reference/record-emission.md` —
+    `records/contract.json` (testable statements with stable ids `C-001…`, grouped,
+    `source` = the shaping decision refs) and `records/frame.pass-NN.facts.json`
+    (title + intent lines + the OpenSpec invocation proof; standard adds confidence limiters;
+    strict adds the source manifest, risk table and framing traceability payloads; verdict
+    `READY_FOR_REVIEW`, the completing run id, the framing `mode`). Then render:
+    `python tools/chaos-render/render.py <change-id> --write` — the renderer writes
+    `change.md` and `lifecycle.md` (frontmatter `lifecycle` block, `current` rollup, section
+    depth and the ~80-line overflow are all mechanical; never hand-write or hand-edit them).
     **No `proposal-report.md`.**
 12. Recommend `chaos:review <change-id>`.
 
@@ -116,10 +115,12 @@ touches them. Then, instead of steps 8–12:
 1. Run the **hard OpenSpec invocation gate** exactly as step 9 (OpenSpec is unchanged in every
    mode).
 2. Write the change folder per the light layout (`reference/change-artifacts-layout.md`):
-   `change.md` (intent + contract + review line — formats in
-   `chaos-shared/reference/change-template.md`; **tables/checklists/single lines only, no
-   paragraphs**), lean decision entries, `lifecycle.md` stub. **No `proposal-report.md`, no
-   `proposal-review.md`** — the Review line in `change.md` records the inline self-review
+   lean decision entries in `decision-events.md`, then emit `records/contract.json` +
+   `records/frame.pass-01.facts.json` per `chaos-shared/reference/record-emission.md`
+   (light depth: title + intent lines + the OpenSpec proof only — no manifest/risk/
+   traceability payloads) and render
+   (`python tools/chaos-render/render.py <change-id> --write`). **No `proposal-report.md`,
+   no `proposal-review.md`** — the frame record's verdict is the inline self-review outcome
    (checklist: scope sane / rules mapped / contract testable / decisions complete; failure ⇒
    escalate, do not iterate).
 3. Surface every material decision to the interaction runtime — **same materiality bar as
@@ -139,15 +140,16 @@ touches them. Then, instead of steps 8–12:
 an architecture non-goal/posture, surfaces more than `modes.light.maxMaterialDecisions` material
 decisions (config, default 2), fails the self-review checklist, or OpenSpec is unavailable
 (degraded mode). On escalation the skill **keeps the `change.md` model** — it never drops into a
-legacy report path:
+legacy report path. Records are emitted at FRAME completion, so escalation needs no artifact
+surgery:
 
-- If `change.md` already exists, add the `> ⚠ escalated: light → <mode>` line directly under
-  its H1.
-- If the trigger fired **before** FRAME wrote `change.md` (e.g. posture crossing detected at
-  classification), **create `change.md` now** at the target mode's depth.
-- Always: announce it, set `escalatedFrom: light` in the `change.md` frontmatter, append an
-  `ESC-*` entry to `decision-events.md`, deepen the sections to the target mode's depth, and
-  continue on the target-mode path reusing all FRAME output.
+- Append an `ESC-*` entry to `decision-events.md` (auto-escalation). A **human-decided** mode
+  change instead carries `- escalates: <from> → <to>` on its decision entry. The renderer
+  derives the `> ⚠ escalated…` H1 warnings and frontmatter `escalatedFrom` from that ledger
+  chain — never hand-write them.
+- The frame record simply completes at the **target** mode's depth (its `mode` field is the
+  final framing mode), and rendering reflects the escalation automatically.
+- Always: announce it and continue on the target-mode path reusing all FRAME output.
 - **Never emit `proposal-report.md` or `proposal-review.md` on an escalated change.**
 
 Never downgrade automatically.

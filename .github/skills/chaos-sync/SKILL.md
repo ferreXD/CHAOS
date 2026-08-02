@@ -78,10 +78,18 @@ confirmation per `mcp-security-policy.md`).
 11. Show planned patch preview, including protected-doc patches or rewrites.
 12. Apply confirmed updates.
 13. Run post-sync consistency checks.
-14. Write the sync report to the scope-appropriate location:
-    - `--change <change-id>` → `.chaos/changes/<change-id>/sync-report.md`
-    - `--all` → `.chaos/sync-reports/repo-sync-YYYY-MM-DD.md`
-    - other scopes → `.chaos/sync-reports/<scope-or-date>-sync-report.md`
+14. Record the sync outcome:
+    - `--change <change-id>` → emit `.chaos/changes/<change-id>/records/sync.pass-NN.facts.json`
+      per `chaos-shared/reference/record-emission.md` (envelope `verdict`:
+      `RECONCILED | PARTIALLY_RECONCILED | NOT_RECONCILED`; `facts`: invocation/role level,
+      source manifest, drift findings `SYNC-###` with APPLY/RECOMMEND/DEFER actions, the
+      decision reconciliation matrix — **one row per ledger entry as of sync, per the §2 scan
+      rule** — applied actions + not-modified assertion, rule/gate candidates, debt, consistency
+      checks, rollup; closure prose in `commentary`), then render
+      `python tools/chaos-render/render.py <change-id> --write` — the renderer writes
+      `sync-report.md` and the lifecycle Sync row; never hand-write them.
+    - `--all` → `.chaos/sync-reports/repo-sync-YYYY-MM-DD.md` (repo-scoped, hand-written as today)
+    - other scopes → `.chaos/sync-reports/<scope-or-date>-sync-report.md` (hand-written as today)
 15. Produce closure summary.
 
 ## Never do
@@ -93,10 +101,10 @@ confirmation per `mcp-security-policy.md`).
 - Do not regenerate retired narrative reports for `change.md`-based changes: on such changes
   (e.g. the collapsed light path — `chaos-shared/reference/change-template.md`) sync keys on
   `decision-events.md` (anatomy unchanged) plus the `change.md` status/verdict fields, and
-  updates indexes only. Per the reconcile-on-write rule, when syncing a `change.md`-based change
-  set `frontmatter.lifecycle.phases.sync` (`status`, `at`, `run`, `mode`, `verdict` =
-  reconciliation state) and reconcile `lifecycle.current.syncState` + `decisions`, then re-render
-  `lifecycle.md` (Sync row) — this is a change-scoped state write, not a shared-governance edit.
+  updates indexes only. The lifecycle Sync row, `lifecycle.current.syncState` and
+  `sync-report.md` come from the sync phase record via the renderer (step 14) — emitting the
+  record + rendering is a change-scoped state write, not a shared-governance edit; never
+  hand-edit the rendered files.
 - Do not edit production code.
 - Do not hide sync debt.
 

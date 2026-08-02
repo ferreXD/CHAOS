@@ -10,28 +10,33 @@ concurrency policy, sync role model).
 
 When a change id is known (OpenSpec change created or selected), create:
 
-**`--standard` / `--strict`** (same artifact set as light, deeper sections — formats in
-`chaos-shared/reference/change-template.md`; standard = short prose allowed per section,
-strict = fuller analysis + extra sections (risk, traceability matrix) + the >~80-line
-overflow rule):
+**`--standard` / `--strict`** (same artifact set as light, deeper record payloads — protocol in
+`chaos-shared/reference/record-emission.md`; standard adds confidence limiters, strict adds the
+source-manifest, risk and framing-traceability payloads):
 
 ```text
 .chaos/changes/<change-id>/
-  change.md                   # the story: §Intent + §Contract + §Review (+ Delivery, by apply)
-  lifecycle.md                # generated-view stub, status: Framed
-  decision-events.md          # PROP-DEC-* recorded here, append-only
-  pre-proposal-brief.md       # degraded mode only (OpenSpec unavailable/declined)
-  appendix/<section>.md       # strict overflow only (any section > ~80 lines)
+  decision-events.md          # PROP-DEC-* recorded here, append-only (hand-written, a SOURCE)
+  records/contract.json       # contract statements with stable ids C-001… (emitted by FRAME)
+  records/frame.pass-NN.facts.json   # frame phase record (title, intent, OpenSpec proof, …)
+  change.md                   # RENDERED by tools/chaos-render (never hand-written)
+  lifecycle.md                # RENDERED state view (never hand-written)
+  appendix/<section>.md       # RENDERED overflow (~80-line rule, applied by measurement)
+  pre-proposal-brief.md       # degraded mode only (OpenSpec unavailable/declined; hand-written)
 ```
 
-**`--light` (collapsed FRAME — formats in `chaos-shared/reference/change-template.md`):**
+**`--light` (collapsed FRAME — same protocol, light-depth payloads):**
 
 ```text
 .chaos/changes/<change-id>/
-  change.md                   # the story: intent + contract + review line (+ Delivery, by apply)
-  lifecycle.md                # 10-line generated-view stub, status: Framed
   decision-events.md          # lean append-only entries; one carries approves-change: true
+  records/contract.json       # contract statements
+  records/frame.pass-01.facts.json   # title + intent + OpenSpec proof only
+  change.md                   # RENDERED
+  lifecycle.md                # RENDERED
 ```
+
+After emitting the records, run `python tools/chaos-render/render.py <change-id> --write`.
 
 No `proposal-report.md` in any mode. On light, degraded OpenSpec auto-escalates to standard
 instead of writing a brief; on standard/strict, degraded mode may write the decision-gated
@@ -47,17 +52,13 @@ the optional `pre-proposal-brief.md` is written here — never to the legacy
 OpenSpec has not minted a change id. See
 `reference/openspec-integration-contract.md` ("If OpenSpec is not available").
 
-## Lifecycle stub (`lifecycle.md` — generated state view)
+## Lifecycle view (`lifecycle.md` — rendered, never hand-written)
 
-Authoritative state lives in the `change.md` frontmatter (`chaosMetadata.lifecycle`);
-`lifecycle.md` is a **view** of it — never a second source of truth, never narrative — edited
-only at phase transitions.
-
-The `lifecycle.md` shape is defined in **one place only**:
-`chaos-shared/reference/change-template.md` §3 — the 6-column phase table
-(`| Phase | Status | Mode | Verdict | Date | Pointer |`) plus the `Current:` rollup line.
-Write the stub in exactly that format (all modes; light renders only its Frame/Deliver rows,
-per §3) and obey its purity rule. Do not copy or restyle the template here.
+`lifecycle.md` and the `change.md` frontmatter `lifecycle` block are **renderer output**,
+projected from the phase records + the ledger (shape: `chaos-shared/reference/change-template.md`
+§3, purity rule included; light renders only its Frame/Deliver rows). `chaos:propose` never
+writes or edits them — it emits the frame record and renders. If the view looks wrong, fix the
+record or ledger entry and re-render; never the file.
 
 Legacy `lifecycle.md` manifests (the phase-per-artifact table listing `proposal-review.md`,
 `approval.md`, `apply-report.md`, `verification.md`, `archive-report.md`, …) remain readable

@@ -68,7 +68,7 @@ chaosMetadata:
       contract: null       # "<met>/<total>"
       decisions: null      # integer count of decision ENTRIES per the §2 scan rule
       traceability: null   # "<satisfied>/<partial>/<missing>" (strict; omit when N/A)
-      syncState: null      # RECONCILED | PARTIALLY_RECONCILED | ... (once sync runs)
+      syncState: null      # RECONCILED | PARTIALLY_RECONCILED | NOT_RECONCILED (once sync runs)
       archiveReadiness: null # READY | READY_WITH_DEBT | NOT_READY | ARCHIVED | ARCHIVED_WITH_DEBT
                              # readiness pre-archive (set by verify); the outcome post-archive
 ---
@@ -164,13 +164,17 @@ to the ledger always uses the `##` entry shape above, whatever shape a report te
 ```markdown
 ## <PREFIX>-DEC-<nnn> — <question, one line>
 
-- status: OPEN | ANSWERED (<who>, <date>) | RESOLVED-IN-ARM | CONSUMED
+- status: OPEN | ANSWERED (<who>, <date>) [· CONSUMED] | RESOLVED-IN-ARM | RECORDED (<date>) [· run: <commandRunId>]
 - approves-change: true            # exactly one entry per light change carries this marker
-- options: A <one line> · B <one line> · C <one line>
+- options: A <one line> · B <one line> · C <one line>   # confirmation-type entries list unlettered option labels
 - recommendation: <letter> — <one clause>
 - answer: <letter or verbatim short answer>
 - why-material: <one line>
-- knowledge: FACT | INFERENCE | ASSUMPTION · confidence: HIGH | MEDIUM | LOW
+- sync-action: NONE | CREATE_ADR | UPDATE_CHAOS_RULES | AMEND_OPENSPEC_SPEC | RECORD_ACCEPTED_RISK
+                                   # "+"-combined when several apply; optional trailing "— <note>"
+- escalates: <from> → <to>         # ONLY when this entry's answer changed the mode (human escalation);
+                                   # auto-escalations use ESC- events. Feeds the H1 warning chain.
+- knowledge: FACT | INFERENCE | ASSUMPTION | UNKNOWN · confidence: HIGH | MEDIUM | LOW
 ```
 
 Escalation events use the same shape with the `ESC-` prefix:
@@ -233,3 +237,37 @@ nothing more**:
   apply-report / verification / approval).
 - Standard/strict adopt this model for new changes in a follow-up pass; light ships first
   (`docs/design/2026-07-24-artifact-model-roadmap.md`, migration staging).
+
+## 5. Stage-B record schemas (machine layer)
+
+Stage B (design: `docs/design/2026-07-24-artifact-model-roadmap.md` §Stage B) swaps the writer:
+commands emit structured records and `chaos:render` projects `change.md` / `lifecycle.md` from
+them. The formats above ARE the schemas; the machine-readable pins live in
+`tools/chaos-render/schema/` (`phase-facts`, `contract`, `decision-entry`, `escalation-event`).
+Record files live next to the ledger:
+
+```text
+.chaos/changes/<change-id>/records/
+  contract.json                # statements with stable ids C-001… No tick state — ticking is a
+                               # render-time join against the latest deliver-pass coverage.
+  <phase>.pass-NN.facts.json   # one per COMPLETED pass: frame | review | deliver | verify |
+                               # sync | archive. A deferred/aborted attempt writes NO record —
+                               # the deferral lives in the ledger.
+```
+
+Per-phase verdict enums (phase-facts envelope `verdict`):
+
+| Phase | Verdicts |
+|---|---|
+| frame | READY_FOR_REVIEW · BLOCKED |
+| review | READY_FOR_APPROVAL · READY_WITH_CONDITIONS · NEEDS_REVISION · BLOCKED · INSUFFICIENT_EVIDENCE |
+| deliver | APPLIED · PARTIALLY_APPLIED |
+| verify | READY · READY_WITH_DEBT · NOT_READY |
+| sync | RECONCILED · PARTIALLY_RECONCILED · NOT_RECONCILED |
+| archive | ARCHIVED · ARCHIVED_WITH_DEBT · ARCHIVED_UNDER_GOVERNANCE_OVERRIDE |
+
+The per-phase `run`/`mode`/`verdict`/`at` in `change.md` frontmatter come **only** from these
+records — never from "whichever runtime session exists" (a re-issued session must not change the
+recorded run id). Cumulative `lifecycle.current` values are derived at render time: tests/contract
+from the newest deliver/verify facts, decisions from the §2 scan rule, traceability from verify
+rows, syncState/archiveReadiness from the newest sync/verify/archive verdicts.

@@ -39,30 +39,33 @@ command. If review is explicitly invoked on one anyway, review the `change.md` c
 ## Required output
 
 Record the review result in the universal change artifacts (v0 change-scoped layout;
-formats in `chaos-shared/reference/change-template.md`):
+writer protocol in `chaos-shared/reference/record-emission.md`):
 
 ```text
-.chaos/changes/<change-id>/change.md           # §Review — verdict line + findings
-.chaos/changes/<change-id>/decision-events.md  # REV-DEC-* review decisions, append-only
+.chaos/changes/<change-id>/decision-events.md                  # REV-DEC-* decisions, append-only
+.chaos/changes/<change-id>/records/review.pass-NN.facts.json   # the review phase record
 ```
 
-Update `change.md` §Review with `verdict: … · confidence: … · evidence_coverage: … ·
-assumption_load: …` plus a findings list. Standard: short prose allowed. Strict: fuller
-analysis, may add a findings/risk subsection; any section over ~80 lines overflows to
-`.chaos/changes/<change-id>/appendix/<section>.md` (one-line summary + link stays in
-place). Do **not** create `proposal-review.md` for a change that has a `change.md`.
+Emit `records/review.pass-NN.facts.json`: envelope `verdict`
+(`READY_FOR_APPROVAL | READY_WITH_CONDITIONS | NEEDS_REVISION | BLOCKED | INSUFFICIENT_EVIDENCE`),
+the **completing** run id, `mode` = the review's rigor (which may auto-escalate above the framing
+mode), `assessment`, and `facts`: `scope` (paths + rules in play), `openspecValidation`, and
+`findings` (id `REV-###`, severity, summary, status `OPEN | RESOLVED_DURING_REVIEW |
+ACCEPTED_RISK`, the resolving `REV-DEC-*` ref). Remediations that add contract statements amend
+`records/contract.json` under **stable ids** with `addedBy` set. Authored analysis goes only in
+`commentary` (rendered as `### Findings and risk`); limiters in `confidenceLimiters`. Do **not**
+create `proposal-review.md` for a change that has records.
 
 After explicit approval handoff confirmation, record approval as the
-`approves-change: true` marker on the approving decision entry in `decision-events.md` —
+`approves-change: true` marker on the approving decision entry in `decision-events.md` (its
+`conditions:` line is the single source the rendered approval conditions project from) —
 do not write `approval.md` for a `change.md`-based change.
 
-Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set
-`frontmatter.lifecycle.phases.review` (`status`, `at`, `run`, `mode` = the review's rigor — which may
-auto-escalate above the framing mode — and `verdict`), advance `lifecycle.status` (e.g. `Approved` on
-the approval handoff), reconcile `lifecycle.current` (`decisions`), then re-render
-`.chaos/changes/<change-id>/lifecycle.md` (Review row) with confirmation. Self-review check before
-finishing: every `*-DEC-*` id cross-referenced in `change.md` exists and points at the entry that
-records the fact.
+Then render: `python tools/chaos-render/render.py <change-id> --write`. The renderer sets
+`phases.review`, advances `lifecycle.status` (e.g. `Approved` once the approves-change entry is
+answered), reconciles `lifecycle.current`, re-renders `lifecycle.md`, and **fails on any
+unresolvable `*-DEC-*` cross-reference** — the self-review cross-ref check is mechanical, not a
+habit.
 
 **Legacy fallback (old changes only):** when the change has no `change.md` (legacy
 artifact set), read and write the legacy `.chaos/changes/<change-id>/proposal-review.md`
