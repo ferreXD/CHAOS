@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "secure-api-underspecified",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-02-frame-01",
+  "recordedAt": "2026-08-02T23:10:37Z",
+  "groups": ["Enforcement", "Provisioning", "Governance"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Enforcement",
+      "text": "A request to any `/tasks` route without an `X-Api-Key` header returns `401 Unauthorized` and no task data.",
+      "source": ["PROP-DEC-004"]
+    },
+    {
+      "id": "C-002",
+      "group": "Enforcement",
+      "text": "A request to any `/tasks` route with a non-matching `X-Api-Key` returns `401 Unauthorized` and leaves the store unchanged.",
+      "source": ["PROP-DEC-004"]
+    },
+    {
+      "id": "C-003",
+      "group": "Enforcement",
+      "text": "A `/tasks` request carrying the configured key behaves exactly as before the change (same status codes and payloads for CRUD).",
+      "source": ["PROP-DEC-004"]
+    },
+    {
+      "id": "C-004",
+      "group": "Enforcement",
+      "text": "`GET /` returns `200` with the service/status payload without any `X-Api-Key` header (liveness stays anonymous).",
+      "source": ["PROP-DEC-003"]
+    },
+    {
+      "id": "C-005",
+      "group": "Provisioning",
+      "text": "The key is read from configuration `Security:ApiKey`; no usable key value is committed to the repository.",
+      "source": ["PROP-DEC-002"]
+    },
+    {
+      "id": "C-006",
+      "group": "Provisioning",
+      "text": "Startup fails with a clear error when `Security:ApiKey` is absent or blank; no route serves task data unauthenticated.",
+      "source": ["PROP-DEC-002"]
+    },
+    {
+      "id": "C-007",
+      "group": "Governance",
+      "text": "`dotnet build` is warning/error-clean and `dotnet test` is green, with the 5 existing integration tests updated to send the key (R-003).",
+      "source": ["PROP-DEC-004"]
+    },
+    {
+      "id": "C-008",
+      "group": "Governance",
+      "text": "The accepted auth posture crossing is recorded as an ADR (`docs/adr/2026-08-02-api-key-authentication.md`) and `.chaos/architecture.md` no longer states auth is a non-goal, before verify returns READY (adr dimension 2).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

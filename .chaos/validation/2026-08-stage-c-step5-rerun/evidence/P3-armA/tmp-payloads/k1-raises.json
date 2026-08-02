@@ -1,0 +1,10 @@
+{
+  "raises": [
+    {
+      "trigger": "M1",
+      "surface": "data-store",
+      "cite": "intent 'Add an integer version field to the task (serialized as version), starting at 1 ... incremented by 1 on every successful PUT' x posture (.chaos/architecture.md, Module / boundary model) 'Keep that direction - new behaviour (e.g. filtering) belongs at the endpoint/query boundary, not in the store's public shape, unless a decision says otherwise'",
+      "breaking": false
+    }
+  ]
+}

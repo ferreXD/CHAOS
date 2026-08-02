@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-02-chaos-propose-soft-delete-tasks-e9a761",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-02T22:41:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "Classifier confidence is MEDIUM at K1 because adjudication was used (M1 raised by the semantic layer, not the scan); the deterministic scan alone was HIGH with M2 only."
+    },
+    {
+      "kind": "CONFLICT",
+      "confidence": "HIGH",
+      "text": "Pre-existing divergence, not caused by this change: openspec/specs/task-api/spec.md already requires ?status=/?priority= filters on GET /tasks, but the code at base d27600f has no such filters. The delta spec restates those clauses verbatim for spec fidelity; this change neither implements nor verifies them."
+    },
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "Re-deleting an already soft-deleted task returns 404 (PROP-DEC-001 Q2-A). The pinned task contract is silent on this case; the answer was chosen for consistency with GET /tasks/{id} hiding soft-deleted rows."
+    }
+  ],
+  "verdictRationale": "Scope, contract and rules are settled; the one human stop (PROP-DEC-001) carries all three folded material questions and is answered, so FRAME is complete at the classified depth (openspec 1 -> delta spec written and validated; adr 2 -> ADR-001 written).",
+  "commentary": "Stage-C classification, no preset flag (zero floors). K1 two-call pattern: the deterministic scan fired M2 sensitive-surface (data-store, persistence path class on Domain/TaskItem.cs); the adjudication pass then raised M1 posture-crossing (data-store) citing the architecture boundary line 'new behaviour belongs at the endpoint/query boundary, not in the store's public shape, unless a decision says otherwise' against an intent that commits to putting deletedAt on the model. Resulting vector: stops 1 - evidence.targeted 1 - evidence.breadth 0 - review 0 - verify 1 - openspec 1 - adr 2. newStops 0: both K1 materiality firings folded into the C-11 floor approval stop, so no second stop was created. Obligations honored at FRAME: evidence.targeted 1 -> read the cited .chaos/architecture.md sections (boundary model, data-access posture, non-goals) plus the rules index; openspec 1 -> delta spec only at openspec/changes/soft-delete-tasks/specs/task-api/spec.md (no proposal.md/tasks.md/design.md - that is the openspec-2 set and was NOT written); adr 2 -> docs/adr/ADR-001-soft-delete-store-shape.md records the accepted crossing. DOCUMENTED DEVIATION: no live human was available in this measurement run, so PROP-DEC-001 was recorded and then resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged 'resolved-in-arm (no live human; Stage-C step-5 mechanized run)'. Answering that entry IS the approval. The envelope 'mode: light' is a schema artifact (the record schema requires one of light|standard|strict); under Stage C no mode was selected and no preset floor was applied - the dimension vector above is what drove every obligation. Inline self-review: scope sane (4 code/test files, all inside src/TaskTracker.Api + tests/TaskTracker.Tests) - rules mapped (R-003, R-004, R-005, R-006) - contract testable (10 statements, all behaviourally checkable over HTTP) - decisions complete (one entry, approves-change, answered) - decision cross-refs resolve. Verdict: clean.",
+  "facts": {
+    "title": "Soft-delete tasks — retain deleted rows behind a nullable deletedAt",
+    "intent": [
+      "DELETE /tasks/{id} becomes a soft delete: stamp a nullable deletedAt, return 204, keep the row.",
+      "GET /tasks hides soft-deleted tasks by default and exposes them via ?includeDeleted=true; GET /tasks/{id} 404s for them.",
+      "The four seeded tasks stay active (deletedAt null) — the in-memory 'migration' is a defaulted record member."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "engine": {
+        "name": "openspec",
+        "version": "1.6.0",
+        "configSource": "openspec/config.yaml"
+      },
+      "invocationPath": "openspec/changes/soft-delete-tasks/",
+      "artifacts": [
+        "openspec/changes/soft-delete-tasks/specs/task-api/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": true,
+        "note": "Delta spec only — the openspec dimension classified to 1 (M1 + M3-free, and C-13 makes M1+M2 a same-surface pair on data-store, so the full set is NOT owed). proposal.md / tasks.md / design.md deliberately absent."
+      },
+      "validation": {
+        "command": "openspec validate soft-delete-tasks --strict",
+        "result": "PASS",
+        "note": "Delta spec hand-authored per the run brief; the CLI (v1.6.0) was present and validated it clean."
+      },
+      "confidenceImpact": "None — the delta spec was authored and validated at the classified depth; nothing degraded."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "checkpoint": "K3",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Change DELETE /tasks/{id} from a hard delete to a soft delete: add a nullable deletedAt timestamp to the task model (serialized as deletedAt, null when active), set it on DELETE and return 204 instead of removing the row, hide soft-deleted tasks from GET /tasks and GET /tasks/{id} (404), and expose them via GET /tasks?includeDeleted=true. The four seeded tasks must remain active after startup (backward-compatible migration of existing rows).",
+  "scope": "scope: src/TaskTracker.Api/Domain/TaskItem.cs, src/TaskTracker.Api/Domain/TaskStore.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs, .chaos/changes/soft-delete-tasks/decision-events.md, .chaos/changes/soft-delete-tasks/classification-state.json, .chaos/changes/soft-delete-tasks/change.md, .chaos/changes/soft-delete-tasks/lifecycle.md, .chaos/changes/soft-delete-tasks/records/contract.json, .chaos/changes/soft-delete-tasks/records/frame.pass-01.facts.json, .chaos/changes/soft-delete-tasks/records/deliver.pass-01.facts.json, .chaos/changes/soft-delete-tasks/records/verify.pass-01.facts.json, openspec/changes/soft-delete-tasks/specs/task-api/spec.md, docs/adr/ADR-001-soft-delete-store-shape.md",
+  "postureFiles": [
+    ".chaos/architecture.md"
+  ],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/soft-delete-tasks/decision-events.md",
+  "numstatFile": ".tmp/k3.numstat",
+  "patchFile": ".tmp/k3.patch"
+}

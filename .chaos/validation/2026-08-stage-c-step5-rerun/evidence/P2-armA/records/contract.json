@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-02-chaos-propose-soft-delete-tasks-e9a761",
+  "recordedAt": "2026-08-02T22:40:00Z",
+  "groups": ["model", "deletion", "listing", "retrieval", "compatibility"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "model",
+      "text": "The task model carries a nullable `deletedAt` timestamp, serialized in JSON as `deletedAt`: an ISO-8601 string when set, `null` while the task is active.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "deletion",
+      "text": "`DELETE /tasks/{id}` on an active task sets `deletedAt` to the current time and returns 204 No Content; the task is retained in the store, not permanently removed.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-003",
+      "group": "deletion",
+      "text": "`DELETE /tasks/{id}` for an unknown id returns 404 Not Found.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-004",
+      "group": "deletion",
+      "text": "`DELETE /tasks/{id}` for an already soft-deleted task returns 404 Not Found and leaves the existing `deletedAt` unchanged.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-005",
+      "group": "listing",
+      "text": "`GET /tasks` returns only active (not soft-deleted) tasks by default.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-006",
+      "group": "listing",
+      "text": "`GET /tasks?includeDeleted=true` returns all tasks, including soft-deleted ones (non-null `deletedAt`).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-007",
+      "group": "retrieval",
+      "text": "`GET /tasks/{id}` returns 404 Not Found for a soft-deleted task and 200 OK for an active one.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-008",
+      "group": "compatibility",
+      "text": "The four seeded tasks are active (`deletedAt` = null) after startup — existing rows keep working with no migration step.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-009",
+      "group": "compatibility",
+      "text": "The five pre-existing integration tests still pass and the other CRUD endpoints (POST, PUT, validation) keep their current behaviour.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-010",
+      "group": "compatibility",
+      "text": "Visibility filtering stays at the endpoint/query boundary: `TaskStore.All()` / `Get()` keep their shapes, only the `Remove` mutator becomes `SoftDelete`; `Domain/**` references no ASP.NET type (R-004) and `TaskState` naming is unchanged (R-005).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

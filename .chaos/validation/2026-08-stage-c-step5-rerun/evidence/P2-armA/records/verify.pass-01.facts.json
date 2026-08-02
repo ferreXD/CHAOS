@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-02-chaos-verify-soft-delete-tasks-54f479",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-02T22:58:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "READY, not READY_WITH_DEBT: build and the full suite were re-run independently and are green (10/10), all 10 contract statements are covered, and the Stage-C obligation audit closes clean — adr 2 is satisfied by docs/adr/ADR-001-soft-delete-store-shape.md (the only blocker that could have capped this verdict), openspec 1 by the strict-validated delta spec, verify 1 by the six data-store safeguard checks below, and the single floor stop (PROP-DEC-001) was surfaced and answered. No dimension decreased at any checkpoint, so no human override was needed or recorded.",
+  "commentary": "K4 (scan-only, C-12): selfReview was NOT set to fail — the inline FRAME self-review verdict was clean — so X2 did not fire and no independent review pass is owed (review stays at 0). Nothing new fired; the final vector is stops 1 · evidence.targeted 1 · evidence.breadth 0 · review 0 · verify 1 · openspec 1 · adr 2 at confidence HIGH. Obligation audit against that vector: (a) adr 2 — ADR exists, so READY is not blocked; (b) openspec 1 — the delta spec owed by the K1 M1 firing exists and passes `openspec validate --strict`; the openspec-2 full set was correctly NOT written, since C-13 makes M1+M2 a same-surface pair (both data-store) and therefore correlated, not distinct; (c) verify 1 attributed to M1@K1 and M2@K1, both on the data-store surface, so the safeguard checks run here are persistence/migration checks (VFY-001); (d) stops — one stop total, the C-11 floor approval, surfaced as PROP-DEC-001 and answered; K2/K3/K4 produced newStops 0 and no stopSatisfiedBy claim was made; (e) monotonicity — the vector was identical at K2, K3 and K4 to its K1 value, so nothing decreased and no override record was required. No ESC-* entry, no escalatedFrom, no escalation warning was written: under Stage C those are legacy behaviour.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "Re-run independently at verify time."
+      },
+      "tests": {
+        "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+        "passed": 10,
+        "total": 10,
+        "note": "Re-run independently at verify time: 0 failed, 0 skipped. Matches the deliver record."
+      },
+      "contract": {
+        "ticked": 10,
+        "total": 10,
+        "note": "9 statements test-evidenced, 1 (C-010, the structural boundary statement) code-evidenced with whyNotTest recorded."
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": true,
+        "tasks": { "done": 0, "total": 0 },
+        "note": "`openspec validate soft-delete-tasks --strict` -> 'Change soft-delete-tasks is valid'. tasks.md is deliberately absent at openspec dimension 1 (delta spec only), hence 0/0."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 did not fire at K3; all changed paths were in the K1 predicted scope."
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "Independent re-run: 10/10 green, including the 5 pre-existing baseline tests."
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "grep over src/TaskTracker.Api/Domain/ finds no Microsoft.AspNetCore, IResult or Results. reference."
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "grep for TaskStatus over src/ and tests/ sources finds only the pre-existing explanatory doc comment in TaskItem.cs; no identifier was reintroduced."
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "git status shows AGENTS.md and root README.md unmodified."
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Data-store safeguard checks (verify 1) all pass",
+        "detail": "Attribution: verify rose to 1 by TRG-001 (M2 sensitive-surface, data-store) and TRG-002 (M1 posture-crossing, data-store), so the trigger-relevant checks are persistence/migration ones. S1 no hard-delete path remains — grep finds no TryRemove/.Remove( anywhere in src/TaskTracker.Api, so a delete cannot destroy a row. S2 domain→HTTP boundary intact (R-004). S3 TaskState naming intact (R-005). S4 no purge/TTL/expiry machinery was introduced, matching PROP-DEC-001 Q3-A (retain for process lifetime) — the only textual matches are inside compiled binaries. S5 store public shape: All() still returns every row ordered by CreatedAt and Get() still returns the row by id; the sole mutator change is Remove -> SoftDelete, exactly the crossing ADR-001 accepts. S6 backward-compatible migration: DeletedAt is a defaulted positional member, so every pre-existing 5-argument construction (including the four seeded tasks) still compiles and yields an active task — build is clean with 0 warnings and Seeded_tasks_are_active_with_null_deletedAt passes.",
+        "confirms": "PROP-DEC-001"
+      },
+      {
+        "id": "VFY-002",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Pre-existing spec↔code divergence carried into the delta spec (not caused by this change)",
+        "detail": "openspec/specs/task-api/spec.md (written by the archived add-task-query-filters change) requires ?status=/?priority= filters on GET /tasks, but the code at this worktree's base d27600f has none. The MODIFIED requirement in the delta spec restates those clauses verbatim, because an openspec MODIFIED block must carry the requirement's full text. This change neither implements nor verifies filtering; the divergence predates it and is out of its approved scope. Not a blocker: no contract statement of this change depends on it. Refs TRG-002 only in the sense that the delta spec exists because M1 raised openspec to 1.",
+        "recommendation": "Reconcile the base spec with the code (or land the filters) in a separate change; also route the .chaos/architecture.md boundary-posture line to cite ADR-001 via chaos:sync."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Human stop was mechanized — documented deviation",
+        "detail": "No live human was available in this Stage-C step-5 measurement run. The C-11 floor approval stop (PROP-DEC-001) was recorded as a real decision entry with options, recommendation and answer, then resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged 'resolved-in-arm (no live human; Stage-C step-5 mechanized run)'. Answering it constitutes the approval. Zero trigger-created stops arose at K2/K3/K4, so this is the only stop in the change. Recorded so a reader never mistakes an arm-resolved decision for a human-owned one (constitution §1, R-001).",
+        "confirms": "PROP-DEC-001"
+      }
+    ]
+  }
+}

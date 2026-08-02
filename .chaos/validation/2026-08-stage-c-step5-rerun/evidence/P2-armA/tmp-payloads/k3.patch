@@ -1,0 +1,403 @@
+diff --git a/docs/adr/ADR-001-soft-delete-store-shape.md b/docs/adr/ADR-001-soft-delete-store-shape.md
+new file mode 100644
+index 0000000..026ba58
+--- /dev/null
++++ b/docs/adr/ADR-001-soft-delete-store-shape.md
+@@ -0,0 +1,60 @@
++# ADR-001 — Soft delete changes the task store's public shape at the mutator only
++
++Status: Accepted
++Date: 2026-08-02
++Source: PROP-DEC-001 (change `soft-delete-tasks`)
++Trigger: TRG-002 — M1 posture-crossing (Stage-C classifier, `adr` dimension 2)
++Related change: soft-delete-tasks
++
++## Context
++
++`.chaos/architecture.md` (Module / boundary model) states, hedged `[INFERENCE · MEDIUM]`:
++
++> endpoints depend on domain (`TaskStore`) and contracts; domain has no dependency on the HTTP
++> layer. Keep that direction — new behaviour (e.g. filtering) belongs at the endpoint/query
++> boundary, not in the store's public shape, unless a decision says otherwise.
++
++The `soft-delete-tasks` contract requires a `deletedAt` field on the task model and requires
++`DELETE /tasks/{id}` to retain the row instead of removing it. Both obligations land inside the
++domain layer, so the change cannot be delivered without moving the store's public shape. The
++Stage-C classifier raised M1 on exactly this line (surface `data-store`), which set `adr` to 2:
++no READY verdict until the crossing is recorded here.
++
++## Decision
++
++Accept the crossing, confined to the **mutator**:
++
++1. `TaskItem` gains a nullable positional member `DateTimeOffset? DeletedAt = null`. The default
++   keeps every existing 5-argument construction compiling, which is the whole backward-compatible
++   "migration" for an in-memory store.
++2. `TaskStore.Remove(Guid)` is replaced by `TaskStore.SoftDelete(Guid)`, which stamps
++   `DeletedAt = DateTimeOffset.UtcNow` and returns `false` for an unknown **or already
++   soft-deleted** id.
++3. `TaskStore.All()` and `TaskStore.Get(Guid)` keep their existing shapes and keep returning
++   every stored row. **Visibility filtering stays at the endpoint/query boundary** — the
++   `includeDeleted` query parameter and the `404` for a soft-deleted id are implemented in
++   `Endpoints/TaskEndpoints.cs`, exactly where the posture wants query behaviour.
++
++Rejected: `All(bool includeDeleted)` / a `Get` that hides deleted rows. That would push the
++query semantics into the store's public shape — a larger crossing than the contract requires.
++
++## Consequences
++
++- The posture line above is now qualified for this repository: *state* required by a contract may
++  live in the domain record; *query/visibility* behaviour still may not live in the store.
++- Any future caller of `TaskStore.All()` sees soft-deleted rows and must filter them itself. That
++  is a deliberate trade: the store stays a dumb container, the endpoint owns policy.
++- `PUT /tasks/{id}` continues to operate on a soft-deleted row (unchanged behaviour of the other
++  CRUD endpoints, per the change constraints). If that becomes undesirable it is a follow-up
++  decision, not a silent fix here.
++- Soft-deleted rows are retained for the process lifetime with no purge/TTL, consistent with the
++  non-durable, process-lifetime store posture. Introducing a purge is out of scope.
++- `.chaos/architecture.md` should be reconciled to cite this ADR on the boundary-posture line.
++  That reconciliation is `chaos:sync`'s job and is **not** performed by this change.
++
++## Compliance
++
++- R-004 (domain must not depend on the HTTP layer): upheld — `Domain/**` references no
++  `Microsoft.AspNetCore.*` type; `SoftDelete` takes only a `Guid`.
++- R-005 (`TaskState` naming): untouched.
++- R-003 (green baseline): the five pre-existing integration tests still pass.
+diff --git a/openspec/changes/soft-delete-tasks/specs/task-api/spec.md b/openspec/changes/soft-delete-tasks/specs/task-api/spec.md
+new file mode 100644
+index 0000000..acb8488
+--- /dev/null
++++ b/openspec/changes/soft-delete-tasks/specs/task-api/spec.md
+@@ -0,0 +1,82 @@
++## MODIFIED Requirements
++
++### Requirement: List Tasks
++The `GET /tasks` endpoint SHALL return the list of tasks and SHALL accept optional `status`
++and `priority` query-param filters. When multiple filters are supplied they SHALL combine with
++logical AND. An unrecognized `status` or `priority` value SHALL result in a `400 Bad Request`.
++The endpoint SHALL return only **active** (not soft-deleted) tasks by default, and SHALL return
++every task — including soft-deleted ones — when `includeDeleted=true` is supplied.
++
++#### Scenario: List all active tasks unfiltered
++- **WHEN** a client sends `GET /tasks` with no query parameters
++- **THEN** the API returns 200 with every task in the store whose `deletedAt` is null
++
++#### Scenario: List including soft-deleted tasks
++- **WHEN** a client sends `GET /tasks?includeDeleted=true`
++- **THEN** the API returns 200 with every task in the store, including those whose `deletedAt` is non-null
++
++#### Scenario: Filter by status
++- **WHEN** a client sends `GET /tasks?status=open`
++- **THEN** the API returns 200 with only tasks whose status equals Open
++
++#### Scenario: Filter by priority
++- **WHEN** a client sends `GET /tasks?priority=high`
++- **THEN** the API returns 200 with only tasks whose priority equals High
++
++#### Scenario: Combined filters use AND
++- **WHEN** a client sends `GET /tasks?status=inprogress&priority=high`
++- **THEN** the API returns 200 with only tasks that are both InProgress and High priority
++
++#### Scenario: Invalid status value is rejected
++- **WHEN** a client sends `GET /tasks?status=banana`
++- **THEN** the API returns 400 Bad Request and does not return a task list
++
++#### Scenario: Invalid priority value is rejected
++- **WHEN** a client sends `GET /tasks?priority=banana`
++- **THEN** the API returns 400 Bad Request and does not return a task list
++
++## ADDED Requirements
++
++### Requirement: Soft Delete Task
++The `DELETE /tasks/{id}` endpoint SHALL soft-delete an active task: it SHALL stamp the task's
++`deletedAt` with the current time, SHALL retain the task in the store, and SHALL return
++`204 No Content`. It SHALL NOT permanently remove the task. For an id that is unknown, or that
++refers to an already soft-deleted task, the endpoint SHALL return `404 Not Found`.
++
++#### Scenario: Soft-delete an active task
++- **WHEN** a client sends `DELETE /tasks/{id}` for an active task
++- **THEN** the API returns 204 No Content and the task is still present in `GET /tasks?includeDeleted=true` with a non-null `deletedAt`
++
++#### Scenario: Delete an unknown id
++- **WHEN** a client sends `DELETE /tasks/{id}` for an id that is not in the store
++- **THEN** the API returns 404 Not Found
++
++#### Scenario: Delete an already soft-deleted task
++- **WHEN** a client sends `DELETE /tasks/{id}` for a task whose `deletedAt` is already set
++- **THEN** the API returns 404 Not Found and `deletedAt` is unchanged
++
++### Requirement: Task Deletion Timestamp
++The task resource SHALL carry a nullable `deletedAt` field, serialized in JSON as `deletedAt`:
++an ISO-8601 timestamp string when the task has been soft-deleted, and `null` while the task is
++active. Tasks that existed before this change — including the seeded tasks — SHALL remain active
++(`deletedAt` = `null`) with no migration step.
++
++#### Scenario: Active task serializes deletedAt as null
++- **WHEN** a client reads an active task via `GET /tasks/{id}`
++- **THEN** the JSON body contains `"deletedAt": null`
++
++#### Scenario: Seeded tasks stay active after startup
++- **WHEN** the API starts and a client sends `GET /tasks`
++- **THEN** all four seeded tasks are returned and each has `deletedAt` equal to null
++
++### Requirement: Retrieve Task Hides Soft-Deleted
++The `GET /tasks/{id}` endpoint SHALL return `404 Not Found` for a task whose `deletedAt` is
++non-null, and SHALL otherwise return `200 OK` with the task.
++
++#### Scenario: Retrieve a soft-deleted task
++- **WHEN** a client sends `GET /tasks/{id}` for a soft-deleted task
++- **THEN** the API returns 404 Not Found
++
++#### Scenario: Retrieve an active task
++- **WHEN** a client sends `GET /tasks/{id}` for an active task
++- **THEN** the API returns 200 OK with the task and `deletedAt` null
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..1455cf8 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -20,10 +20,21 @@ public enum TaskPriority
+     High
+ }
+ 
+-/// <summary>An immutable task record held in the in-memory store.</summary>
++/// <summary>
++/// An immutable task record held in the in-memory store.
++/// </summary>
++/// <remarks>
++/// <c>DeletedAt</c> is the soft-delete marker: <c>null</c> while the task is active, and the
++/// time of deletion once <c>DELETE /tasks/{id}</c> has run. It is declared last with a
++/// <c>null</c> default so every pre-existing five-argument construction (including the seeded
++/// tasks) keeps compiling and keeps producing an active task — that default IS the
++/// backward-compatible migration for this in-memory store. See
++/// <c>docs/adr/ADR-001-soft-delete-store-shape.md</c>.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    DateTimeOffset? DeletedAt = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..6caf270 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -41,7 +41,25 @@ public class TaskStore
+         return updated;
+     }
+ 
+-    public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
++    /// <summary>
++    /// Soft-deletes a task: stamps <see cref="TaskItem.DeletedAt"/> with the current time and
++    /// keeps the row in the store. Returns <c>false</c> when the id is unknown or the task is
++    /// already soft-deleted (both are "nothing to delete" — the endpoint maps that to 404).
++    /// </summary>
++    /// <remarks>
++    /// This replaces the former <c>Remove</c> hard delete. Visibility filtering deliberately
++    /// does NOT live here: <see cref="All"/> and <see cref="Get"/> keep returning every stored
++    /// row and the endpoint layer decides what a caller may see
++    /// (<c>docs/adr/ADR-001-soft-delete-store-shape.md</c>, PROP-DEC-001).
++    /// </remarks>
++    public bool SoftDelete(Guid id)
++    {
++        if (!_tasks.TryGetValue(id, out var existing) || existing.DeletedAt is not null)
++            return false;
++
++        _tasks[id] = existing with { DeletedAt = DateTimeOffset.UtcNow };
++        return true;
++    }
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..8f7c08f 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -7,7 +7,8 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks currently returns EVERY task, unfiltered. Closing that gap — adding optional
++/// GET /tasks returns every ACTIVE task (soft-deleted ones only with ?includeDeleted=true) and
++/// is otherwise unfiltered. Closing that gap — adding optional
+ /// <c>?status=</c> and <c>?priority=</c> filters — is the exercise the CHAOS worked example
+ /// drives end-to-end. See <c>docs/demo/README.md</c>.
+ /// </remarks>
+@@ -17,12 +18,20 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks — active tasks only by default; ?includeDeleted=true returns everything.
++        // The visibility rule lives here, at the endpoint/query boundary, not in TaskStore
++        // (docs/adr/ADR-001-soft-delete-store-shape.md).
++        group.MapGet("/", (TaskStore store, bool? includeDeleted) =>
++        {
++            var tasks = store.All();
++            return Results.Ok(includeDeleted == true
++                ? tasks
++                : tasks.Where(t => t.DeletedAt is null).ToList());
++        });
+ 
+-        // GET /tasks/{id}
++        // GET /tasks/{id} — a soft-deleted task is invisible to id lookups (404).
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
++            store.Get(id) is { DeletedAt: null } task ? Results.Ok(task) : Results.NotFound());
+ 
+         // POST /tasks
+         group.MapPost("/", (CreateTaskRequest request, TaskStore store) =>
+@@ -45,9 +54,10 @@ public static class TaskEndpoints
+                 : Results.NotFound();
+         });
+ 
+-        // DELETE /tasks/{id}
++        // DELETE /tasks/{id} — soft delete: stamps deletedAt and keeps the row.
++        // 404 for an unknown id and for an already soft-deleted task (PROP-DEC-001 Q2).
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Remove(id) ? Results.NoContent() : Results.NotFound());
++            store.SoftDelete(id) ? Results.NoContent() : Results.NotFound());
+ 
+         return app;
+     }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..005c66e 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -1,5 +1,6 @@
+ using System.Net;
+ using System.Net.Http.Json;
++using System.Text.Json;
+ using Microsoft.AspNetCore.Mvc.Testing;
+ using Xunit;
+ 
+@@ -79,6 +80,107 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+     }
+ 
++    // --- soft delete (change: soft-delete-tasks) ------------------------------------------
++
++    /// <summary>C-001 + C-008: active tasks — including the seeded ones — carry deletedAt: null.</summary>
++    [Fact]
++    public async Task Seeded_tasks_are_active_with_null_deletedAt()
++    {
++        var client = _factory.CreateClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.NotNull(tasks);
++        var seeded = new[]
++        {
++            "Write the project README",
++            "Add query-param filters to GET /tasks",
++            "Review the CHAOS proposal",
++            "Clean up sample data"
++        };
++        foreach (var title in seeded)
++        {
++            var seededTask = Assert.Single(tasks!, t => t.Title == title);
++            Assert.Null(seededTask.DeletedAt);
++        }
++    }
++
++    /// <summary>C-001: the field is present in the JSON payload and serialized as null when active.</summary>
++    [Fact]
++    public async Task Active_task_serializes_deletedAt_as_null()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Still here", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var json = await client.GetStringAsync($"/tasks/{created!.Id}");
++
++        using var doc = JsonDocument.Parse(json);
++        Assert.True(doc.RootElement.TryGetProperty("deletedAt", out var deletedAt));
++        Assert.Equal(JsonValueKind.Null, deletedAt.ValueKind);
++    }
++
++    /// <summary>C-002 + C-005 + C-006 + C-007: delete soft-deletes, hides, and retains.</summary>
++    [Fact]
++    public async Task Delete_soft_deletes_the_task_and_hides_it_by_default()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Soft delete me", status = "Open", priority = "Medium" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
++        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
++
++        // hidden from GET /tasks/{id}
++        var getById = await client.GetAsync($"/tasks/{created.Id}");
++        Assert.Equal(HttpStatusCode.NotFound, getById.StatusCode);
++
++        // hidden from the default list
++        var active = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(active!, t => t.Id == created.Id);
++        Assert.All(active!, t => Assert.Null(t.DeletedAt));
++
++        // retained, and visible with includeDeleted=true, with a non-null deletedAt
++        var all = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?includeDeleted=true");
++        var deleted = Assert.Single(all!, t => t.Id == created.Id);
++        Assert.NotNull(deleted.DeletedAt);
++    }
++
++    /// <summary>C-003: an unknown id is still a 404.</summary>
++    [Fact]
++    public async Task Delete_unknown_id_returns_404()
++    {
++        var client = _factory.CreateClient();
++
++        var delete = await client.DeleteAsync($"/tasks/{Guid.NewGuid()}");
++
++        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
++    }
++
++    /// <summary>C-004: re-deleting a soft-deleted task is a 404 and does not re-stamp deletedAt.</summary>
++    [Fact]
++    public async Task Delete_of_an_already_soft_deleted_task_returns_404_and_keeps_the_timestamp()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Delete me twice", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        Assert.Equal(HttpStatusCode.NoContent,
++            (await client.DeleteAsync($"/tasks/{created!.Id}")).StatusCode);
++
++        var all = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?includeDeleted=true");
++        var firstStamp = Assert.Single(all!, t => t.Id == created.Id).DeletedAt;
++
++        var second = await client.DeleteAsync($"/tasks/{created.Id}");
++        Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
++
++        var allAgain = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?includeDeleted=true");
++        Assert.Equal(firstStamp, Assert.Single(allAgain!, t => t.Id == created.Id).DeletedAt);
++    }
++
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+@@ -90,6 +192,16 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
+-    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    /// <summary>
++    /// Mirror of the API's task shape; enums arrive as strings ("Open", "High").
++    /// <c>DeletedAt</c> is null while the task is active and carries the soft-delete timestamp
++    /// afterwards.
++    /// </summary>
++    private record TaskDto(
++        Guid Id,
++        string Title,
++        string Status,
++        string Priority,
++        DateTimeOffset CreatedAt,
++        DateTimeOffset? DeletedAt = null);
+ }

@@ -1,0 +1,12 @@
+{
+  "checkpoint": "K3",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Add optimistic concurrency control to PUT /tasks/{id}. Add an integer version field to the task (serialized as version), starting at 1 for new and seeded tasks and incremented by 1 on every successful PUT. Add an optional integer expectedVersion to UpdateTaskRequest: when supplied and unequal to the task's current version the update is rejected with 409 Conflict and the task is left unchanged; when supplied and equal the update succeeds with 200 and the version increments; when omitted the update proceeds unconditionally (last-writer-wins) and the version increments. POST /tasks returns a task with version 1.",
+  "scope": "scope: src/TaskTracker.Api/Domain/TaskItem.cs, src/TaskTracker.Api/Domain/TaskStore.cs, src/TaskTracker.Api/Contracts/TaskRequests.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs, .chaos/changes/optimistic-concurrency-updates/ (NEW - governance artifacts), openspec/changes/optimistic-concurrency-updates/ (NEW - only if the openspec dimension >= 1), docs/adr/ (NEW - only if the adr dimension reaches 2)",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/optimistic-concurrency-updates/decision-events.md",
+  "numstatFile": ".tmp/k3-numstat.txt",
+  "patchFile": ".tmp/k3-patch.txt"
+}

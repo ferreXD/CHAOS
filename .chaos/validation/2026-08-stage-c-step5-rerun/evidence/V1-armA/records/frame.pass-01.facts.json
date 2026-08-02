@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "secure-api-underspecified",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-02-frame-01",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-02T23:10:37Z",
+  "assessment": {
+    "confidence": "MEDIUM",
+    "evidenceCoverage": "PARTIAL",
+    "assumptionLoad": "MEDIUM"
+  },
+  "verdictRationale": "Contract is testable and every material ambiguity in the ask is resolved on the record; confidence is capped at MEDIUM because classification confidence is MEDIUM (adjudication was used for M1) and all four decisions were resolved in-arm rather than by a live maintainer.",
+  "confidenceLimiters": [
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "All four PROP-DEC entries were resolved in-arm (no live human; Stage-C step-5 mechanized run) — the approval is mechanized, not maintainer-given."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "M1 fired by adjudication, not scan; classification confidence is MEDIUM per the classifier verdict."
+    }
+  ],
+  "facts": {
+    "title": "Secure the Task Tracker API with an API key before public exposure",
+    "intent": [
+      "The API is about to be exposed on the public internet and every `/tasks` route currently accepts any caller.",
+      "Enforce an `X-Api-Key` credential on `/tasks` routes (liveness `GET /` stays anonymous), with the key supplied by configuration and never committed.",
+      "Keep `dotnet build` clean and the `dotnet test` baseline green (R-003)."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "engine": {
+        "name": "openspec",
+        "version": "1.6.0",
+        "configSource": ".chaos/config.yaml project.specEngine=openspec"
+      },
+      "invocationPath": "openspec CLI, delta-only depth (Stage-C openspec dimension 1 — delta spec, nothing more)",
+      "artifacts": [
+        "openspec/changes/secure-api-underspecified/.openspec.yaml",
+        "openspec/changes/secure-api-underspecified/specs/api-authentication/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": false,
+        "note": "`openspec status --change secure-api-underspecified` reports 1/4 artifacts (specs complete; proposal/design/tasks absent). Deliberate: the classified `openspec` dimension is 1 (delta spec only) because M1 and M2 both fired on the SAME surface class `auth`, which is correlated and owes a delta, not the full set (design C-13)."
+      },
+      "validation": {
+        "command": "openspec validate secure-api-underspecified --strict",
+        "result": "PASS"
+      },
+      "confidenceImpact": "None — the delta validated strictly; the absent proposal/design/tasks are the classified depth, not a degradation."
+    }
+  }
+}

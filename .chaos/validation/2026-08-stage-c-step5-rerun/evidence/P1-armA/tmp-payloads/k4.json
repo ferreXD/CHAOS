@@ -1,0 +1,10 @@
+{
+  "checkpoint": "K4",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Require API-key authentication on the /tasks endpoints: every request to GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id} and DELETE /tasks/{id} must present a valid API key in the X-Api-Key request header. The valid key is the string value of configuration key ApiKey, defaulting to test-secret-key when that configuration value is not set. A missing or incorrect X-Api-Key on a /tasks route is rejected with HTTP 401 Unauthorized before any task is read or mutated. The root health endpoint GET / stays public. The existing visible test suite is updated to supply the key and stay green.",
+  "scope": "scope: src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, src/TaskTracker.Api/Program.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/require-api-key-auth/decision-events.md"
+}

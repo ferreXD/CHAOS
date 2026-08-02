@@ -1,0 +1,80 @@
+{
+ "worktree": "C:/cs5/wt/V1-armA",
+ "changeId": "secure-api-underspecified",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 2145,
+  "files": [
+   [
+    ".openspec.yaml",
+    40
+   ],
+   [
+    "specs/api-authentication/spec.md",
+    2105
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 0,
+  "files": []
+ },
+ "records": {
+  "bytes": 5078,
+  "files": [
+   [
+    "contract.json",
+    2253
+   ],
+   [
+    "frame.pass-01.facts.json",
+    2825
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 5592,
+  "files": {
+   "change.md": 4642,
+   "lifecycle.md": 950
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 5942,
+  "decisions": 4729,
+  "trgEvents": 999,
+  "header": 214,
+  "decisionCount": 4,
+  "trgCount": 2
+ },
+ "classifier": {
+  "stateBytes": 959,
+  "authoredScratchBytes": 1148,
+  "generatedScratchBytes": 0,
+  "scratchFiles": [
+   [
+    "k1-raises.json",
+    447
+   ],
+   [
+    "k1.json",
+    701
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 0,
+  "files": 0,
+  "addedLines": 0,
+  "deletedLines": 0
+ },
+ "totals": {
+  "authoredGovernanceBytes": 15272,
+  "authoredPlusImplementationBytes": 15272,
+  "renderedBytes": 5592
+ }
+}

@@ -1,0 +1,113 @@
+{
+ "worktree": "C:/cs5/wt/P3-armA",
+ "changeId": "optimistic-concurrency-updates",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 2776,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    2776
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 3723,
+  "files": [
+   [
+    "2026-08-03-optimistic-concurrency-on-task-updates.md",
+    3723
+   ]
+  ]
+ },
+ "records": {
+  "bytes": 19014,
+  "files": [
+   [
+    "contract.json",
+    2218
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    5796
+   ],
+   [
+    "frame.pass-01.facts.json",
+    3925
+   ],
+   [
+    "verify.pass-01.facts.json",
+    7075
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 15070,
+  "files": {
+   "change.md": 13891,
+   "lifecycle.md": 1179
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 3464,
+  "decisions": 2190,
+  "trgEvents": 1121,
+  "header": 153,
+  "decisionCount": 1,
+  "trgCount": 2
+ },
+ "classifier": {
+  "stateBytes": 1031,
+  "authoredScratchBytes": 5935,
+  "generatedScratchBytes": 12812,
+  "scratchFiles": [
+   [
+    "k1-raises.json",
+    484
+   ],
+   [
+    "k1.json",
+    1257
+   ],
+   [
+    "k2.json",
+    1341
+   ],
+   [
+    "k3-numstat.txt",
+    244
+   ],
+   [
+    "k3-patch.txt",
+    12568
+   ],
+   [
+    "k3-raises.json",
+    19
+   ],
+   [
+    "k3.json",
+    1417
+   ],
+   [
+    "k4.json",
+    1417
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 8636,
+  "files": 5,
+  "addedLines": 196,
+  "deletedLines": 15
+ },
+ "totals": {
+  "authoredGovernanceBytes": 35943,
+  "authoredPlusImplementationBytes": 44579,
+  "renderedBytes": 15070
+ }
+}

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-02-chaos-apply-soft-delete-tasks-312cae",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-02T22:52:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement is implemented and 9 of 10 are covered by a passing integration test against the real HTTP surface; build is clean and the full suite (5 baseline + 5 new) is green.",
+  "commentary": "Stage-C checkpoints. K2 (entry, scan-only per C-12): no new firings — the ledger holds one decision entry, below M4's threshold of 2 — vector unchanged at stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2, confidence HIGH. K3 (DELIVER end, two-call): the scan reported scanEcho [M2] (re-detection of the K1 firing on the persistence path class) and fired nothing new — no M5 scope spill, no M3 route delta (the patch's added and removed route registrations are the same three: MapGet \"/\", MapGet \"/{id:guid}\", MapDelete \"/{id:guid}\"), no X1 (6 files / ~317 loc, under the 8-file / 400-loc threshold). The K3 adjudication pass DECLINED to raise anything: M1 and M2 are already fired (prompt rule 11); the new includeDeleted query parameter and the new deletedAt response field are additive shape changes that rules 9 and 12 keep out of M3's domain, and the posture crossing they represent is already carried by the M1 firing from K1 (double-counting it as M3 would be a measurement error). newStops 0, no stopSatisfiedBy — no mid-flight stop was created, so PROP-DEC-001 remains the change's only human stop. Late-fired obligations (design §5.3 law 5): none — openspec 1 and adr 2 both fired at K1 and were discharged at FRAME. Implementation honors PROP-DEC-001 verbatim: Q1-A (TaskStore.Remove -> SoftDelete, All()/Get() shapes untouched, visibility filtering at the endpoint), Q2-A (re-delete -> 404, timestamp preserved), Q3-A (no purge/TTL).",
+  "todoCandidates": [
+    {
+      "title": "Reconcile .chaos/architecture.md boundary-posture line to cite ADR-001",
+      "ref": "PROP-DEC-001",
+      "note": "The ADR qualifies the 'not in the store's public shape' line; updating the posture doc is chaos:sync's job, not this change's."
+    }
+  ],
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+      "passed": 10,
+      "total": 10,
+      "note": "5 pre-existing baseline tests + 5 new soft-delete tests; 0 failed, 0 skipped."
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Active_task_serializes_deletedAt_as_null",
+          "TaskEndpointsTests.Seeded_tasks_are_active_with_null_deletedAt"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_soft_deletes_the_task_and_hides_it_by_default"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_unknown_id_returns_404"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_of_an_already_soft_deleted_task_returns_404_and_keeps_the_timestamp"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_soft_deletes_the_task_and_hides_it_by_default"]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_soft_deletes_the_task_and_hides_it_by_default"]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Delete_soft_deletes_the_task_and_hides_it_by_default",
+          "TaskEndpointsTests.Post_creates_a_task_and_get_by_id_returns_it"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Seeded_tasks_are_active_with_null_deletedAt"]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks",
+          "TaskEndpointsTests.Post_creates_a_task_and_get_by_id_returns_it",
+          "TaskEndpointsTests.Put_updates_an_existing_task",
+          "TaskEndpointsTests.Delete_removes_a_task",
+          "TaskEndpointsTests.Post_with_blank_title_is_rejected"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "docs/adr/ADR-001-soft-delete-store-shape.md"
+        ],
+        "whyNotTest": "A structural/architectural statement about WHERE behaviour lives (store shape vs endpoint boundary) and about type references — not observable over HTTP, so no black-box test can assert it. Evidenced by inspection: TaskStore.All()/Get() signatures and bodies are unchanged, the only store mutator change is Remove -> SoftDelete, the includeDeleted filter and the soft-deleted 404 are both in TaskEndpoints.cs, Domain/** references no Microsoft.AspNetCore.* type, and TaskState is untouched."
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test green: 10/10 (5 baseline + 5 new), 0 failed."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "Domain/TaskItem.cs and Domain/TaskStore.cs reference no Microsoft.AspNetCore.* or endpoint type; SoftDelete takes only a Guid and the visibility filter lives in Endpoints/TaskEndpoints.cs."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "The TaskState enum and its usages are untouched; no TaskStatus identifier was introduced."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md were not modified (git status shows neither as changed)."
+      }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" },
+      { "path": "openspec/changes/soft-delete-tasks/specs/task-api/spec.md", "change": "added" },
+      { "path": "docs/adr/ADR-001-soft-delete-store-shape.md", "change": "added" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "K3 fired no M5: every changed path was listed in the predicted scope at K1, including the planned new openspec delta spec and ADR."
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "_note": "Worktree paths are session-specific. Recreate with harness/setup-stage-c-worktrees.sh <scratch> and repoint wtA/wtB. Task statements + changeIds are the frozen contract and stay identical.",
+  "pairs": [
+    { "changeId": "require-api-key-auth", "wtA": "C:/cs5/wt/P1-armA", "wtB": "C:/cs5/wt/P1-armB" },
+    { "changeId": "soft-delete-tasks", "wtA": "C:/cs5/wt/P2-armA", "wtB": "C:/cs5/wt/P2-armB" },
+    { "changeId": "optimistic-concurrency-updates", "wtA": "C:/cs5/wt/P3-armA", "wtB": "C:/cs5/wt/P3-armB" }
+  ],
+  "ratchetSeeds": [
+    { "changeId": "secure-api-underspecified", "wtA": "C:/cs5/wt/V1-armA" }
+  ]
+}

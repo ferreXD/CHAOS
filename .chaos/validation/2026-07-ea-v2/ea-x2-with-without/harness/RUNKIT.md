@@ -106,6 +106,52 @@ One governed arm independently reported that R-001 was unmet — no material dec
 the interaction runtime — and held its verdict at READY_WITH_DEBT rather than claiming a clean
 READY, which is the governance layer working as designed.
 
+## Re-run — Stage-C progressive rigor, no preset flag (2026-08-03, model claude-opus-5[1m])
+
+Governed arm runs the **Stage-C** lifecycle with **no preset flag — zero floors**: a deterministic
+classifier + a raise-only model adjudication run at K1..K4, fired triggers raise rigor dimensions
+monotonically, and the dimension vector (not a mode word) sets every obligation, including OpenSpec
+depth (C-10 zero-base/delta/full). Same frozen tasks, same held-out oracles, **plain-arm prompt
+byte-identical**. Harness: `../../2026-08-stage-c-step5-rerun/harness/stage-c-arms.workflow.js`;
+full scorecard, fidelity table and cost attribution in that kit's `results.md`. **Model differs
+from the 2026-07-19/24 rows (Opus 5 vs Opus 4.8) — compare ratios, not absolutes.**
+
+| Pair | task | Stage-C time | plain time | time ratio | Stage-C out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 675 s | 129 s | 5.23× | 49,803 | 8,350 | 5.96× | 9/9 clean |
+| 2 | soft-delete | 836 s | 229 s | 3.65× | 54,233 | 10,630 | 5.10× | 5/5 clean |
+| 3 | concurrency | 822 s | 122 s | 6.74× | 53,552 | 9,877 | 5.42× | 5/5 clean |
+| **Σ** | | **2,333 s** | **480 s** | **4.86×** | **157,588** | **28,857** | **5.46×** | 19/19 both |
+
+**Third cost hypothesis falsified; classification fidelity perfect.** The pre-registered cost
+prediction (3.47×–4.15×, i.e. between the Stage-A and Stage-B light rows) is **wrong**: Stage C
+lands at **4.86× / 5.46×**, better than Stage-B standard (−6.5% time / −7.1% tok governed) but
+**+44% time / +35% tok** against Stage-B light. The cause is not waste — with zero floors the
+triggers themselves raised `verify 1` and `adr 2` on all three tasks, so the collapsed base grew a
+verify phase and a blocking ADR *by classification*. Targeted ceremony on a posture-crossing change
+is still expensive. Note the frozen-3 are all posture-crossing by construction, so this kit
+measures C's **expensive end**; the zero-trigger band (extended tier) was not run.
+
+**Fidelity, first blind test (the corpus was the calibration set): 13/13 checkpoint verdicts exact,
+0 under-detection, 0 over-detection**, dimension vectors and confidence trajectory exact against
+expectations frozen before launch, and reproduced by an independent replay of the archived
+payloads. M3/X1/M5/X2 correctly never fired. `newStops` 0 at every checkpoint on every arm (P6
+holds in the wild). 20 classifier invocations, 0 failures; every adjudication raise carried a
+citation; 0 `ESC-*`/`escalatedFrom` legacy leakage; 13 renders, 0 failures, `--check` CLEAN 4/4;
+0 hand-written artifacts; oracle **19/19 both arms, unregressed**.
+
+**Cost attribution (the number Stage-B's fate was waiting on):** authored governance is 17.2% of
+governed output, split **records 54.9%** · classifier+payloads 18.3% · ADRs 9.3% · **OpenSpec delta
+specs 8.3%** · decision entries 6.1% · `TRG-*` events 3.0%. Agents authored **59.5 KB of JSON to
+render 47.0 KB of markdown — ratio 0.79**, reproducing Stage-B standard's 100 KB → 78 KB (0.78) to
+within 1% on a different lifecycle shape. The classifier consumed **zero** `records/*.json`, so all
+three B options stay mechanically live. **C-10's lever fired the good way** — all three tasks got a
+single delta spec, never the full set — **and is worth ~1.4% of governed output**: measured, real,
+and not where the cost is. Two structural findings: M4 **cannot fire from K1-folded materiality**
+(stop folding collapses N questions into one ledger heading, below its threshold of 2), and
+blast-radius scope is **undefined** — whether a change's own governance output counts toward X1
+flipped between arms, and every counterfactual fires X1.
+
 ## Files
 
 | File | Role |

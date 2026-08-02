@@ -1,0 +1,41 @@
+{
+ "fired": [
+  {
+   "trigger": "M2",
+   "by": "scan",
+   "surface": "data-store",
+   "cite": "persistence class: predicted scope includes src/TaskTracker.Api/Domain/TaskItem.cs",
+   "checkpoint": "K1"
+  },
+  {
+   "trigger": "M1",
+   "by": "adjudication",
+   "surface": "data-store",
+   "cite": "intent 'add a nullable deletedAt timestamp to the task model ... set it on DELETE and return 204 instead of removing the row' x posture .chaos/architecture.md Module/boundary model 'new behaviour (e.g. filtering) belongs at the endpoint/query boundary, not in the store's public shape, unless a decision says otherwise'",
+   "checkpoint": "K1",
+   "breaking": false
+  }
+ ],
+ "stopsPlaced": [
+  "K1:floor-approval"
+ ],
+ "floors": {
+  "stops": 1,
+  "evidence.targeted": 0,
+  "evidence.breadth": 0,
+  "review": 0,
+  "verify": 0,
+  "openspec": 0,
+  "adr": 0
+ },
+ "mode": null,
+ "x1Level": 0,
+ "checkpointsRun": [
+  "K1",
+  "K1",
+  "K2",
+  "K3",
+  "K3",
+  "K4"
+ ]
+}

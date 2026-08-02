@@ -1,0 +1,10 @@
+{
+  "raises": [
+    {
+      "trigger": "M1",
+      "surface": "auth",
+      "cite": "intent 'every request to GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id} and DELETE /tasks/{id} must present a valid API key in the X-Api-Key request header' x posture Non-goals 'Authentication / authorization / multi-tenant concerns' (and 'Authentication / authorization posture: None. The API is open. Any auth is out of scope')",
+      "breaking": false
+    }
+  ]
+}

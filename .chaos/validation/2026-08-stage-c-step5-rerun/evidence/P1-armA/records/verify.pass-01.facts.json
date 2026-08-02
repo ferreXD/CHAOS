@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-03-chaos-verify-require-api-key-auth-b2519f",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-02T22:28:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "READY. Build and tests were re-run independently (0/0, 16/16) and every contract statement is ticked by an executed test. The full obligation audit against the final dimension vector passes: adr 2 is discharged by docs/adr/ADR-001-api-key-authentication.md (so the adr-2 READY block does not apply), openspec 1 is discharged by the validated delta spec, verify 1's auth-attributed safeguard checks all pass, the single placed stop (K1 floor approval) was surfaced and answered as PROP-DEC-001, and no dimension decreased across K1-K4.",
+  "commentary": "K4 ran scan-only (C-12) with a clean recorded self-review, so X2 did not fire and no independent review pass is owed (review stayed at 0). Verify depth is 1, attributed to M2/M1 on surface `auth`, so the safeguard checks run are the credential/enforcement family rather than a full orchestration. One residual risk is recorded as an advisory finding, not a blocker: the `test-secret-key` fallback is a development default by explicit contract, and ADR-001 already names 'set ApiKey in configuration' as a deployment consequence.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": { "command": "dotnet build", "warnings": 0, "errors": 0, "note": "Re-run independently at verify." },
+      "tests": { "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj", "passed": 16, "total": 16, "note": "Re-run independently at verify; identical to the deliver pass." },
+      "contract": { "ticked": 6, "total": 6, "note": "Every statement covered by test evidence in the deliver record; each ref re-checked against the test file." },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": true,
+        "note": "openspec validate require-api-key-auth --strict — delta-only set at the classified openspec depth 1."
+      },
+      "scopeDrift": { "status": "NO_DRIFT", "risk": "LOW", "note": "K3's M5 detector reported no spill; the diff is a subset of the approved scope." },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "16/16 green on an independent re-run; baseline tests preserved, not weakened." },
+        { "id": "R-004", "status": "pass", "evidence": "grep for Microsoft.AspNetCore under src/TaskTracker.Api/Domain/ returns nothing; enforcement is confined to Security/ and Endpoints/." },
+        { "id": "R-005", "status": "pass", "evidence": "TaskStatus appears only in the pre-existing explanatory comment in Domain/TaskItem.cs; TaskState naming intact." },
+        { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md unmodified." }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Auth-surface safeguard checks (verify 1, attributed to TRG-001/TRG-002) all pass",
+        "detail": "Trigger refs: TRG-001 (M2 sensitive-surface, scan, auth) and TRG-002 (M1 posture-crossing, adjudication, auth) raised verify to 1, so the auth family of checks was run. (a) Enforcement coverage: all five /tasks routes are registered on the MapGroup(\"/tasks\") builder that carries AddEndpointFilter<ApiKeyEndpointFilter>(); no /tasks route bypasses it. (b) Public surface: the only route outside the group is the health endpoint GET / in Program.cs, which is public by contract C-005 and tested. (c) Ordering: enforcement is an endpoint filter, which ASP.NET runs before the route handler, so 401 structurally precedes existence and validation checks (tested for both the 404 and 400 paths). (d) Key material: no key is committed to appsettings.json; the only literal is the contract-mandated development default constant. (e) No logging or echoing of presented or expected key material. (f) Comparison is fixed-time (CryptographicOperations.FixedTimeEquals), so a wrong key cannot be probed byte by byte. (g) An empty X-Api-Key header value is rejected, not treated as a match.",
+        "recommendation": "None — no action required."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The test-secret-key fallback is a development default and must be overridden in any real deployment",
+        "detail": "Contract statement C-004 mandates the fallback, so this is accepted behaviour, not a defect. It is recorded because the M1 posture crossing (TRG-002) makes the auth posture newly load-bearing: leaving ApiKey unset ships a publicly known key. ADR-001 already records this as a consequence ('Any real deployment must set ApiKey in configuration'). Single shared key, no rotation, no per-caller identity — authorization and multi-tenancy remain non-goals.",
+        "recommendation": "Set ApiKey in deployment configuration; revisit key rotation/identity if the demo ever grows real callers.",
+        "confirms": "PROP-DEC-001"
+      },
+      {
+        "id": "VFY-003",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Obligation audit against the final dimension vector is clean",
+        "detail": "Final vector: stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2 (classification-state.json after K4). adr 2 => docs/adr/ADR-001-api-key-authentication.md exists, so no READY block and no debt. openspec 1 => openspec/changes/require-api-key-auth/specs/task-api/spec.md exists and validates strict; the full set is correctly NOT owed because M1 and M2 both cite surface `auth` (C-13 correlated pair). verify 1 => the auth-attributed checks in VFY-001 were run. stops: exactly one placed stop (K1:floor-approval), surfaced and answered as PROP-DEC-001; newStops was 0 at K2, K3 and K4, and no stopSatisfiedBy was claimed. Monotonicity: dimensions rose only at K1 (M2 then M1) and never decreased at K2/K3/K4; no human override was recorded or needed. Legacy escalation shapes (ESC-*, escalatedFrom, the H1 warning) are correctly absent under Stage C.",
+        "recommendation": "None."
+      }
+    ]
+  }
+}

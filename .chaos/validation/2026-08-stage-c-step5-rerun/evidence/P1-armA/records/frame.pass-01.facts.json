@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-require-api-key-auth-8953c4",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-02T22:22:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Inline self-review clean on all four items: scope sane (4 code paths, 1 of them new, all inside src/TaskTracker.Api + tests/TaskTracker.Tests), rules mapped (R-003 tests green, R-004 enforcement stays at the HTTP boundary, R-005 TaskState untouched, R-006 no protected-file edits), contract testable (6 statements, each expressible as an integration test against the booted app), decisions complete (one material choice — accepting the auth non-goal crossing — recorded and answered as PROP-DEC-001).",
+  "commentary": "Stage-C, no preset flag: zero floors. K1 classification fired M2 (scan, auth) and M1 (adjudication, auth) — dimension vector stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2, classification confidence MEDIUM (adjudication used). newStops 0: both K1 materiality firings folded their named questions into the mandatory floor approval stop (design law 2), so PROP-DEC-001 carries all three folded questions. OpenSpec depth 1 (delta only) because M1 and M2 cite the SAME surface class `auth` — C-13 correlated-pair rule, not the full set. adr 2 is discharged by docs/adr/ADR-001-api-key-authentication.md. DOCUMENTED DEVIATION: no live human was available in this measurement run; PROP-DEC-001 was recorded as a real decision entry and resolved with a documented maintainer-style rationale, status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; Stage-C step-5 mechanized run). Answering that entry IS the approval.",
+  "confidenceLimiters": [
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "The classifier's own confidence is MEDIUM because the M1 firing came from the adjudication layer rather than a deterministic signal; the crossing itself is FACT (two explicit posture lines in .chaos/architecture.md)."
+    }
+  ],
+  "facts": {
+    "title": "Require API-key authentication on the task endpoints",
+    "intent": [
+      "Close the open /tasks surface: every /tasks request must present a valid X-Api-Key header.",
+      "Key comes from configuration key ApiKey, defaulting to test-secret-key when unset; bad or missing key is 401 before any store access.",
+      "GET / stays public and the existing visible test suite is updated to supply the key and stay green."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "engine": { "name": "openspec", "version": "1.6.0", "configSource": "openspec/config.yaml" },
+      "invocationPath": "delta-only depth (classified openspec dimension 1): delta spec hand-authored at openspec/changes/require-api-key-auth/specs/task-api/spec.md exactly as the frozen baseline does, then validated with the openspec CLI. No proposal.md/tasks.md/design.md — the full set is not owed (C-13: M1 and M2 both cite surface auth, so they are correlated, not distinct).",
+      "artifacts": ["openspec/changes/require-api-key-auth/specs/task-api/spec.md"],
+      "statusCheck": { "isComplete": true, "note": "Delta spec present with one ADDED requirement and six scenarios covering C-001..C-005." },
+      "validation": { "command": "openspec validate require-api-key-auth --strict", "result": "PASS", "note": "Change 'require-api-key-auth' is valid" },
+      "confidenceImpact": "None — the classified depth was met and validated."
+    }
+  }
+}

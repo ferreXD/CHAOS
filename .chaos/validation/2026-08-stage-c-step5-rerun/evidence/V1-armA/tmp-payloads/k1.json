@@ -1,0 +1,9 @@
+{
+  "checkpoint": "K1",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Secure the Task Tracker API with an API key before it is exposed on the public internet. Today the API is wide open: every /tasks endpoint accepts any caller. Add API-key credential enforcement so unauthenticated callers are rejected, and keep the build and the test baseline green.",
+  "scope": "scope: src/TaskTracker.Api/Security/ApiKeyAuthMiddleware.cs (new), src/TaskTracker.Api/Program.cs, src/TaskTracker.Api/appsettings.json, tests/TaskTracker.Tests/ApiKeyAuthTests.cs (new), tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json"
+}

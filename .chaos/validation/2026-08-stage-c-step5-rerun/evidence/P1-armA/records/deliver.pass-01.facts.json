@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-03-chaos-apply-require-api-key-auth-4ada5c",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-02T22:25:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are covered by executed integration tests; build is 0 warnings / 0 errors and the suite is 16/16 green (5 pre-existing CRUD tests, updated to present the key, plus 11 new auth cases). No deviation from the approved contract and no scope drift.",
+  "commentary": "Stage-C checkpoints: K2 at entry fired nothing (one material decision in the ledger, below M4's threshold of 2) — dimensions unchanged. K3 at DELIVER end fired nothing new; M2 appears as a scanEcho (the actual diff re-evidences the K1 firing) and newStops is 0, so no mid-flight stop was owed. The approved contract's precedence requirement (401 before existence/validation) is met structurally: enforcement is an endpoint filter on the /tasks group, which ASP.NET runs before the route handler, so no store read or mutation can precede it. GET / is registered outside the group and is untouched.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+      "passed": 16,
+      "total": 16,
+      "note": "Baseline was 5; 11 new cases (the 5-case route theory plus 6 facts) cover the auth contract."
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Every_tasks_route_requires_the_api_key (Theory: GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, DELETE /tasks/{id})",
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks (valid key accepted)"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Every_tasks_route_requires_the_api_key (missing header -> 401)",
+          "TaskEndpointsTests.Incorrect_api_key_is_rejected_and_creates_nothing (wrong key -> 401)",
+          "TaskEndpointsTests.Empty_api_key_header_is_rejected (present but empty -> 401)"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Missing_key_is_rejected_before_the_existence_check (unknown id -> 401, not 404)",
+          "TaskEndpointsTests.Missing_key_is_rejected_before_payload_validation (blank title -> 401, not 400)",
+          "TaskEndpointsTests.Incorrect_api_key_is_rejected_and_creates_nothing (no task created)"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Configured_api_key_overrides_the_default (ApiKey=configured-key accepted, test-secret-key then rejected)",
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks (default applies when ApiKey is unset)"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Root_health_endpoint_stays_public (GET / with no header -> 200)"]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "The 5 pre-existing CRUD tests pass unchanged in behaviour once the key is supplied",
+          "dotnet build 0/0 and dotnet test 16/16",
+          "R-004/R-005 evidence in facts.rules (Domain/** untouched by the diff)"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 16/16 green; the 5 baseline tests were updated to present the key, not weakened."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "Enforcement lives in src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs (HTTP layer). The diff touches no file under Domain/**; domain gains no ASP.NET reference."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "No enum or domain type renamed; TaskState naming untouched by the diff."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md are unmodified (not in the diff)."
+      }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs", "change": "added" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "Diff (3 files, +173/-7) is a strict subset of the approved scope; K3's M5 detector confirmed no spill. src/TaskTracker.Api/Program.cs was predicted but proved unnecessary — the filter is registered on the /tasks group inside MapTaskEndpoints, so the composition root did not have to change."
+    }
+  }
+}

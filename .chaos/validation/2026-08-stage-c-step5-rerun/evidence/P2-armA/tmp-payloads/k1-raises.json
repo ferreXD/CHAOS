@@ -1,0 +1,10 @@
+{
+  "raises": [
+    {
+      "trigger": "M1",
+      "surface": "data-store",
+      "cite": "intent 'add a nullable deletedAt timestamp to the task model ... set it on DELETE and return 204 instead of removing the row' x posture .chaos/architecture.md Module/boundary model 'new behaviour (e.g. filtering) belongs at the endpoint/query boundary, not in the store's public shape, unless a decision says otherwise'",
+      "breaking": false
+    }
+  ]
+}

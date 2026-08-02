@@ -1,0 +1,113 @@
+{
+ "worktree": "C:/cs5/wt/P2-armA",
+ "changeId": "soft-delete-tasks",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 4130,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    4130
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 3397,
+  "files": [
+   [
+    "ADR-001-soft-delete-store-shape.md",
+    3397
+   ]
+  ]
+ },
+ "records": {
+  "bytes": 22827,
+  "files": [
+   [
+    "contract.json",
+    2723
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    7385
+   ],
+   [
+    "frame.pass-01.facts.json",
+    5181
+   ],
+   [
+    "verify.pass-01.facts.json",
+    7538
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 17885,
+  "files": {
+   "change.md": 16782,
+   "lifecycle.md": 1103
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 3694,
+  "decisions": 2417,
+  "trgEvents": 1058,
+  "header": 219,
+  "decisionCount": 1,
+  "trgCount": 2
+ },
+ "classifier": {
+  "stateBytes": 996,
+  "authoredScratchBytes": 6183,
+  "generatedScratchBytes": 19615,
+  "scratchFiles": [
+   [
+    "k1-raises.json",
+    449
+   ],
+   [
+    "k1.json",
+    1277
+   ],
+   [
+    "k2.json",
+    1452
+   ],
+   [
+    "k3-raises.json",
+    19
+   ],
+   [
+    "k3.json",
+    1527
+   ],
+   [
+    "k3.numstat",
+    305
+   ],
+   [
+    "k3.patch",
+    19310
+   ],
+   [
+    "k4.json",
+    1459
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 7534,
+  "files": 4,
+  "addedLines": 163,
+  "deletedLines": 12
+ },
+ "totals": {
+  "authoredGovernanceBytes": 41227,
+  "authoredPlusImplementationBytes": 48761,
+  "renderedBytes": 17885
+ }
+}

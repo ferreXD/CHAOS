@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-03-chaos-verify-optimistic-concurrency-updates-9b6c04",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-02T23:22:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "The Stage-C obligation audit is clean: adr 2 is discharged by docs/adr/2026-08-03-optimistic-concurrency-on-task-updates.md (no READY was possible without it), openspec 1's delta spec exists and validates --strict, verify 1's data-store safeguard checks (the surface both fired triggers cite) all pass, no checkpoint reported newStops, and the dimension vector never decreased across K1-K4 so no human override was needed. Build and tests were re-run independently: 0/0 and 11/11. One named residual (VFY-003) - C-003's atomicity is code-evidenced rather than test-evidenced - is a recorded coverage-honesty limitation, not an unmet obligation, so it caps nothing.",
+  "commentary": "verify ran because the classified verify dimension is 1, attributed to TRG-001 (M2 sensitive-surface) and TRG-002 (M1 posture-crossing), both on the data-store surface. That attribution selected the safeguard set: persistence/store-semantics checks (version monotonicity, conflict-path immutability, seeding, compare-and-swap atomicity, boundary integrity), not auth or migration checks. review stayed at 0 - X2 did not fire at K4 because the inline self-review was clean - so no standalone review pass was owed.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build TaskTracker.sln",
+        "warnings": 0,
+        "errors": 0,
+        "note": "Independent re-run at verify time."
+      },
+      "tests": {
+        "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+        "passed": 11,
+        "total": 11,
+        "note": "Independent re-run at verify time; 5 unmodified baseline tests + 6 new."
+      },
+      "contract": {
+        "ticked": 9,
+        "total": 9,
+        "note": "8 statements test-evidenced, C-003 code-evidenced with a recorded whyNotTest."
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "openspec validate --strict -> valid. isComplete is the CLI's verbatim full-set verdict (proposal.md and tasks.md absent) and is EXPECTED at openspec dimension 1: a delta spec only is what this change owes. See VFY-002."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "note": "Delivered paths are a subset of the FRAME-approved scope; K3's M5 scan fired nothing."
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "11/11 tests green on an independent re-run; baseline tests unmodified." },
+        { "id": "R-004", "status": "pass", "evidence": "Domain/** references no ASP.NET types; UpdateOutcome/UpdateResult are plain records and the 409 mapping stays in Endpoints/TaskEndpoints.cs." },
+        { "id": "R-005", "status": "pass", "evidence": "TaskState naming preserved; no TaskStatus enum introduced." },
+        { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are untouched in the diff." }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "adr 2 obligation discharged before READY",
+        "detail": "TRG-002 (M1 posture-crossing, adjudication, surface data-store) raised adr to 2, which blocks a READY verdict until an ADR exists. docs/adr/2026-08-03-optimistic-concurrency-on-task-updates.md records the accepted crossing, its options, and its consequences, and cites PROP-DEC-001.",
+        "confirms": "PROP-DEC-001"
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "openspec 1 obligation satisfied at the classified depth",
+        "detail": "TRG-002 (M1) put openspec at 1. openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md exists and validates --strict. No proposal.md/design.md/tasks.md were written, correctly: the C-13 distinct-surface rule does not raise the full set because TRG-001 and TRG-002 both cite data-store. Consequence recorded rather than smoothed over: `openspec status --change ... --json` returns isComplete false, because the CLI measures the full artifact set and has no notion of a classified depth. The obligation owed by the classifier is met; the CLI's completeness flag is not the obligation."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "MINOR",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "C-003 (atomic compare-and-swap) is code-evidenced, not test-evidenced",
+        "detail": "Safeguard check for the data-store surface cited by TRG-001 (M2) and TRG-002 (M1). Inspection confirms TaskStore.Update performs the version comparison and the write inside one ConcurrentDictionary.TryUpdate and retries on a lost race, with no check-then-act in the endpoint. The WebApplicationFactory harness cannot deterministically schedule the interleaving that would distinguish an atomic CAS from a racy one, so no test asserts it directly; the deliver record carries the whyNotTest.",
+        "recommendation": "If this store ever gains a second writer path or moves off ConcurrentDictionary, add a store-level concurrency test (parallel Update calls asserting exactly one winner per version) rather than relying on inspection."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "data-store safeguard checks pass: version monotonicity, conflict immutability, seeding",
+        "detail": "Trigger-attributed checks for the data-store surface (TRG-001 M2, TRG-002 M1): (a) every successful PUT increments version by exactly 1, proven across two consecutive updates (1->2->3); (b) a rejected 409 leaves title, status, priority and version all unchanged, asserted field-by-field after the conflict; (c) seeded and newly created tasks start at version 1; (d) the crossing did not leak the HTTP layer into the domain (R-004 still passes)."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Stops and monotonicity audit clean",
+        "detail": "K1 reported newStops 0 (the M1/M2 questions folded into the mandatory FRAME approval stop, per design law 2); K2, K3 and K4 each reported newStops 0 and no stopSatisfiedBy claim was made. The dimension vector was stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2 from the K1 merge call onward and never decreased, so no human-override record was required."
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-require-api-key-auth-8953c4",
+  "recordedAt": "2026-08-02T22:20:00Z",
+  "groups": ["auth-enforcement", "configuration", "compatibility"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "auth-enforcement",
+      "text": "Every /tasks route (GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, DELETE /tasks/{id}) requires a valid API key in the X-Api-Key request header.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "auth-enforcement",
+      "text": "A /tasks request with a missing or incorrect X-Api-Key header is rejected with HTTP 401 Unauthorized.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-003",
+      "group": "auth-enforcement",
+      "text": "The key check runs before existence and payload-validation checks: a rejected request reads or mutates no task (an unknown id with no key returns 401, not 404; a blank-title POST with no key returns 401, not 400).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-004",
+      "group": "configuration",
+      "text": "The valid API key is the string value of configuration key ApiKey, defaulting to test-secret-key when that configuration value is not set.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-005",
+      "group": "compatibility",
+      "text": "The root health endpoint GET / stays public — no API key required.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-006",
+      "group": "compatibility",
+      "text": "CRUD behaviour of the /tasks endpoints is otherwise unchanged for authenticated callers, the visible test suite supplies the key, and dotnet build + dotnet test stay green (R-003), with Domain/** free of ASP.NET references (R-004) and TaskState naming intact (R-005).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

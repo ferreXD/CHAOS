@@ -1,0 +1,41 @@
+{
+ "fired": [
+  {
+   "trigger": "M2",
+   "by": "scan",
+   "surface": "auth",
+   "cite": "auth class: predicted scope includes src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs",
+   "checkpoint": "K1"
+  },
+  {
+   "trigger": "M1",
+   "by": "adjudication",
+   "surface": "auth",
+   "cite": "intent 'every request to GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id} and DELETE /tasks/{id} must present a valid API key in the X-Api-Key request header' x posture Non-goals 'Authentication / authorization / multi-tenant concerns' (and 'Authentication / authorization posture: None. The API is open. Any auth is out of scope')",
+   "checkpoint": "K1",
+   "breaking": false
+  }
+ ],
+ "stopsPlaced": [
+  "K1:floor-approval"
+ ],
+ "floors": {
+  "stops": 1,
+  "evidence.targeted": 0,
+  "evidence.breadth": 0,
+  "review": 0,
+  "verify": 0,
+  "openspec": 0,
+  "adr": 0
+ },
+ "mode": null,
+ "x1Level": 0,
+ "checkpointsRun": [
+  "K1",
+  "K1",
+  "K2",
+  "K3",
+  "K3",
+  "K4"
+ ]
+}

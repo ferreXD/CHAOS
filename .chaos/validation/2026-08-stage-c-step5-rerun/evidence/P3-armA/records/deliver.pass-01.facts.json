@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-03-chaos-apply-optimistic-concurrency-updates-a41f7e",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-02T23:10:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All nine contract statements are covered (eight by HTTP integration tests, one by inspected code with a recorded reason). Build is clean and the suite is 11/11 green - the five pre-existing tests, including the PUT test that omits expectedVersion, pass unmodified. K2 and K3 fired no new triggers, reported newStops 0 and no scope drift, so the K1 dimension vector stands unchanged.",
+  "commentary": "Stage-C checkpoints run during DELIVER: K2 (scan-only, entry) fired nothing - the ledger holds one decision entry, below M4's threshold of 2, which is the fold-absorber working as designed. K3 (DELIVER end) re-detected M2 as a scanEcho and fired nothing new; the K3 adjudication pass declined to raise, because adding version / expectedVersion fields to an existing model and request is not M3 under pinned rules 9 and 12 (additive contract change with no route delta and no dependency change), and the M1 crossing was already fired at K1.",
+  "facts": {
+    "build": {
+      "command": "dotnet build TaskTracker.sln",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+      "passed": 11,
+      "total": 11,
+      "note": "5 pre-existing baseline tests (unmodified) + 6 new concurrency tests."
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Post_creates_a_task_at_version_1", "Seeded_tasks_start_at_version_1"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Post_creates_a_task_at_version_1", "Seeded_tasks_start_at_version_1"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "code",
+        "refs": ["src/TaskTracker.Api/Domain/TaskStore.cs:Update"],
+        "whyNotTest": "Atomicity is a structural property of the single ConcurrentDictionary.TryUpdate compare-and-swap plus its retry loop; the in-memory WebApplicationFactory harness cannot deterministically schedule the interleaving that would distinguish it from a check-then-act. Evidenced by inspection: the version comparison and the write occur inside TaskStore.Update with no read-modify-write gap in the endpoint, and the 409 behaviour is test-proven at the HTTP surface (C-006)."
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_with_matching_expected_version_succeeds_and_bumps_version", "Put_without_expected_version_updates_unconditionally_and_bumps_version"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_without_expected_version_updates_unconditionally_and_bumps_version", "Put_with_matching_expected_version_succeeds_and_bumps_version"]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_with_stale_expected_version_is_rejected_with_409_and_changes_nothing"]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_with_matching_expected_version_succeeds_and_bumps_version"]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_without_expected_version_updates_unconditionally_and_bumps_version", "Put_updates_an_existing_task"]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["Put_updates_an_existing_task", "Post_creates_a_task_and_get_by_id_returns_it", "Delete_removes_a_task", "Get_tasks_returns_the_seeded_tasks", "Post_with_blank_title_is_rejected", "Put_with_expected_version_on_a_missing_task_is_not_found"]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test: 11/11 passed, 0 failed; the 5 baseline tests were not edited."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "grep over src/TaskTracker.Api/Domain/ finds no Microsoft.AspNetCore / IResult / Results. reference; UpdateOutcome and UpdateResult are plain domain types and the 409 mapping lives in Endpoints/TaskEndpoints.cs."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "TaskState is untouched; no TaskStatus enum reintroduced (only the pre-existing explanatory doc comment mentions the name)."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "git diff --numstat -- AGENTS.md README.md is empty; neither protected file was touched."
+      }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "note": "K3 M5 scan: every path in the delivered diff is inside the scope approved at FRAME; no new code paths were needed."
+    }
+  }
+}

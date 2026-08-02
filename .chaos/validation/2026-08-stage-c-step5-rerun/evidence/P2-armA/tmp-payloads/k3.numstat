@@ -1,0 +1,6 @@
+60	0	docs/adr/ADR-001-soft-delete-store-shape.md
+82	0	openspec/changes/soft-delete-tasks/specs/task-api/spec.md
+13	2	src/TaskTracker.Api/Domain/TaskItem.cs
+19	1	src/TaskTracker.Api/Domain/TaskStore.cs
+17	7	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+114	2	tests/TaskTracker.Tests/TaskEndpointsTests.cs

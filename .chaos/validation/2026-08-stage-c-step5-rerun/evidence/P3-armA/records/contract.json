@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-optimistic-concurrency-updates-c73bd0",
+  "recordedAt": "2026-08-02T22:56:00Z",
+  "groups": ["model", "endpoint", "compatibility"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "model",
+      "text": "TaskItem carries an integer Version, serialized as `version` on every task payload.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "model",
+      "text": "New tasks (POST /tasks) and the seeded tasks start at version 1.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-003",
+      "group": "model",
+      "text": "The version compare-and-swap is atomic inside TaskStore (no check-then-act window in the endpoint).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-004",
+      "group": "endpoint",
+      "text": "UpdateTaskRequest accepts an optional integer expectedVersion.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-005",
+      "group": "endpoint",
+      "text": "Every successful PUT /tasks/{id} increments the task's version by exactly 1.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-006",
+      "group": "endpoint",
+      "text": "When expectedVersion is supplied and does not match the current version, PUT returns 409 Conflict and the task is left unchanged (no field updated, version not bumped).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-007",
+      "group": "endpoint",
+      "text": "When expectedVersion is supplied and matches, PUT returns 200 and the version increments.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-008",
+      "group": "endpoint",
+      "text": "When expectedVersion is omitted (null), PUT proceeds unconditionally (last-writer-wins) and the version increments.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-009",
+      "group": "compatibility",
+      "text": "The pre-existing test baseline stays green and the other CRUD endpoints keep their behaviour apart from the added version field.",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

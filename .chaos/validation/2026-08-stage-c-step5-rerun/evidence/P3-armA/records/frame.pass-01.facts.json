@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-optimistic-concurrency-updates-c73bd0",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-02T22:58:00Z",
+  "assessment": {
+    "confidence": "MEDIUM",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "Classification confidence is MEDIUM because the K1 adjudication layer raised M1 (posture-crossing, data-store) — a semantic judgement, not a deterministic scan firing."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The contract is pinned by the task statement (field names, status codes, version semantics), so no contract ambiguity remains open at FRAME."
+    }
+  ],
+  "verdictRationale": "Stage-C K1 classification: M2 (scan, data-store) + M1 (adjudication, data-store) -> stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2. The openspec delta spec is authored and validates; the adr-2 obligation is due before a READY verify verdict. Inline self-review is clean: scope sane (5 code paths, all pre-existing), rules mapped (R-003 R-004 R-005 R-006), contract testable (9 statements, all HTTP-observable except C-003 which is code-evidenced), decisions complete (one folded approval decision, answered).",
+  "commentary": "Documented deviation: no live human was available in this measurement run. PROP-DEC-001 (the C-11 floor approval stop, carrying the folded M1 and M2 questions) was recorded and then resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged \"resolved-in-arm (no live human; Stage-C step-5 mechanized run)\". Answering that entry IS the approval. No preset flag was passed: zero floors, so every non-zero dimension above comes from a fired trigger.",
+  "facts": {
+    "title": "Optimistic concurrency control on PUT /tasks/{id}",
+    "intent": [
+      "PUT /tasks/{id} overwrites unconditionally today, so a client working from a stale copy silently clobbers another writer (lost-update race).",
+      "Add an integer version to the task (1 on create/seed, +1 on every successful PUT) and an optional expectedVersion on UpdateTaskRequest.",
+      "A supplied-but-stale expectedVersion is rejected with 409 Conflict and leaves the task untouched; an omitted expectedVersion keeps today's last-writer-wins behaviour."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "engine": {
+        "name": "openspec",
+        "version": "1.6.0",
+        "configSource": "openspec/config.yaml (schema: spec-driven)"
+      },
+      "invocationPath": "delta-only authoring at the classified depth (openspec dimension 1), validated with the openspec CLI",
+      "artifacts": [
+        "openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": false,
+        "note": "Reported verbatim by the CLI and deliberately NOT overridden: the CLI's isComplete measures the FULL artifact set (proposal.md + specs + tasks.md), while the classified openspec dimension for this change is 1 - a delta spec only. M1 and M2 both cite the data-store surface, so C-13's distinct-surface rule does not raise the full set, and proposal.md / design.md / tasks.md are correctly absent. 'Incomplete' here means 'intentionally delta-only', not 'missing an owed artifact'; openspec validate --strict passes."
+      },
+      "validation": {
+        "command": "openspec validate optimistic-concurrency-updates --strict",
+        "result": "PASS",
+        "note": "Change 'optimistic-concurrency-updates' is valid"
+      },
+      "confidenceImpact": "None - the spec engine ran and validated clean."
+    }
+  }
+}
