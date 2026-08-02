@@ -75,6 +75,37 @@ now impossible); valve fidelity correct **both** directions (posture-crossing se
 standard; all 3 light-eligible tasks stayed light); oracle **unregressed at 35/35 per arm**.
 Cost B (light-eligible, valve live): 1,247 s / 85,642 tok vs 425 s / 25,338 tok → 2.93× / 3.38×.
 
+## Re-run — Stage-B standard lifecycle (2026-08-02, model claude-opus-5[1m])
+
+The measurement Stage B was actually built for: the **standard** path, where artifact prose was
+45.5% of governed output and four narrative reports collapse into one rendered file. Governed arm
+emits records + renders; **plain-arm prompt byte-identical to the frozen row**; same 3 tasks, same
+held-out oracles. Harness: `stage-b-standard-arms.workflow.js`. **Model differs from the 2026-07-19
+baseline — compare ratios, not absolutes.**
+
+| Pair | task | Stage-B time | plain time | time ratio | Stage-B out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 718 s | 122 s | 5.89× | 55,193 | 8,830 | 6.25× | 9/9 clean |
+| 2 | soft-delete | 1,019 s | 135 s | 7.55× | 65,304 | 8,981 | 7.27× | 5/5 clean |
+| 3 | concurrency | 758 s | 182 s | 4.16× | 49,089 | 11,056 | 4.44× | 5/5 clean |
+| **Σ** | | **2,495 s** | **439 s** | **5.68×** | **169,586** | **28,867** | **5.87×** | 19/19 both |
+
+**The cost hypothesis is falsified where it was supposed to hold.** Against the frozen baseline
+(3.94× / 4.75×) the ratio got **worse: 5.68× time, 5.87× tokens**; governed absolute moved only
+**−9% tokens / +16% time**. The prose reduction is real but did not become savings: authored
+artifact bytes fell **45.5% → 23.9%** of governed output (artifact-authoring tokens roughly halved),
+yet everything *else* the governed arm does grew ~28% — schema reading, record authoring, richer
+implementation (16/12/11 tests vs the plain arm's 9/8/12). Agents now author **100 KB of JSON
+records** to render **78 KB of markdown**: the input to the projection is no cheaper than the prose
+it replaced. The roadmap's "prose cost → structurally ~0, B is the only path toward ~1×" does not
+survive contact with measurement on either path.
+
+**Mechanically flawless, again:** 15 render invocations, **0 failures**; **0 hand-written
+artifacts**; `--check` **CLEAN on 6/6** rendered files; oracle **19/19 both arms**, unregressed.
+One governed arm independently reported that R-001 was unmet — no material decision passed through
+the interaction runtime — and held its verdict at READY_WITH_DEBT rather than claiming a clean
+READY, which is the governance layer working as designed.
+
 ## Files
 
 | File | Role |

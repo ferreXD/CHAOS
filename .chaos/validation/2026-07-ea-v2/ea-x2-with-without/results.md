@@ -143,3 +143,79 @@ is not pre-pinned, (b) ideally a **different or weaker executor** in the plain a
 > **Value claim UNSUPPORTED on both §15.2 thresholds → weight shifts to EA-D3.** Caveat: same
 > model both arms + pinned contracts structurally under-measure governance value; a fair test
 > needs under-specified tasks and the real human trial.
+
+---
+
+# Stage-B standard re-run — results (2026-08-02)
+
+> Model `claude-opus-5[1m]`, workflow `wf_b431fa27-e79` (6 arms, sequential, 0 errors, ~54 min,
+> 610k subagent tokens). Harness `harness/stage-b-standard-arms.workflow.js`: governed arm emits
+> records + renders; **plain-arm prompt byte-identical to the frozen row**; tasks, oracles and
+> scoring frozen; worktrees pinned to `d27600f`. Raw data:
+> `evidence-stage-b-standard-arms.json`. **Model differs from the 2026-07-19 baseline — ratios,
+> not absolutes.**
+
+## Headline
+
+**This was the run Stage B was supposed to win, and it did not.** On the standard path — where
+artifact prose was 45.5% of governed output and four narrative reports collapse into one rendered
+file — the governed premium **widened** from 4.75× to **5.87×** tokens, and governed absolute cost
+moved only **−9%**. The prose reduction is real (authored artifact bytes 45.5% → 23.9%, roughly
+halving artifact-authoring tokens) but it did not become savings: the non-artifact half of the work
+grew ~28% to absorb it. Combined with the light-path result (3.47× → 4.15×), **the ledger-first
+inversion does not reduce governed cost on any measured path.**
+
+## Cost
+
+| Pair | task | Stage-B time | plain time | time ratio | Stage-B out-tok | plain out-tok | tok ratio | oracle (both) |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 718 s | 122 s | 5.89× | 55,193 | 8,830 | 6.25× | 9/9 clean |
+| 2 | soft-delete | 1,019 s | 135 s | 7.55× | 65,304 | 8,981 | 7.27× | 5/5 clean |
+| 3 | concurrency | 758 s | 182 s | 4.16× | 49,089 | 11,056 | 4.44× | 5/5 clean |
+| **Σ** | | **2,495 s** | **439 s** | **5.68×** | **169,586** | **28,867** | **5.87×** | **19/19 both** |
+
+| | frozen baseline (old standard) | Stage-B standard | delta |
+|---|---:|---:|---|
+| governed | 2,149 s / 185,376 tok | 2,495 s / 169,586 tok | **+16% time / −9% tok** |
+| plain | 546 s / 38,996 tok | 439 s / 28,867 tok | −20% / −26% (model/session) |
+| **ratio** | **3.94× / 4.75×** | **5.68× / 5.87×** | **worse** |
+
+The plain arm is the control: it got ~26% cheaper this session. Governed did not track it — the
+ratio moved the wrong way by ~24%.
+
+## Where the output went — prose fell, cost did not
+
+| | frozen (prose) | Stage-B (records + ledger + OpenSpec) |
+|---|---:|---:|
+| authored artifact share of governed output | **45.5%** | **23.9%** |
+| implied authored tokens | ~84,300 | ~40,500 |
+| implied everything-else tokens | ~101,000 | ~129,100 (**+28%**) |
+
+Per governed arm: **100.7 KB of JSON records** + 25.5 KB ledger + 35.9 KB OpenSpec authored, to
+render **73.3 KB change.md** + 4.7 KB lifecycle.md for free. The projection's *input* is not cheaper
+than the prose it replaced — and the freed budget was consumed by schema reading, record authoring
+and more thorough implementation (governed arms wrote 16/12/11 tests vs the plain arms' 9/8/12).
+
+## What held (mechanical claims — 2 for 2 across both measured paths)
+
+| Claim | Evidence |
+|---|---|
+| Agents emit schema-valid records unaided | **15 render invocations, 0 failures** (light run: 14/0) |
+| Writer discipline | `handWroteRenderedArtifact = false` on 3/3 governed arms |
+| Idempotent renders | `--check` **CLEAN on 6/6** rendered artifacts |
+| No quality regression | oracle **19/19 both arms**, matching the frozen row exactly |
+| Governance caught a real gap | the p1 arm reported **R-001 unmet** (no decision passed through the interaction runtime in a mechanized run) and held its verdict at READY_WITH_DEBT instead of claiming a clean READY |
+
+## Verdict
+
+- **Stage B's cost case is falsified on both paths.** Light: 3.47× → 4.15×. Standard: 4.75× →
+  5.87×. It should not be adopted as a cost measure, and the roadmap's "~1× is only reachable via
+  B" needs retracting against this evidence.
+- **Stage B's correctness case is intact and now twice-measured**: drift structurally impossible,
+  provenance automatic, counts derived, zero writer-discipline failures across 9 governed arms.
+  That is a real property with a real price — **+24% on the ratio**. Whether to pay it is a
+  creator call, and it is now an informed one.
+- **The residual cost is not artifact prose and never mainly was.** With authored artifacts at
+  23.9%, the dominant cost is governance reading, decision records and the OpenSpec set kept in
+  every mode. Reopening **OpenSpec-on-light/standard** is the next lever with real headroom —
+  bigger than anything the renderer can reach.
