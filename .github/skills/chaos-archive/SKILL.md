@@ -60,21 +60,29 @@ terminal** — no per-change archive run is required; the `lifecycle.md` view sa
 existence contract. Repo-wide housekeeping may still index it; do not demand the legacy report
 set for such changes.
 
-Write (v0 change-scoped layout):
+Write (v0 change-scoped layout; writer protocol in `chaos-shared/reference/record-emission.md`):
 
 ```text
-.chaos/changes/<change-id>/archive-report.md
+.chaos/changes/<change-id>/records/archive.pass-NN.facts.json   # ONLY when an archive EXECUTED
 ```
 
-Per the reconcile-on-write rule (`chaos-shared/reference/change-template.md`): set the `change.md`
-frontmatter `lifecycle.status: Archived` and `lifecycle.phases.archive` (`status: complete`, `at`,
-`run`, `mode`), reconcile `lifecycle.current.archiveReadiness` — archive sets it to its own terminal
-outcome, `ARCHIVED` or `ARCHIVED_WITH_DEBT` (the archive **report's** `archive_readiness` field stays
-the 3-value readiness `READY | READY_WITH_DEBT | NOT_READY`) — then re-render `Status: Archived` and
-the Archive row in `.chaos/changes/<change-id>/lifecycle.md` — only with confirmation. The legacy
-`.chaos/archive-reports/` folder may be READ for compatibility but is no longer the preferred output
-location; do not migrate it. Route shared governance closure to `chaos:sync`. See
-`.chaos/changes/README.md`.
+Emit the archive phase record: envelope `verdict`
+(`ARCHIVED | ARCHIVED_WITH_DEBT | ARCHIVED_UNDER_GOVERNANCE_OVERRIDE`), the completing run id,
+`assessment`, and `facts`: `gate` (the confirming `ARC-DEC-*` ref, the verification run id,
+force-waiver/override flags), `preArchiveValidation` (re-run checks), the **closure matrix —
+one row per ledger entry, per the §2 scan rule; the renderer hard-fails on any mismatch**,
+`openspecArchive` (command, totals, promotions, `archivedAs`, warnings), `sourceOfTruth`
+confirmation checks, `acceptedRisks`, `debt` + `debtLoad`. Closure prose goes in `commentary`;
+the confidence rationale in `verdictRationale`. A **deferred** archive (e.g. an `ARC-DEC`
+answered `sync-first-then-archive`) emits **no record and no report** — the deferral lives in
+its ledger entry.
+
+Then render: `python tools/chaos-render/render.py <change-id> --write` — the renderer writes
+`archive-report.md`, sets `lifecycle.status: Archived` + `phases.archive`, and reconciles
+`lifecycle.current.archiveReadiness` to the terminal outcome (`ARCHIVED` /
+`ARCHIVED_WITH_DEBT`); never hand-write those files. The legacy `.chaos/archive-reports/`
+folder may be READ for compatibility but is no longer the preferred output location; do not
+migrate it. Route shared governance closure to `chaos:sync`. See `.chaos/changes/README.md`.
 
 ## Repository context (vNext)
 
