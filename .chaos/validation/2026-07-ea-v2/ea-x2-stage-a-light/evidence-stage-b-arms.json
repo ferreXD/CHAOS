@@ -1,0 +1,632 @@
+{
+  "costA": [
+    {
+      "changeId": "require-api-key-auth",
+      "forcedLight": true,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Executed the collapsed CHAOS --light lifecycle in its Stage-B ledger-first form for change \"require-api-key-auth\" in D:/chaos-stageb/wt/A1-armA. FRAME produced the full hand-authored OpenSpec set (validated PASS by the installed openspec CLI 1.6.0, isComplete: true), a 7-statement contract record, 4 material decisions in the hand-appended ledger, and a frame phase record; DELIVER implemented API-key auth as an IEndpointFilter attached to the existing MapGroup(\"/tasks\") — so the 401 lands before existence/validation checks by pipeline position, and GET / stays public by construction — plus a deliver phase record with per-statement coverage. change.md and lifecycle.md exist only as renderer output; three render invocations, zero failures, --check reports CLEAN. Baseline went 5/5 to 15/15 green with build clean; the domain layer was never touched (R-004).",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/ApiKeyEndpointFilter.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 15,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 521,
+        "buildOk": true,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "governanceArtifactsProduced": [
+          "openspec/changes/require-api-key-auth/proposal.md",
+          "openspec/changes/require-api-key-auth/tasks.md",
+          "openspec/changes/require-api-key-auth/design.md",
+          "openspec/changes/require-api-key-auth/specs/task-api/spec.md",
+          ".chaos/changes/require-api-key-auth/decision-events.md",
+          ".chaos/changes/require-api-key-auth/records/contract.json",
+          ".chaos/changes/require-api-key-auth/records/frame.pass-01.facts.json",
+          ".chaos/changes/require-api-key-auth/records/deliver.pass-01.facts.json",
+          ".chaos/changes/require-api-key-auth/change.md",
+          ".chaos/changes/require-api-key-auth/lifecycle.md"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/require-api-key-auth/records/contract.json",
+          ".chaos/changes/require-api-key-auth/records/frame.pass-01.facts.json",
+          ".chaos/changes/require-api-key-auth/records/deliver.pass-01.facts.json"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002",
+          "PROP-DEC-003",
+          "PROP-DEC-004"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json",
+          "tools/chaos-render/render.py",
+          "tools/chaos-render/README.md",
+          "openspec/specs/task-api/spec.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/proposal.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/tasks.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/specs/task-api/spec.md",
+          "openspec/config.yaml"
+        ],
+        "renderInvocations": 3,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "selfAssessment": "Confidence HIGH on the delivered behaviour: every contract statement C-001..C-007 is backed by an executed integration test (not inspection), including auth-precedes-404/400 ordering and a rejected-write-mutates-nothing check, plus a UseSetting test proving a configured ApiKey overrides the compiled-in default. Zero render failures is partly luck of reading both schemas before authoring; the schemas are additionalProperties:false and unforgiving, and pre-reading them was the single highest-leverage step.\n\nThree things worth flagging to the caller.\n\n(1) Renderer gap, not a record defect: `commentary` and `verdictRationale` have render slots for frame/review/sync/archive but NOT for deliver (render.py lines 1118/1138 vs 1679/1856). My deliver record carries both fields — they are schema-valid and the render exited 0, but they are silently dropped from change.md. So authored voice on the DELIVER phase currently has no home in the rendered artifact. If prose volume is being measured, note that those two deliver fields are cost with no rendered output. Similarly, the per-statement coverage-honesty table appears not to render when every statement is test-covered (only the 7/7 rollup shows).\n\n(2) Governance choices I made that a reviewer might contest: I did NOT add an `ApiKey` entry to appsettings.json, deliberately, so the unset-to-default path stays the one the suite exercises; and I treated the architecture non-goal as scope framing rather than a prohibition (recorded as an ASSUMPTION/MEDIUM limiter in the frame record, not as a fact). If that reading is wrong the change is rejectable, not merely re-scopable — I flagged it rather than assumed past it.\n\n(3) Pre-existing inconsistency I found and did not fix: openspec/specs/task-api/spec.md and .chaos/architecture.md both assert that GET /tasks supports ?status=/?priority= filtering, but this worktree's TaskEndpoints.cs has no filtering at all. Out of scope here; recorded as a todoCandidate in the frame record.\n\nValve suppression and the mechanized human stop are both recorded verbatim in the frame record's commentary as instructed, and both render into change.md. mode stayed \"light\" throughout. On a real run the posture crossing would have fired the escalation valve."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added API-key authentication to the Task Tracker API's /tasks endpoints. Implemented it as ASP.NET Core middleware (src/TaskTracker.Api/Security/ApiKeyMiddleware.cs) wired in Program.cs before endpoint mapping, so the X-Api-Key check runs ahead of routing, model binding and any handler-level existence/validation logic — an unauthorized caller always gets 401 and never reads or mutates a task. The expected key comes from configuration key \"ApiKey\", falling back to \"test-secret-key\"; GET / stays public. Updated the existing test suite to send the key via a CreateAuthenticatedClient() helper and added 11 new cases covering missing/wrong key across all five routes, public root, no-mutation-on-401, and auth-before-validation/existence ordering.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Security/ApiKeyMiddleware.cs",
+          "src/TaskTracker.Api/Program.cs",
+          "src/TaskTracker.Api/TaskTracker.Api.http",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 16,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 146,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "handWroteRenderedArtifact": false,
+        "renderInvocations": 0,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "selfAssessment": "High confidence. Key design choice: middleware over an endpoint filter, because endpoint filters run after model binding — a malformed/blank body could have produced 400 before 401, violating the \"auth before validation\" clause. Middleware also covers the {id:guid} route-constraint case. Path matching uses StartsWithSegments(\"/tasks\", OrdinalIgnoreCase), so it protects /tasks and /tasks/* but not a hypothetical /tasksfoo — matches the stated contract. Key comparison is ordinal (case-sensitive), and a header present but empty/whitespace is treated as incorrect. I deliberately did NOT add \"ApiKey\" to appsettings.json so the documented default path stays exercised. 401 responses have an empty body (no WWW-Authenticate header) — the contract only specified the status code. Also refreshed TaskTracker.Api.http so manual requests still work; that file is non-behavioural. Minor process note: a sed pass to swap test clients also rewrote the line inside the new helper, creating a self-call; caught and fixed before building."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 40509,
+        "armB_output_tokens": 7848
+      }
+    },
+    {
+      "changeId": "soft-delete-tasks",
+      "forcedLight": true,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Executed the CHAOS --light collapsed lifecycle in its Stage-B ledger-first form for change \"soft-delete-tasks\" in D:/chaos-stageb/wt/A2-armA. FRAME: scoped governance read, hand-authored the full OpenSpec set (validated PASS by the installed openspec CLI 1.6.0), emitted contract.json (9 statements, 3 groups) and frame.pass-01.facts.json, and surfaced 5 material decisions (filter placement, purge posture, id-addressed visibility of soft-deleted rows, the persistence non-goal crossing, and the approval gate) in a hand-appended ledger, all resolved-in-arm. DELIVER: implemented soft delete in Domain/TaskItem.cs (nullable DeletedAt), Domain/TaskStore.cs (active-only All/Get/Update + SoftDelete replacing Remove) and Endpoints/TaskEndpoints.cs (bool? includeDeleted, soft DELETE), extended the test suite 5/5 -> 9/9 green with dotnet build 0 warnings/0 errors, then emitted deliver.pass-01.facts.json with per-statement coverage, rule evidence, two deviations and NO_DRIFT. Both renders (--write) exited 0 on the first try; change.md and lifecycle.md exist only as renderer output.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 9,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 586,
+        "buildOk": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/soft-delete-tasks/decision-events.md",
+          ".chaos/changes/soft-delete-tasks/records/contract.json",
+          ".chaos/changes/soft-delete-tasks/records/frame.pass-01.facts.json",
+          ".chaos/changes/soft-delete-tasks/records/deliver.pass-01.facts.json",
+          ".chaos/changes/soft-delete-tasks/change.md",
+          ".chaos/changes/soft-delete-tasks/lifecycle.md",
+          "openspec/changes/soft-delete-tasks/proposal.md",
+          "openspec/changes/soft-delete-tasks/design.md",
+          "openspec/changes/soft-delete-tasks/tasks.md",
+          "openspec/changes/soft-delete-tasks/specs/task-api/spec.md",
+          "openspec/changes/soft-delete-tasks/.openspec.yaml"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json",
+          "tools/chaos-render/schema/decision-entry.schema.json",
+          "tools/chaos-render/render.py",
+          "openspec/specs/task-api/spec.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/proposal.md"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002",
+          "PROP-DEC-003",
+          "PROP-DEC-004",
+          "PROP-DEC-005"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/soft-delete-tasks/records/contract.json",
+          ".chaos/changes/soft-delete-tasks/records/frame.pass-01.facts.json",
+          ".chaos/changes/soft-delete-tasks/records/deliver.pass-01.facts.json"
+        ],
+        "renderInvocations": 2,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "Confidence HIGH on the delivered behaviour: all 9 contract statements are satisfied, 8 test-evidenced (C-009 is rule compliance, honestly declared code-evidenced with a whyNotTest line), build 0/0, suite 9/9 with the 5 pre-existing tests untouched. Two things worth flagging. (1) PROP-DEC-003 (PUT and repeat DELETE on a soft-deleted id return 404 rather than an idempotent 204) is genuinely under-specified by the task contract; I chose consistency with the explicit \"GET /tasks/{id} returns 404 for a soft-deleted task\" rule and recorded the trade-off, but a hidden behavioural oracle expecting idempotent-204 on repeat DELETE would fail there. (2) Pre-existing spec/code drift, untouched: openspec/specs/task-api/spec.md documents ?status=/?priority= filtering that the code in this worktree does not implement; my delta preserves that requirement text verbatim so validation stays honest, but the base spec remains ahead of the code. Also noted: the .claude/skills/** modifications visible in git status pre-existed in the worktree (Stage-B writer swap, uncommitted) — I verified by mtime that only the four code files were touched during this run. Renderer behaviour was smooth: both --write invocations exited 0 first try, largely because I read the schemas and the ledger parser before authoring rather than after a rejection."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Implemented soft-delete for tasks in the .NET 8 Task Tracker API. Added a nullable `DeletedAt` (JSON `deletedAt`) to the `TaskItem` record with a `null` default so existing construction sites and seeded rows stay active; `TaskStore.Remove` now stamps `DeletedAt` via a CAS loop instead of removing the entry, `All(bool includeDeleted = false)` filters to active tasks by default, and `Get`/`Update` treat soft-deleted tasks as not found. `GET /tasks` accepts `?includeDeleted=true`; `DELETE /tasks/{id}` still returns 204 for an active task and 404 for an unknown (or already-deleted) id. Added 3 tests covering the soft-delete round trip (including that the raw JSON emits `\"deletedAt\":null` while active), 404 on unknown-id delete, and seeded tasks remaining active; all 8 tests pass and `dotnet build` is clean with 0 warnings.",
+        "buildOk": true,
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "src/TaskTracker.Api/TaskTracker.Api.http",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "handWroteRenderedArtifact": false,
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "renderFailureNotes": "",
+        "renderFailures": 0,
+        "renderInvocations": 0,
+        "selfAssessment": "High confidence on the stated contract — every clause is covered by a passing test, and I verified empirically (not by assumption) that the default ASP.NET JSON options emit `\"deletedAt\":null` rather than omitting the property. Two points the contract left open, where I chose the behaviour I judged most consistent: (1) DELETE on an already soft-deleted task returns 404 rather than re-stamping the timestamp, since the task is already invisible to GET /tasks/{id}; (2) PUT on a soft-deleted task returns 404 for the same reason. Both are new states that could not previously exist, so no pre-existing behaviour changed. The existing tests share one WebApplicationFactory fixture, so the singleton store is shared across tests — I kept my new tests to tasks they create themselves and never soft-delete a seeded task, so the seeded-tasks assertions stay order- and run-independent. `TaskStore.Remove` uses a TryUpdate CAS loop; note that record value-equality means two structurally identical TaskItems compare equal, which is harmless here because Id is unique per row. I also touched TaskTracker.Api.http (a dev-convenience request file inside src/TaskTracker.Api) to keep its comments accurate — no behaviour impact.",
+        "stoppedAtFrame": false,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "testsPassed": 8,
+        "wallTimeSeconds": 164
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 38601,
+        "armB_output_tokens": 10044
+      }
+    },
+    {
+      "changeId": "optimistic-concurrency-updates",
+      "forcedLight": true,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Ran the collapsed CHAOS --light lifecycle in its Stage-B ledger-first form for change `optimistic-concurrency-updates` in D:/chaos-stageb/wt/A3-armA: scoped governance scan, hand-authored the full OpenSpec set, emitted contract + frame records, surfaced and resolved four material decisions in the hand-written ledger, then implemented optimistic concurrency (task `version`, optional `expectedVersion`, 409-on-mismatch with the task left untouched) and emitted the deliver record. `change.md` and `lifecycle.md` exist only as renderer output — the renderer was invoked twice (after FRAME and after DELIVER) and exited 0 both times, so no record ever had to be corrected. Build is clean (0 warnings / 0 errors) and the suite is green at 13/13 (5 pre-existing untouched + 8 added).",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 13,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 513,
+        "buildOk": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/optimistic-concurrency-updates/decision-events.md",
+          ".chaos/changes/optimistic-concurrency-updates/records/contract.json",
+          ".chaos/changes/optimistic-concurrency-updates/records/frame.pass-01.facts.json",
+          ".chaos/changes/optimistic-concurrency-updates/records/deliver.pass-01.facts.json",
+          ".chaos/changes/optimistic-concurrency-updates/change.md",
+          ".chaos/changes/optimistic-concurrency-updates/lifecycle.md",
+          "openspec/changes/optimistic-concurrency-updates/proposal.md",
+          "openspec/changes/optimistic-concurrency-updates/tasks.md",
+          "openspec/changes/optimistic-concurrency-updates/design.md",
+          "openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json",
+          "tools/chaos-render/schema/decision-entry.schema.json",
+          "tools/chaos-render/render.py",
+          "openspec/specs/task-api/spec.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/proposal.md"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/optimistic-concurrency-updates/records/contract.json",
+          ".chaos/changes/optimistic-concurrency-updates/records/frame.pass-01.facts.json",
+          ".chaos/changes/optimistic-concurrency-updates/records/deliver.pass-01.facts.json"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002",
+          "PROP-DEC-003",
+          "PROP-DEC-004"
+        ],
+        "renderInvocations": 2,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "Confidence HIGH on the delivered behaviour: every clause of the task contract (version starts at 1 on seed and create, +1 on every successful PUT, 409 + untouched task on stale expectedVersion, 200 + increment on match, unconditional last-writer-wins when omitted) is covered by a passing integration test — 9 of 10 contract statements are test-evidenced. The one code-evidenced statement (C-010) is called out honestly in the rendered Coverage-honesty table: R-004/R-005 are structural (inspection + clean compile) and the atomicity of the ConcurrentDictionary.TryUpdate compare-and-set cannot be observed by a sequential integration test; a concurrent-writer test is recorded as a todo candidate. Two caveats worth flagging to the caller. (1) The valve was suppressed by instruction — this task genuinely crosses a recorded architecture non-goal (\"horizontal scale-out\", and to a lesser degree \"persistence\"), so a real light run would have auto-escalated on posture-crossing; that is stated in the frame record's commentary and the posture question was instead carried as PROP-DEC-002 with a bounded answer (in-process, non-durable guarantee only) plus a CREATE_ADR sync action. (2) The human stop was mechanized: all four ledger entries are RESOLVED-IN-ARM with authored maintainer-style rationales, and PROP-DEC-004 (approves-change) stands in for the approval — also documented in commentary. Minor process notes: the `openspec` CLI is absent in this worktree, so the artifact set was hand-authored per instruction and the validation row is labelled a manual conformance check rather than a machine PASS; and I added one test beyond the framed list (blank title + stale version → 400) specifically so C-009's precedence claim would be test-evidenced rather than half-inferred — I judged that added coverage inside the approved contract, not scope drift. Unrelated pre-existing drift I did NOT touch: openspec/specs/task-api/spec.md describes GET /tasks query filters that this worktree's TaskEndpoints.cs does not implement."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added optimistic concurrency control to PUT /tasks/{id} in the TaskTracker .NET 8 API. TaskItem gained an int Version (serialized as `version`, starting at 1 for new and seeded tasks), UpdateTaskRequest gained an optional ExpectedVersion, and TaskStore.Update now returns a typed outcome (Updated / NotFound / VersionConflict) committed via ConcurrentDictionary.TryUpdate compare-and-swap so a mismatched expectedVersion rejects with 409 Conflict leaving the task fully unchanged, while an omitted expectedVersion keeps last-writer-wins. Added 6 integration tests covering version=1 on create/seed, increments on each successful PUT, matching/stale expectedVersion, and 404 precedence for a missing id.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskItem.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 11,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 118,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "renderInvocations": 0,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "High confidence: the contract is small and every clause has a direct test. Two judgement calls worth flagging. (1) The 409 body includes an error message plus expectedVersion/currentVersion — the task only specified the status code, so the body shape is my choice and could differ from an expected fixture. (2) Ordering: a stale expectedVersion against a non-existent id returns 404, not 409, since NotFound is checked first; the task didn't specify this, but 404 seemed correct. Concurrency is handled via TryUpdate CAS with a retry loop rather than a lock; the retry could in principle spin under extreme contention on the unconditional (expectedVersion=null) path, which is acceptable for an in-memory demo store. ExpectedVersion is declared with a `= null` default so the existing 3-field PUT test body still binds. Field naming relies on ASP.NET Core's default camelCase policy (Version -> version, ExpectedVersion -> expectedVersion), which is unchanged in Program.cs."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 37260,
+        "armB_output_tokens": 10139
+      }
+    }
+  ],
+  "costB": [
+    {
+      "changeId": "task-count",
+      "forcedLight": false,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Ran the collapsed CHAOS --light lifecycle in Stage-B ledger-first form for change \"task-count\" in D:/chaos-stageb/wt/B1-armA. FRAME produced the full hand-authored OpenSpec set (validated strict-clean by the real `openspec` CLI, which turned out to be present), a contract record of 6 statements (C-001..C-006), two material decisions in the hand-appended ledger (PROP-DEC-001 on where the count is computed, PROP-DEC-002 the approval gate carrying approves-change), and a frame facts record; DELIVER added `GET /tasks/count` as a one-line endpoint projection plus 3 delta-based integration tests, then emitted the deliver facts record with per-statement coverage. Both artifacts (`change.md`, `lifecycle.md`) exist only as renderer output — 2 render invocations, both exit 0, nothing hand-written. Build clean (0/0), tests 8/8 green (baseline 5 unchanged); the valve was evaluated live and did not fire, so the change stayed light.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 8,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 340,
+        "buildOk": true,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "governanceArtifactsProduced": [
+          "openspec/changes/task-count/proposal.md",
+          "openspec/changes/task-count/tasks.md",
+          "openspec/changes/task-count/design.md",
+          "openspec/changes/task-count/specs/task-api/spec.md",
+          ".chaos/changes/task-count/decision-events.md",
+          ".chaos/changes/task-count/records/contract.json",
+          ".chaos/changes/task-count/records/frame.pass-01.facts.json",
+          ".chaos/changes/task-count/records/deliver.pass-01.facts.json",
+          ".chaos/changes/task-count/change.md",
+          ".chaos/changes/task-count/lifecycle.md"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/task-count/records/contract.json",
+          ".chaos/changes/task-count/records/frame.pass-01.facts.json",
+          ".chaos/changes/task-count/records/deliver.pass-01.facts.json"
+        ],
+        "renderInvocations": 2,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "stoppedAtFrame": false,
+        "selfAssessment": "Confidence HIGH on the code and the record set; both renders passed schema + cross-ref validation first try, so no record defects surfaced. Two honesty notes. (1) Coverage is 6/6 ticked but only 4 statements are test-evidenced: C-005 (non-regression) and C-006 (boundary/public-shape) are marked evidence \"code\" with whyNotTest lines, because `GET /` has no test in the suite at all and a \"no new public member on TaskStore\" constraint is not HTTP-observable — the evidence there is the diff. (2) The Human-Stop deviation is real and is the one governance-fidelity gap: no live human, so both material decisions were resolved in-arm (RESOLVED-IN-ARM) with maintainer-style rationale, and PROP-DEC-002's in-arm answer IS the approval; that substitutes agent judgement for human ownership (constitution §1) and is stated in the frame record's commentary. Valve judgement: I deliberately did not manufacture an escalation — 2 material decisions is at the light ceiling, not over it, and the endpoint crosses no auth/persistence non-goal. One unrelated observation, out of scope and left alone: the synced main spec `openspec/specs/task-api/spec.md` describes status/priority query filters that the code in this worktree does not implement (TaskEndpoints returns store.All() unfiltered), i.e. pre-existing spec-vs-code drift from the archived filters change."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added GET /tasks/count to the TaskTracker API. TaskStore gained a Count() method backed by the existing ConcurrentDictionary, and TaskEndpoints maps /tasks/count (declared before /{id:guid}, whose guid constraint already prevents a route collision) returning 200 with {\"count\":N}. Added three integration tests: count matches GET /tasks with a literal JSON-shape assertion, create/delete move the count by exactly one, and the root health endpoint is unchanged. dotnet build succeeds with 0 warnings and dotnet test reports 8 passed / 0 failed (the 5 original tests plus 3 new); changes left uncommitted.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 8,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 89,
+        "buildOk": true,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "handWroteRenderedArtifact": false,
+        "renderInvocations": 0,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "stoppedAtFrame": false,
+        "selfAssessment": "High confidence. The contract is small and each clause is covered by a test: 200 status, exact {\"count\":N} field spelling (asserted against the raw response body, since ReadFromJsonAsync is case-insensitive and would have hidden a casing mismatch), parity with GET /tasks, +1 on POST 201, -1 on DELETE 204, and GET / unchanged. One design detail worth flagging: /tasks/count is registered before /tasks/{id:guid}, but the guid route constraint means ordering is not actually load-bearing — \"count\" can never bind as an id, so the route is unambiguous either way. Count() reads ConcurrentDictionary.Count rather than materializing All(), so it is O(1) and cannot drift from the list. The two count tests share the singleton store with the other tests via IClassFixture, so they assert relative deltas from a measured baseline rather than absolute numbers; xUnit runs tests within a class sequentially, so this is safe today, but if the suite were ever split across parallel collections sharing one factory those two tests would need an isolated store. I touched no governance files and did not commit."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 22500,
+        "armB_output_tokens": 9139
+      }
+    },
+    {
+      "changeId": "filter-tasks-by-status",
+      "forcedLight": false,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Executed the CHAOS --light collapsed lifecycle in Stage-B ledger-first form for change \"filter-tasks-by-status\" in D:/chaos-stageb/wt/B2-armA. FRAME: scoped governance read, hand-authored the full OpenSpec set (validated with the real CLI 1.6.0: `openspec validate --strict` PASS, `status --json` isComplete true), emitted contract.json (10 statements) + frame.pass-01.facts.json, and surfaced 2 material decisions in decision-events.md (PROP-DEC-001 filter placement — a genuine conflict between .chaos/architecture.md and the archived add-task-query-filters design; PROP-DEC-002 the approval gate, approves-change: true), both resolved in-arm. Valve did not fire: no auth/persistence non-goal crossed, exactly 2 material decisions, self-review passed, OpenSpec available. DELIVER: implemented the filter at the endpoint boundary (~12 lines), added 6 integration tests, build 0/0 and tests 11/11 green, emitted deliver.pass-01.facts.json, re-rendered. change.md and lifecycle.md exist only as renderer output; both render invocations exited 0.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 11,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 521,
+        "buildOk": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/filter-tasks-by-status/decision-events.md",
+          ".chaos/changes/filter-tasks-by-status/records/contract.json",
+          ".chaos/changes/filter-tasks-by-status/records/frame.pass-01.facts.json",
+          ".chaos/changes/filter-tasks-by-status/records/deliver.pass-01.facts.json",
+          ".chaos/changes/filter-tasks-by-status/change.md",
+          ".chaos/changes/filter-tasks-by-status/lifecycle.md",
+          "openspec/changes/filter-tasks-by-status/proposal.md",
+          "openspec/changes/filter-tasks-by-status/design.md",
+          "openspec/changes/filter-tasks-by-status/tasks.md",
+          "openspec/changes/filter-tasks-by-status/specs/task-api/spec.md",
+          "openspec/changes/filter-tasks-by-status/.openspec.yaml"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          "docs/decision-log/2026-07-19-task-filter-validation.md",
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          ".chaos/constitution.md",
+          ".chaos/decisions/index.md",
+          "openspec/specs/task-api/spec.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/design.md",
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json",
+          "tools/chaos-render/schema/decision-entry.schema.json",
+          "AGENTS.md"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/filter-tasks-by-status/records/contract.json",
+          ".chaos/changes/filter-tasks-by-status/records/frame.pass-01.facts.json",
+          ".chaos/changes/filter-tasks-by-status/records/deliver.pass-01.facts.json"
+        ],
+        "renderInvocations": 2,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "High confidence overall. Two things worth flagging for the measurement. (1) Governance genuinely changed the delivered behaviour: docs/decision-log/2026-07-19-task-filter-validation.md is accepted repository posture requiring case-insensitive parsing AND rejection of numeric out-of-range values, so the implementation uses Enum.TryParse(ignoreCase) guarded by Enum.IsDefined and I added contract statement C-005 plus a `?status=99` test that the task brief alone would not have produced. (2) A pre-existing CONFLICT: openspec/specs/task-api/spec.md already specifies status AND priority filtering (promoted by the archived add-task-query-filters change) while the code baseline implements neither. I did not pull priority into scope; I wrote the delta as MODIFIED (restating List Tasks, pinning case-insensitivity and the numeric-rejection scenario) rather than ADDED to avoid duplicating an existing requirement, recorded the drift as a frame confidence limiter, and routed priority as a todo candidate. Judgement calls I'd want reviewed: I treated the 400 body shape as convention-following (existing `{ error }` shape in the same file) rather than a third material decision, which kept the count at 2 and the valve unfired — I believe that is honest, but it is the closest call in this run. Three contract statements (C-007/C-008/C-010) are code-evidenced rather than test-evidenced and are declared as such in the Coverage honesty table. Test assertions avoid raw list-length checks because the integration tests share one singleton TaskStore."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added an optional case-insensitive `?status=` filter to `GET /tasks` in the TaskTracker.Api worktree at D:/chaos-stageb/wt/B2-armB. `TaskStore` gained an `All(TaskState? status)` overload (null = no filter, preserves creation-order sorting), and the GET handler parses the query value against the `TaskState` names, returning 400 with an `{ error }` body for anything unrecognised (including numeric values and comma lists that `Enum.TryParse` would otherwise accept). Added 6 xUnit cases (3 theory rows for Open/InProgress/Done, plus case-insensitivity, subset-of-unfiltered, and the 400 case); all 11 tests pass and `dotnet build` is clean. Also smoke-verified against the live app: 4 tasks total, 2 Open, 1 InProgress, 1 Done, `?status=open` == `?status=Open`, `?status=Bogus` -> 400, other CRUD endpoints unchanged.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "src/TaskTracker.Api/Domain/TaskStore.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 11,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 258,
+        "buildOk": true,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "renderInvocations": 0,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "High confidence on every explicitly stated contract point — each was verified twice (integration tests plus live curl against a fresh process with untouched seed data). One judgement call the contract does not cover: an explicitly supplied but empty value (`?status=`) is treated as invalid and returns 400 rather than being normalised to \"no filter\". I chose the strict reading (\"an unrecognised status value returns 400\"); if a hidden checker expects `?status=` to behave like an absent parameter, that single case would differ. I also rejected numeric values (\"?status=1\") and comma-separated lists, which `Enum.TryParse` would otherwise accept, since the contract is name-based. Note the test class shares one WebApplicationFactory (and therefore one singleton store) across tests, so my new tests deliberately assert status homogeneity and subset relationships rather than exact counts, which would be order-dependent; the exact 2/1/1 seed counts were confirmed out-of-band against a clean process instead."
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 35567,
+        "armB_output_tokens": 10410
+      }
+    },
+    {
+      "changeId": "enforce-title-max-length",
+      "forcedLight": false,
+      "armA_chaos": {
+        "arm": "chaos-stage-b",
+        "summary": "Executed the CHAOS --light collapsed lifecycle in Stage-B ledger-first form for change `enforce-title-max-length` in the D:/chaos-stageb/wt/B3-armA worktree. FRAME: scoped governance read, hand-authored the full OpenSpec set (machine-validated — the `openspec` CLI is actually installed here, `openspec validate --strict` exits 0), emitted `contract.json` (6 statements, 2 groups) and the frame facts record, and surfaced 2 material decisions in the hand-appended ledger (PROP-DEC-001 raw-vs-trimmed measurement basis, PROP-DEC-002 the `approves-change` gate), both resolved in-arm with maintainer-style rationale. No escalation trigger fired: the change crosses no architecture non-goal (no auth, no persistence), 2 decisions is at the bar not over it, the inline self-review passed, and OpenSpec was available. DELIVER: enforced a 200-character raw-length bound at the endpoint layer after the existing blank-title check on both POST /tasks and PUT /tasks/{id}, with `TaskTitleRules.MaxTitleLength` declared once in the contracts layer; added 5 tests (over-limit POST/PUT, exactly-at-limit POST/PUT, plus the previously-uncovered blank-title PUT). Build clean, tests 10/10, contract 6/6, R-003/R-004/R-005/R-006 all pass. Both renders exited 0 first try and `--check` reports CLEAN (idempotent); `change.md` and `lifecycle.md` exist only as renderer output.",
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "testsPassed": 10,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 386,
+        "buildOk": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/enforce-title-max-length/decision-events.md",
+          ".chaos/changes/enforce-title-max-length/records/contract.json",
+          ".chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json",
+          ".chaos/changes/enforce-title-max-length/records/deliver.pass-01.facts.json",
+          ".chaos/changes/enforce-title-max-length/change.md",
+          ".chaos/changes/enforce-title-max-length/lifecycle.md",
+          "openspec/changes/enforce-title-max-length/proposal.md",
+          "openspec/changes/enforce-title-max-length/design.md",
+          "openspec/changes/enforce-title-max-length/tasks.md",
+          "openspec/changes/enforce-title-max-length/specs/task-api/spec.md"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".claude/skills/chaos-shared/reference/record-emission.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          "tools/chaos-render/schema/phase-facts.schema.json",
+          "tools/chaos-render/schema/contract.schema.json",
+          "tools/chaos-render/schema/decision-entry.schema.json",
+          ".chaos/rules/index.md",
+          ".chaos/architecture.md",
+          ".chaos/constitution.md",
+          "AGENTS.md",
+          "openspec/specs/task-api/spec.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/proposal.md",
+          "openspec/changes/archive/2026-07-19-add-task-query-filters/specs/task-api/spec.md"
+        ],
+        "materialDecisionsRecorded": [
+          "PROP-DEC-001",
+          "PROP-DEC-002"
+        ],
+        "recordsEmitted": [
+          ".chaos/changes/enforce-title-max-length/records/contract.json",
+          ".chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json",
+          ".chaos/changes/enforce-title-max-length/records/deliver.pass-01.facts.json"
+        ],
+        "renderInvocations": 3,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "stoppedAtFrame": false,
+        "selfAssessment": "Confidence HIGH on the code and the record set. Notes and residual uncertainty: (1) Reading the schemas and the renderer's ledger parser BEFORE authoring was decisive — the `_parse_status` regex is `\\(([^)]*)\\)`, so the required \"resolved-in-arm (no live human; Stage-B mechanized run)\" tag had to be written without nested parentheses (I used an em-dash form) or the status line would have mis-parsed silently rather than loudly. Both renders exited 0 first try, so there are no render-failure notes; I ran a third invocation with `--check` purely to prove idempotency. (2) Materiality judgement is the softest call: I counted 2 material decisions. The endpoint-vs-domain placement question I judged NON-material (settled by R-004 plus the existing blank-title precedent) and recorded it as design rationale instead. Had I counted it as a third, trigger (b) would have fired and escalated to standard — so this is the load-bearing judgement in the run. I believe the light call is right for a request-validation convenience change, but a reviewer could reasonably disagree. (3) `openspec` CLI turned out to be installed in this worktree, so the OpenSpec validation claim in `facts.openspec.validation` is a real exit-0, not a hand-check stand-in — better evidence than the brief anticipated. (4) C-004 is the one code-evidenced (not test-covered) statement: raw-vs-trimmed measurement is not distinguishable at the 200/201 boundary without a whitespace-padded fixture the contract does not require, so it is declared with `whyNotTest` and renders in the Coverage-honesty table rather than being quietly ticked. I deliberately did not add such a fixture, since it would have tested behaviour beyond the approved contract. (5) The `.claude/skills/**` modifications visible in `git status` are pre-existing worktree state, not mine — I only read from that tree."
+      },
+      "armB_plain": {
+        "arm": "plain",
+        "summary": "Added a 200-character upper bound on task titles as request validation. Introduced a shared `TaskValidation` helper in `Contracts/TaskRequests.cs` exposing `MaxTitleLength = 200` and `TryValidateTitle`, which folds the existing blank/whitespace rule together with the new length cap, and wired both POST /tasks and PUT /tasks/{id} to it so an over-long title returns 400 without creating or modifying anything. Added 5 integration tests (over-limit POST/PUT rejected with no state change, exactly-200 POST → 201 and PUT → 200, blank-title PUT preserved); the test constant references the API constant so the limits cannot drift. Build succeeds with 0 warnings and all 10 tests pass.",
+        "buildOk": true,
+        "codeFilesChanged": [
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+        ],
+        "escalated": false,
+        "escalatedTo": null,
+        "escalationTrigger": null,
+        "governanceArtifactsProduced": [],
+        "governanceArtifactsReadAndUsed": [],
+        "handWroteRenderedArtifact": false,
+        "materialDecisionsRecorded": [],
+        "recordsEmitted": [],
+        "renderFailureNotes": "",
+        "renderFailures": 0,
+        "renderInvocations": 0,
+        "selfAssessment": "High confidence. The contract is implemented literally: length is measured in .NET UTF-16 chars via string.Length, which is the natural reading of \"200 characters\" here (surrogate pairs would count as 2 — not specified by the task, and no test depends on it). Validation runs before the store lookup in PUT, so an over-long title on a nonexistent id returns 400 rather than 404; the contract says over-long PUT must be 400 and no existing test covers that ordering, but it is a judgement call. The over-limit POST test asserts the task count is unchanged; xUnit runs tests in a class serially against the shared WebApplicationFactory, so this is stable, but it would be order-sensitive if the class were ever parallelized. No unrelated endpoint behaviour was touched.",
+        "stoppedAtFrame": false,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "testsPassed": 10,
+        "wallTimeSeconds": 78
+      },
+      "tokens": {
+        "method": "budget.spent() output-token delta around each sequential agent; output-only proxy",
+        "armA_output_tokens": 27575,
+        "armB_output_tokens": 5789
+      }
+    }
+  ],
+  "valveSeeds": [
+    {
+      "changeId": "secure-api-underspecified",
+      "expected": "escalate",
+      "result": {
+        "arm": "chaos-stage-b-valveseed",
+        "summary": "Ran the light FRAME step on \"secure the API with an API key\" in the V1-armA worktree and applied the live auto-escalation valve. The change crosses an explicit architecture non-goal — .chaos/architecture.md lists auth/authz under Non-goals and states any auth \"would be strict, decision-bearing work\" — so the valve fired light -> standard on posture-crossing, with decision-count (5 material decisions vs default cap of 2) and self-review-fail corroborating. Recorded ESC-001 in .chaos/changes/secure-api-underspecified/decision-events.md per change-template.md section 2, plus narrative (non-entry) sections capturing the FRAME classification and the five deferred material decisions that seed the standard path. Stopped at the routing decision: no src/ or tests/ edits, no phase records, no change.md/lifecycle.md, no DELIVER.",
+        "codeFilesChanged": [],
+        "testsPassed": 0,
+        "testsFailed": 0,
+        "testsGreen": true,
+        "wallTimeSeconds": 213,
+        "buildOk": true,
+        "escalated": true,
+        "escalatedTo": "standard",
+        "escalationTrigger": "posture-crossing",
+        "stoppedAtFrame": true,
+        "governanceArtifactsProduced": [
+          ".chaos/changes/secure-api-underspecified/decision-events.md"
+        ],
+        "governanceArtifactsReadAndUsed": [
+          ".chaos/architecture.md",
+          ".chaos/rules/index.md",
+          "AGENTS.md",
+          ".claude/skills/chaos-shared/reference/change-template.md",
+          ".claude/skills/chaos-propose/reference/mode-reference.md",
+          ".claude/skills/chaos-propose/SKILL.md",
+          "tools/chaos-render/schema/escalation-event.schema.json",
+          "tools/chaos-render/schema/decision-entry.schema.json",
+          ".chaos/config.yaml"
+        ],
+        "materialDecisionsRecorded": [
+          "ESC-001"
+        ],
+        "recordsEmitted": [],
+        "renderInvocations": 0,
+        "renderFailures": 0,
+        "renderFailureNotes": "",
+        "handWroteRenderedArtifact": false,
+        "selfAssessment": "Routing confidence HIGH / evidence FACT: architecture.md names auth as a non-goal in two places and explicitly calls it strict, decision-bearing work, so posture-crossing is not a judgment call. Three independent triggers fired (posture-crossing, decision-count 5>2, self-review-fail); the ESC schema takes a single trigger enum, so I used posture-crossing as the primary and recorded the other two on the entry's `evidence` line.\n\nJudgment call worth review: mode-reference.md's default inference and architecture.md both point at --strict for auth/security, not standard. I followed the instructed/live valve (light -> standard is the automatic one-way step; standard -> strict is confirm-based and belongs to the standard path, not to this valve) and recorded that reasoning in the ledger's classification table. If the intended semantics is that the valve should route straight to the mode the architecture names, this run under-escalated by one step by design rather than by oversight.\n\nDeliberate omission: I did NOT write the five surfaced material decisions as PROP-DEC-* ledger entries. decision-entry.schema.json requires a runtimeDecision (DEC-*) id for surfaced-kind entries, and creating runtime decisions would have blocked the run past the routing stop. They are enumerated instead in a narrative (non-entry) section, which change-template.md section 2's scan rule explicitly sanctions and which the parser confirmed does not inflate the decision count. So materialDecisionsRecorded lists only ESC-001; the five candidates are ledger-visible but formally unsurfaced, which is correct FRAME-stop state.\n\nVerification done: I did not invoke the chaos-render CLI (it needs a frame facts record, which I was instructed not to emit). Instead I imported render.parse_ledger directly and confirmed the ledger yields order=['ESC-001'], decisions=0, extras={} (every field recognized, nothing silently dropped), and escalation_chain() resolving to light->standard with date 2026-08-02 — so the renderer will derive the H1 banner and escalatedFrom correctly whenever the standard path emits records. jsonschema is not installed in this environment, so the ESC-001 object was field-checked against escalation-event.schema.json by inspection rather than validated programmatically; that is the one gap in my verification.\n\nMinor: the worktree already carried ~59 pre-existing modified Stage-B skill/hook files before I started; my only addition is the new .chaos/changes/secure-api-underspecified/ directory."
+      },
+      "tokens": {
+        "output_tokens": 15295
+      }
+    }
+  ],
+  "totalOutputTokens": 351432
+}

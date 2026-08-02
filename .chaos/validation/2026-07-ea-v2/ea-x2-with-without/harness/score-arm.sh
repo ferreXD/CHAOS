@@ -16,9 +16,19 @@ dotnet test "$CSPROJ" --filter "FullyQualifiedName~TaskTracker.Tests" --nologo -
   | grep -E 'Passed!|Failed!|error CS|Passed:|Failed:' | head -8
 
 echo "########## HELD-OUT ORACLE (TaskTracker.Oracle) ##########"
-dotnet test "$CSPROJ" --filter "FullyQualifiedName~TaskTracker.Oracle" --nologo -v n 2>&1 \
-  | grep -E '\[FAIL\]|\[SKIP\]|Passed!|Failed!|error CS|Passed:.*Failed:|Total:' \
-  | grep -viE 'Duration' | sed 's/\[xUnit.net [0-9:.]*\] *//' | head -40
+# NOTE (2026-08-02): the summary line format is SDK/verbosity dependent — .NET 10 at `-v n`
+# prints "Test Run Successful." / "Total tests: N" where earlier SDKs printed "Passed!  - Failed:
+# N, Passed: N". The old grep matched neither and printed NOTHING, which reads as "no failures"
+# but proves the oracle never ran. Always emit an explicit verdict line; never fail silent.
+ORACLE_OUT="$(dotnet test "$CSPROJ" --filter "FullyQualifiedName~TaskTracker.Oracle" --nologo 2>&1)"
+echo "$ORACLE_OUT" | grep -E '\[FAIL\]|error CS' | sed 's/\[xUnit.net [0-9:.]*\] *//' | head -40
+SUMMARY="$(echo "$ORACLE_OUT" | grep -E 'Passed!|Failed!|Test Run Successful|Test Run Failed|No test (is available|matches)' | head -1 | sed 's/  */ /g')"
+if [ -z "$SUMMARY" ]; then
+  echo "ORACLE VERDICT: UNKNOWN — could not parse a summary line. DO NOT record this as clean."
+  echo "$ORACLE_OUT" | tail -15
+else
+  echo "ORACLE VERDICT: $SUMMARY"
+fi
 
 # Clean the oracle back out so the published arm diff excludes it.
 rm -f "$TESTS/$ORACLE_BASENAME"

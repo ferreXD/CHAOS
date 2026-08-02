@@ -42,6 +42,39 @@ plain** baseline the light arm is **1.64× time / 2.01× tok** — meeting ≤2�
 prose **45.5% → 4.7%** of governed output. Bottleneck now the OpenSpec set + governance reads +
 decision records, not prose → motivates Stage B. (Tokens output-only proxy; time self-reported.)
 
+## Re-run — Stage-B ledger-first renderer (2026-08-02, model claude-opus-5[1m])
+
+Governed arm swapped again: agents no longer author artifacts at all — they emit **structured
+records** (`records/contract.json` + `<phase>.pass-NN.facts.json`) plus the hand-appended ledger,
+and `python tools/chaos-render/render.py <id> --write` produces `change.md` + `lifecycle.md`.
+Same frozen tasks, same held-out oracles, **plain-arm prompt byte-identical**. Harness:
+`../../ea-x2-stage-a-light/harness/stage-b-arms.workflow.js`; scorecard in that kit's
+`results.md`. **Model differs from the two rows above (Opus 5 vs Opus 4.8) — compare ratios, not
+absolutes.**
+
+| Pair | task | Stage-B time | plain time | time ratio | Stage-B out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 521 s | 146 s | 3.57× | 40,509 | 7,848 | 5.16× | 9/9 clean |
+| 2 | soft-delete | 586 s | 164 s | 3.57× | 38,601 | 10,044 | 3.84× | 5/5 clean |
+| 3 | concurrency | 513 s | 118 s | 4.35× | 37,260 | 10,139 | 3.68× | 5/5 clean |
+| **Σ** | | **1,620 s** | **428 s** | **3.79×** | **116,370** | **28,031** | **4.15×** | 19/19 both |
+
+**Negative cost result, reported as found.** Against the Stage-A light row the governed premium
+**widened**: 3.35× → 3.79× time, 3.47× → **4.15×** tokens, and authored governance bytes rose from
+**4.7% → 12.5%** of governed output. Cause: Stage A had already collapsed light-mode prose to
+near-nothing, so B replaced ~3–5 KB of lean prose with ~13–15 KB of strict JSON records plus
+schema-reading — on the light path the ledger-first inversion **costs more than the prose it
+removes**. B's structural claim (prose → 0) is untestable here because light had no prose left;
+it belongs to standard/strict, where the 45.5% prose cost center still exists.
+
+**What did hold, mechanically:** 14 render invocations across 6 governed arms with **0 failures**
+(agents authored schema-valid records first try, from the schemas alone); **0 hand-written
+artifacts** (honesty flag false on every arm); all 6 arms re-render **CLEAN** (`--check`
+idempotent); provenance stamped on all 12 rendered artifacts (the round-3 0/4-provenance defect is
+now impossible); valve fidelity correct **both** directions (posture-crossing seed escalated →
+standard; all 3 light-eligible tasks stayed light); oracle **unregressed at 35/35 per arm**.
+Cost B (light-eligible, valve live): 1,247 s / 85,642 tok vs 425 s / 25,338 tok → 2.93× / 3.38×.
+
 ## Files
 
 | File | Role |

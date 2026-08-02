@@ -120,3 +120,101 @@ exactly one `approves-change: true` per change; format is clean (lean fields, no
   OpenSpec set + governance reading + decision records. → Build **Stage B** (ledger-first renderer:
   agents emit records, artifacts are projected) and **reopen OpenSpec-on-light** with this evidence.
   `maxMaterialDecisions = 2` held up (Cost B stayed ≤2 and stayed light); no retune needed yet.
+
+---
+
+# Stage-B `--light` re-measurement — results (ledger-first renderer)
+
+> Run 2026-08-02, model `claude-opus-5[1m]`, workflow `wf_17e583c3-a31` (13 arms, sequential,
+> 0 errors, ~73 min, 1.04M subagent tokens). Harness: `harness/stage-b-arms.workflow.js`
+> (governed arm rewritten for record emission; **plain-arm prompt byte-identical to Stage A**;
+> tasks, oracles and scoring frozen). Worktrees pinned to base commit `d27600f`.
+> **Model differs from the Stage-A row (Opus 5 vs Opus 4.8) — compare ratios, not absolutes.**
+
+## Headline
+
+**Stage B does not pay for itself on the light path — it costs more.** The governed premium widened
+from **3.47× → 4.15×** output tokens (Cost A, within-session), and authored governance bytes rose
+from **4.7% → 12.5%** of governed output. The cause is not a defect: Stage A had already collapsed
+light-mode prose to ~nothing, so B swapped ~3–5 KB of lean prose for ~13–15 KB of strict JSON
+records plus schema-reading. **On light, the ledger-first inversion removes prose that was no longer
+there and adds record verbosity.** Every *mechanical* claim B was built for did hold: zero render
+failures, zero hand-written artifacts, idempotent re-renders, provenance stamped by construction,
+valve fidelity both directions, oracle unregressed.
+
+## Cost A — frozen 3, forced light (valve OFF)
+
+| Pair | task | Stage-B time | plain time | time ratio | Stage-B out-tok | plain out-tok | tok ratio | oracle (both) |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | auth gate | 521 s | 146 s | 3.57× | 40,509 | 7,848 | 5.16× | 9/9 clean |
+| 2 | soft-delete | 586 s | 164 s | 3.57× | 38,601 | 10,044 | 3.84× | 5/5 clean |
+| 3 | concurrency | 513 s | 118 s | 4.35× | 37,260 | 10,139 | 3.68× | 5/5 clean |
+| **Σ** | | **1,620 s** | **428 s** | **3.79×** | **116,370** | **28,031** | **4.15×** | **19/19 both** |
+
+Against Stage A on the identical tasks: governed **895 s → 1,620 s (+81%)**, **78,310 → 116,370 tok
+(+49%)**. The plain arm also rose (267 s → 428 s, 22,557 → 28,031 tok) — hence ratios, not absolutes.
+
+## Cost B — 3 light-eligible tasks, valve LIVE
+
+| Pair | task | Stage-B time | plain time | time ratio | Stage-B out-tok | plain out-tok | tok ratio | oracle (both) | escalated? |
+|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| B1 | task-count | 340 s | 89 s | 3.82× | 22,500 | 9,139 | 2.46× | 5/5 | no (2 dec) |
+| B2 | filter-by-status | 521 s | 258 s | 2.02× | 35,567 | 10,410 | 3.42× | 6/6 | no (2 dec) |
+| B3 | title-max-length | 386 s | 78 s | 4.95× | 27,575 | 5,789 | 4.76× | 5/5 | no (2 dec) |
+| **Σ** | | **1,247 s** | **425 s** | **2.93×** | **85,642** | **25,338** | **3.38×** | **16/16 both** | none |
+
+## Where the bytes went — the inversion of the Stage-A win
+
+File-size proxy (bytes ÷ 4 as tokens), 6 governed arms. "Authored" = what the **agent** writes;
+the rendered artifacts cost the agent nothing.
+
+| | records (JSON) | ledger | rendered change.md | rendered lifecycle.md | OpenSpec set | authored share |
+|---|---:|---:|---:|---:|---:|---:|
+| range per change | 10.4–15.0 KB | 2.3–6.8 KB | 7.8–10.6 KB | 1.0–1.1 KB | 5.6–11.6 KB | 10.1–16.2% |
+| **aggregate** | **77.8 KB** | **23.5 KB** | **53.0 KB** | **6.3 KB** | **55.7 KB** | **12.5%** |
+
+Stage A authored 4.7% (change.md + decision-events.md). Stage B authors **12.5%** — records are
+**~2.7× more verbose** than the prose they replace. The 59 KB of rendered artifacts *are* free
+(mechanically produced), and they are richer than Stage A's hand-written ones (8–10 KB vs 2–3 KB) —
+but a reader-facing file being 3× longer is a cost too, not automatically a win.
+
+## What Stage B provably delivered (mechanical claims — all held)
+
+| Claim | Evidence |
+|---|---|
+| Agents can emit schema-valid records unaided | **14 render invocations, 0 failures** across 6 arms — no fix-the-record cycles, from the schemas + `record-emission.md` alone, with no worked example |
+| Writer discipline holds | `handWroteRenderedArtifact = false` on **6/6** arms; no `change.md`/`lifecycle.md` authored by hand |
+| Renders are idempotent | `--check` after the fact: **CLEAN on 12/12** rendered artifacts |
+| Provenance by construction | all 12 artifacts carry `lastWrittenAt/By`, `lastAuditedAt/By`, `bodyHash`, `timestampSource: records` — the round-3 "0/4 provenance on all 8 artifacts" defect is now unrepresentable |
+| Valve fidelity, both directions | escalate seed → **escalated to standard** (`posture-crossing`, stopped at FRAME); all 3 light-eligible tasks **stayed light** (2 material decisions each) |
+| No quality regression | oracle **35/35 per arm** (19/19 Cost A + 16/16 Cost B), both arms, unchanged from Stage A |
+
+## Defects this run surfaced
+
+1. **Renderer drops `commentary` / `verdictRationale` on the deliver phase.** Both fields render for
+   frame/review/sync/archive (and `verdictRationale` for verify), but `render_deliver` has no slot —
+   schema-valid input, exit 0, silently discarded. Found by the A1 governed agent, confirmed in
+   `render.py`. Authored voice on DELIVER currently has no home. **Fix before the strict run.**
+2. **`score-arm.sh` reports oracle results as empty under .NET 10.** Its grep expects `Passed!` /
+   `Total:`; this SDK prints `Test Run Successful.` / `Total tests:` at `-v n`, so the oracle section
+   printed **nothing** — which reads as "no failures" but proves nothing. The first scoring pass of
+   this run was vacuous; re-scored with robust extraction (results above are the real ones).
+   **A silent-empty oracle is worse than a failing one — fixed in the script.**
+3. **The renderer has no legacy-change guard.** Running `--check` on a pre-Stage-B change
+   (`add-task-query-filters`, hand-written phase-per-artifact `lifecycle.md`, no `records/`) renders
+   a full `Pending` skeleton and reports an 84-line diff — meaning `--write` there would **destroy a
+   legacy artifact**. Readers fall back to legacy by design; the renderer must refuse to write when
+   a change has no `records/`.
+
+## Verdict & routing
+
+- **The light path should stay Stage-A-shaped.** B's cost case fails here and the evidence is
+  unambiguous: with prose already at 4.7%, there is nothing left for a renderer to remove.
+- **B's value on light is correctness, not cost** — and that part is now measured, not asserted:
+  drift is structurally impossible, provenance is automatic, counts are derived, and the valve and
+  oracle are unregressed. Whether that is worth +49% tokens on small changes is a **creator call**.
+- **The real test is standard/strict**, where the 45.5% prose cost center still exists and four
+  narrative reports collapse into one rendered file. Run `ea-x2-with-without` next — that is the
+  arm where B's structural claim can actually pay.
+- Fix the three defects above (deliver commentary slot, `score-arm.sh` grep, legacy-write guard)
+  **before** the strict run, since the last two affect its validity.
