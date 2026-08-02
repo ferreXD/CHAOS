@@ -6,6 +6,17 @@ Use this skill whenever the user invokes `chaos:sync`, `/chaos-sync`, or asks to
 
 `chaos:sync` is the governance reconciliation command. It detects drift, classifies decisions, promotes lived decisions into durable governance, creates lightweight ADRs/decision logs/rules/gates when selected, updates indexes, reconciles protected documentation (`AGENTS.md` / `AGENT.md` and `README.md`), reconciles Claude command-suite hardening drift, and writes a sync report.
 
+## Stage-C: classified OpenSpec depth is not drift
+
+When a change's `.chaos/changes/<change-id>/classification-state.json` exists (design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`, C-10/C-13), its `openspec` dimension is
+the reconciliation baseline: a change classified `openspec 0` (no OpenSpec artifacts —
+contract lives in `change.md`) or `openspec 1` (delta only) is **conforming, not drifted**.
+Drift is a MISMATCH between the classified obligation and what exists, in either direction
+(an owed delta missing; a full set demanded by a later firing but absent; or spec artifacts
+present that no dimension or floor demanded — flag, don't delete). Legacy changes without
+classification state keep the old full-set expectation.
+
 ## Model robustness (non-negotiable)
 
 Execute reliably on the weakest supported Claude model. Obey

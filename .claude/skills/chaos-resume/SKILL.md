@@ -18,6 +18,15 @@ capsules are the compact handoff that lets CHAOS continue **without relying on
 chat memory**. `chaos:resume` is not a "reread the whole chat and continue"
 command — it resumes only from structured runtime state.
 
+## Stage-C: classification state travels with the resume
+
+When the change folder carries `classification-state.json` (design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`), the resumed source command inherits
+it: continue its checkpoint against that state file (the ratchet survives the pause —
+fired dimensions never lower on resume; floors from the original flags persist in the
+state), never rebuild classification from chat memory, and treat newly ANSWERED decisions
+as potential MR-3 stop-satisfiers at the next K3.
+
 ## Required references
 
 Read the reference files before acting:

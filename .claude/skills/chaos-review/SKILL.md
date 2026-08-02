@@ -26,6 +26,17 @@ Claude invocation:
 - OpenSpec change id or intent.
 - Optional mode: `--light`, `--standard`, `--strict`.
 
+## Stage-C: the review dimension decides standalone vs folded
+
+When `.chaos/changes/<change-id>/classification-state.json` exists, flags are floor vectors
+(design `docs/design/2026-08-02-stage-c-progressive-rigor.md` §8) and the **review dimension**
+governs this command's place: `review 2` → this standalone review is REQUIRED before
+implementation; `review 1` → review is folded into verify, and running standalone
+`chaos:review` is a human's optional choice, not an obligation; `review 0` → the inline
+self-review line suffices. Running this command anyway is always allowed (raising rigor is
+silent, C-9). Review never lowers a fired dimension — findings arguing for less rigor route
+to a recorded human override decision.
+
 ## Light collapsed-lifecycle changes
 
 A `change.md`-based light change (`chaosMetadata.mode: light` — see

@@ -37,6 +37,8 @@ Read these references before executing:
 - `reference/archive-readiness.md`
 - `reference/csharp-verification-delegation.md`
 - `reference/report-template.md`
+- `docs/design/2026-08-02-stage-c-progressive-rigor.md` (progressive rigor — verify is its enforcement end)
+- `tools/chaos-classify/README.md` (the classifier contract; K4 + obligation audit)
 
 ## Repository context (vNext)
 
@@ -59,6 +61,35 @@ No archive recommendation without validation/evidence classification.
 No silent installation of tools.
 No silent amendment of governance artifacts.
 ```
+
+## Stage-C enforcement (classification-driven)
+
+When `.chaos/changes/<change-id>/classification-state.json` exists (design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`; contract
+`tools/chaos-classify/README.md`), `chaos:verify` is the **enforcement end** of progressive
+rigor:
+
+1. **K4 checkpoint (scan-only, C-12):** build the classifier payload (intent/scope from
+   `change.md`; `ledgerFile` = `decision-events.md`; `selfReview: fail` when the recorded
+   inline self-review / review verdict is not clean) and run
+   `python tools/chaos-classify/classify.py --inline <payload.json> --state <classification-state.json>`
+   with `checkpoint: K4`. An **X2 firing demands an independent review pass (review 2) and
+   deeper verify — never a stop** (C-3): record the `TRG-*` event and route to a standalone
+   review before any READY verdict.
+2. **Obligation audit — the dimension vector is a checklist:**
+   - `adr 2` → no READY until the ADR exists (READY_WITH_DEBT at most, debt named);
+   - `openspec 1/2` → the delta/full set owed by K1–K3 firings exists (design §5.3 law 5:
+     due by DELIVER exit); missing ⇒ finding + verdict cap;
+   - `verify 1` → run the **trigger-attributed** safeguard checks (the firing's surface says
+     which: auth → credential/enforcement checks; data-store → persistence/migration checks;
+     contract-dependency → contract checks); `verify 2` → full orchestration;
+   - every `newStops` stop was surfaced as a runtime decision and ANSWERED; every
+     `stopSatisfiedBy` cites a real ANSWERED entry;
+   - dimensions never decreased across checkpoints without a recorded human override decision.
+3. Verdict metadata is unchanged (confidence doctrine); classification findings are normal
+   `VFY-###` findings carrying their `TRG-*` refs in `detail`.
+
+Absent `classification-state.json` (pre-C change): legacy behaviour, no new duties.
 
 ## Output
 
