@@ -69,28 +69,37 @@ Fallback source list (used ONLY when the check fails):
   mechanics inside the work loop)
 - `.claude/skills/chaos-resume/reference/resume-capsule-contract.md` (capsule schema)
 
-Record authoring in either path: copy the matching example from
-`tools/chaos-render/examples/`, adapt, validate with `render.py --check` — never read the
-schemas.
+Record authoring in either path: start from the `chaos-record` emitter (facts derived,
+judgement fields yours), pattern-match `tools/chaos-render/examples/` for the filled shape,
+validate with `render.py --check` — never read the schemas.
 
 ## The loop
 
 Floors: parse the preset flag as a **floor vector** (design §8; no flag = zero floors). Floors
 only raise; classification is the inference. Pass `mode` into every classifier payload.
 
-Classifier invocation, all steps:
-`python tools/chaos-classify/classify.py --inline <payload.json> --state .chaos/changes/<change-id>/classification-state.json`
-with `mapFile` = `.chaos/path-class-map.json` and `postureFiles` = the repo's
-architecture/posture docs (absent map ⇒ path-class scans are blind: say so, lean on
-adjudication, and record the gap). When the verdict says `adjudicationDue: true`, perform the
-adjudication pass yourself per the pinned contract (raise-only, cites mandatory) and merge via
-`--adjudication`; otherwise do not run it. Record one `TRG-*` ledger event per fired trigger.
+Classifier invocation, all steps (L3 — the protocol is a tool; `chaos-scan` owns diff
+scoping, payload assembly, the two-call sequence, and `TRG-*` transcription):
+
+```bash
+python tools/chaos-scan/scan.py <k1|rescan|k2|k4|merge> --change-dir .chaos/changes/<id> [--run <runId>]
+```
+
+Each call prints a **verdict digest** (also persisted at `scan/verdict-<seq>.md`) carrying
+the firings with verbatim cites, demoted candidates, the stop duty, the vector, and whether
+adjudication is due. Read the digest, not raw JSON. When it says `adjudication: DUE`, judge
+the named `scan/packet-<seq>.json` yourself **at ceiling** per the pinned contract
+(raise-only, cites mandatory) and apply via `merge --raises <file>` — it fails closed on any
+cite-less raise. `TRG-*` ledger events are appended by the tool (writer rule 2 as amended:
+decision entries stay yours). Absent path-class map ⇒ path-class scans are blind: say so,
+lean on adjudication, record the gap.
 
 **Tiering (L1, `chaos-shared/reference/model-tier-map.md`):** your session model is the
 **ceiling** — never spawn a subagent on a stronger model than your own; a demanding change
 on a low ceiling proceeds at ceiling and records a `confidenceLimiter`, never upgrades.
-Delegate exactly three mechanical steps to the `chaos-mechanical-executor` subagent (floor
-tier) — `TRG-*` event transcription, the render repair loop, and mechanical audit repairs.
+Delegate exactly two mechanical steps to the `chaos-mechanical-executor` subagent (floor
+tier) — the render repair loop and mechanical audit repairs (`TRG-*` transcription moved
+down-ladder to `chaos-scan` itself, L3-D6).
 It never decides; after two failed validator attempts it returns `ESCALATE` and you finish
 the step yourself. Implementation runs at ceiling by default; while the **easy gate** is
 open (zero triggers fired, no preset floor) you MAY delegate implementation units at mid
@@ -108,8 +117,14 @@ initialize `.chaos/changes/<change-id>/` per `change-artifacts-layout.md`. Captu
 
 ### 1 · Classify at intent (K1), author what it owes, then S1
 
-Build the K1 payload — intent, predicted scope (including planned NEW paths, or M5
-false-fires later), `declaredTriggers`, the preset — scan, adjudicate if due, merge.
+```bash
+python tools/chaos-scan/scan.py k1 --change-dir .chaos/changes/<id> --run <runId> \
+  --intent "<verbatim>" --scope "<predicted scope, incl. planned NEW paths or M5 false-fires later>" \
+  --subject src --subject tests [--declared ...] [--mode <preset>] [--posture <doc>]...
+```
+
+This captures `scan-inputs.json` (subjects = the C-15 diff roots; scope changes later only
+via `scan.py update-scope --decision <RUN-DEC-*>`). Adjudicate if the digest says so, merge.
 
 **OpenSpec authoring timing (creator rule, 2026-08-03):** artifacts owed by a classification
 are authored **when the obligation fires, always before the surface they govern is
@@ -118,8 +133,11 @@ run the full hard invocation gate NOW; `openspec 0` → skip, the contract lives
 §Contract (record the skip in the frame facts). The human approves intent + classification +
 the contract artifact **together, in one stop**.
 
-**S1 — the frame approval stop (always; the run's one unconditional stop, C-11).** Emit
-`records/contract.json` + `records/frame.pass-01.facts.json`, render `--write`, then surface
+**S1 — the frame approval stop (always; the run's one unconditional stop, C-11).** Author
+`records/contract.json` (statements are judgement — yours end-to-end), start the frame
+record from the emitter (`python tools/chaos-record/record.py frame --change-dir <dir>
+--run <runId> --title "..."` — envelope, intent verbatim, classified OpenSpec depth derived)
+and fill its judgement fields, render `--write`, then surface
 exactly one runtime decision with `approves-change: true`, folding every K1-fired question
 into its presentation with `folds: <n>` declared on the ledger entry. **Write the resume
 capsule at stop creation** (rule below), then STOP (`mustStop`). Never proceed on a
@@ -131,18 +149,12 @@ Repeat until the contract is delivered:
 
 1. **Implement one unit** (preflight, boundary construction, delegation and scope discipline
    per the apply references; specialists implement, they never decide scope).
-2. **Rescan (K3).** Regenerate numstat/patch **scoped per C-15** — the diff describes the
-   governed subject only, never the change's own bookkeeping:
-
-   ```bash
-   git add -N src tests                      # subject paths; new files must be visible
-   git diff --numstat -- src tests > .tmp/k3.numstat
-   git diff          -- src tests > .tmp/k3.patch
-   ```
-
-   Run K3 with the grown diff. `adjudicationDue: true` (new surface paths) → adjudication over
-   the full inputs, merge raises. Late-fired artifact obligations (openspec delta/full, ADR)
-   are authored **at the firing**, before that surface is implemented further — never at close.
+2. **Rescan (K3).** `python tools/chaos-scan/scan.py rescan --change-dir <dir>` — the tool
+   does `git add -N` + the C-15-scoped diff itself (the diff describes the governed subject
+   only, never the change's own bookkeeping) and persists it under `scan/`. Digest says
+   `adjudication: DUE` (new surface paths) → judge the packet, merge raises. Late-fired
+   artifact obligations (openspec delta/full, ADR) are authored **at the firing**, before
+   that surface is implemented further — never at close.
 3. **Stops.**
    - `newStops > 0` → **S2**: surface **one** runtime decision carrying every question folded
      at this scan (`folds: <n>` on the entry), write the resume capsule, STOP (`mustStop`).
@@ -157,13 +169,14 @@ Repeat until the contract is delivered:
      (`folds: <n>`), write the capsule, STOP. This is the product's core loop: intent → agent
      drives → finds a decision → records it → the human answers → continue. Do not ask
      questions the repository already answers.
-4. **After any answered decision:** run a K2 scan (scan-only; M4 counts questions via
-   `folds:`). New obligations from an M4 firing apply before further implementation.
+4. **After any answered decision:** `scan.py k2 --change-dir <dir>` (scan-only; M4 counts
+   questions via `folds:`). New obligations from an M4 firing apply before further
+   implementation.
 
 ### 3 · Self-review (mechanical, never stops)
 
 Inline self-review of the delivered work (scope sane / rules mapped / contract testable /
-decisions complete). Run K4 with `selfReview:` = the verdict. An X2 firing raises
+decisions complete). Then `scan.py k4 --change-dir <dir> --self-review <verdict>`. An X2 firing raises
 `review → 2` and `verify → 1` mechanically (C-3): route to an independent review pass — never
 a stop.
 
@@ -172,14 +185,22 @@ a stop.
 If the vector's `verify` ≥ 1: run it NOW, inside the run — `verify 1` = trigger-attributed
 safeguard checks (the firing's surface says which: auth → credential/enforcement checks;
 data-store → persistence/migration checks; contract-dependency → contract checks);
-`verify 2` = full verify orchestration. Emit `records/verify.pass-NN.facts.json`. A failing
+`verify 2` = full verify orchestration. Start the record from the emitter — it re-runs the
+checks itself (the independent re-run, L4-D4):
+`python tools/chaos-record/record.py verify --change-dir <dir> --run <runId> --run-checks
+[--openspec-validate-cmd "..."]` — then fill `archiveReadiness`, `traceability`, `findings`
+and the envelope judgement. A failing
 verify **re-enters the work loop** with the failure as new evidence (the next K3 scan sees the
 repair diff). At `verify 0` nothing runs — and that is the correct, measured outcome.
 
 ### 5 · Obligation audit (a gate, not a stop)
 
-Emit `records/deliver.pass-NN.facts.json` (coverage per contract statement, files, deviations
-with `RUN-DEC-*` refs, scope drift), then assert:
+Start the deliver record from the emitter (L4 — facts derived, judgement yours):
+`python tools/chaos-record/record.py deliver --change-dir <dir> --run <runId>
+--build-log <file> --test-log <file> [--rule R-...]...` — it derives build/tests/files/
+scopeDrift and scaffolds coverage rows (one per contract statement) and rules; you fill
+`covered`/`evidence`/`whyNotTest`, deviations with `RUN-DEC-*` refs, and the envelope
+judgement. Then assert:
 
 ```bash
 python tools/chaos-classify/audit.py --state .chaos/changes/<id>/classification-state.json \
@@ -239,8 +260,8 @@ of what any capsule says.
   depth 0/1 reads `isComplete: false` and that is the expected answer, not degraded mode.
 - Never emit `proposal-report.md`, `proposal-review.md`, `apply-report.md`, or
   `verification.md`; never hand-write or hand-edit rendered files.
-- Every material answer is a `RUN-DEC-*` ledger entry (change-template §2); `TRG-*` events for
-  firings; deviations carry their decision refs.
+- Every material answer is a `RUN-DEC-*` ledger entry (change-template §2), yours to write;
+  `TRG-*` events are appended by `chaos-scan` (L3-D6); deviations carry their decision refs.
 
 ## Final response
 

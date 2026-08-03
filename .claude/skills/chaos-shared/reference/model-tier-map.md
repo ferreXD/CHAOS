@@ -29,10 +29,12 @@ mid is passed explicitly at spawn time.
 
 **Floor (delegate to the mechanical executor; it never decides):**
 
-- `TRG-*` event transcription from a classifier verdict
 - Render repair loop (fix record **facts** per `render.py --check` errors)
-- Mechanical audit repairs (missing record re-emission, stale render — never stops)
+- Mechanical audit repairs (re-run the `chaos-record` emitter, re-render — never stops)
 - Harness telemetry assembly (measurement arms only)
+
+(`TRG-*` transcription moved down-ladder to `chaos-scan` itself — L3-D6, tool beats cheap
+model. This supersedes the original L1-D4 floor assignment; registered in §5e.)
 
 **Ceiling — the grader invariant (never below ceiling, never modulated):**
 

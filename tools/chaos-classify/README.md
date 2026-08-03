@@ -82,6 +82,13 @@ Continuous verdict fields:
   interruption. MR-3 satisfaction (ANSWERED same-surface coverage) beats absorption.
   Corpus seed: SC-23.
 
+**The loop drives this CLI through `tools/chaos-scan/scan.py` (L3):** the wrapper owns the
+C-15 diff generation, section/payload assembly, the two-call merge sequence, `TRG-*` ledger
+transcription, and the verdict digest + sanitized packet files under the change's `scan/`
+folder. It imports `classify()` as a library and changes NOTHING about classification —
+this adapter contract stays authoritative for what the core consumes; `--inline` remains
+first-class for direct invocation.
+
 **The obligation audit** (`audit.py`) is the deterministic close gate: it recomputes the owed
 vector from `classification-state.json` via the same `compute_dimensions` and asserts the owed
 artifacts exist (stops all answered + surfaced, ADR at `adr 2`, OpenSpec at depth, verify

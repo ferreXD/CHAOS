@@ -9,7 +9,7 @@ sections:
   - id: model-tier-map
     mode: verbatim
     source: .claude/skills/chaos-shared/reference/model-tier-map.md
-    sha256: 6425e6859836117c849da6f21ccc4b52536ab61b3a91b485f02b4116a185b867
+    sha256: 7c42f6e5a30a8cb7a0fcc51e543ceeef8cccd9c6abc2d5351c03ae22161fc5f0
   - id: decision-protocol
     mode: compiled
     source: .claude/skills/chaos-shared/reference/interactive-decision-protocol.md
@@ -23,12 +23,12 @@ sections:
     mode: verbatim
     source: tools/chaos-classify/README.md
     span: "## Wiring adapter (step 4 — commands call this)"
-    sha256: 271cf778f4da437bc0054397079517c6f467a9dde131d558456e730997f6e609
+    sha256: b0444b8bdc3789f62eb07c14af8bb1e1e6185b9a9470fd9be3fbaf7ce0867dd2
   - id: classifier-continuous-mode
     mode: verbatim
     source: tools/chaos-classify/README.md
     span: "## Continuous mode (Stage D — `chaos:run`)"
-    sha256: 271cf778f4da437bc0054397079517c6f467a9dde131d558456e730997f6e609
+    sha256: b0444b8bdc3789f62eb07c14af8bb1e1e6185b9a9470fd9be3fbaf7ce0867dd2
   - id: adjudication-contract
     mode: verbatim
     source: tools/chaos-classify/adjudication-prompt.md
@@ -36,7 +36,7 @@ sections:
   - id: record-emission
     mode: compiled
     source: .claude/skills/chaos-shared/reference/record-emission.md
-    sha256: caee878e4d8478bd6bd7baba0c2751c9f949d43ef8c5576f6b5526c54cbffa1a
+    sha256: efcb34bbcfb0866e7b8c2f2264a2f565e1ee8d48f7e55651a91d1c8dce60c8cd
   - id: change-folder-layout
     mode: compiled
     source: .claude/skills/chaos-propose/reference/change-artifacts-layout.md
@@ -127,10 +127,12 @@ mid is passed explicitly at spawn time.
 
 **Floor (delegate to the mechanical executor; it never decides):**
 
-- `TRG-*` event transcription from a classifier verdict
 - Render repair loop (fix record **facts** per `render.py --check` errors)
-- Mechanical audit repairs (missing record re-emission, stale render — never stops)
+- Mechanical audit repairs (re-run the `chaos-record` emitter, re-render — never stops)
 - Harness telemetry assembly (measurement arms only)
+
+(`TRG-*` transcription moved down-ladder to `chaos-scan` itself — L3-D6, tool beats cheap
+model. This supersedes the original L1-D4 floor assignment; registered in §5e.)
 
 **Ceiling — the grader invariant (never below ceiling, never modulated):**
 
@@ -334,6 +336,13 @@ Continuous verdict fields:
   interruption. MR-3 satisfaction (ANSWERED same-surface coverage) beats absorption.
   Corpus seed: SC-23.
 
+**The loop drives this CLI through `tools/chaos-scan/scan.py` (L3):** the wrapper owns the
+C-15 diff generation, section/payload assembly, the two-call merge sequence, `TRG-*` ledger
+transcription, and the verdict digest + sanitized packet files under the change's `scan/`
+folder. It imports `classify()` as a library and changes NOTHING about classification —
+this adapter contract stays authoritative for what the core consumes; `--inline` remains
+first-class for direct invocation.
+
 **The obligation audit** (`audit.py`) is the deterministic close gate: it recomputes the owed
 vector from `classification-state.json` via the same `compute_dimensions` and asserts the owed
 artifacts exist (stops all answered + surfaced, ADR at `adr 2`, OpenSpec at depth, verify
@@ -447,9 +456,11 @@ Commands **emit structured records**; the renderer projects `change.md`, `lifecy
 
 1. **Never hand-write or hand-edit a rendered artifact.** Fix direction is source-first:
    fix the record (or ledger entry), re-render.
-2. **The ledger stays hand-appended.** `decision-events.md` is a SOURCE — append-only, per
-   the decision-entry format above; a state change edits the `status:` line only. An answer
-   that changes the mode carries `- escalates: <from> → <to>`.
+2. **Decision entries stay hand-appended.** `decision-events.md` is a SOURCE — append-only,
+   per the decision-entry format above; a state change edits the `status:` line only. An
+   answer that changes the mode carries `- escalates: <from> → <to>`. Exception (L3-D6):
+   `TRG-*` trigger events are appended by `chaos-scan` mechanically — never hand-write or
+   edit one.
 3. **A record is emitted only for a COMPLETED pass.** Deferred/aborted attempts write no
    record; re-runs append the next pass number; a pass file is never rewritten.
 
@@ -471,9 +482,13 @@ and `verdictRationale` — everything else is data.
 exactly once with its evidence (`test`|`code`|`doc`); **non-test evidence requires
 `whyNotTest`** — that is what keeps weak evidence visible. The renderer ticks mechanically.
 
-**Authoring protocol (do NOT read the schemas):** copy the matching example from
-`tools/chaos-render/examples/` (`contract.example.json`, `frame.facts.example.json`,
-`deliver.facts.example.json`, `verify.facts.example.json`), adapt it, then validate:
+**Authoring protocol (do NOT read the schemas):** for frame/deliver/verify, start from the
+emitter — `python tools/chaos-record/record.py <phase> --change-dir <dir> --run <runId> ...`
+writes the partial record at the real path (facts derived, judgement fields empty; an
+underivable fact stays empty, never guessed; an aborted pass deletes its partial). You fill
+the judgement; `contract.json` is yours end-to-end (copy
+`tools/chaos-render/examples/contract.example.json`; the other examples show the filled
+shape). Then validate:
 
 ```bash
 python tools/chaos-render/render.py <change-id> --write   # --check first when unsure
