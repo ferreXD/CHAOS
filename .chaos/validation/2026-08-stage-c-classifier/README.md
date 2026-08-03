@@ -127,6 +127,18 @@ NOT a C v1 dimension; observation O-6).
 
 ## 7. Changelog
 
+- 2026-08-03 (**Stage-D build prerequisite**) — **SC-23 added** (corpus 28 → 29): the
+  pending-stop-absorption seed. Stage D's continuous loop scans per work unit, so a scan can
+  fire new stop-demanding triggers **while an earlier stop is still pending unanswered** — a
+  shape the four phase checkpoints could never produce. The registered rule (design
+  `2026-08-03-cost-bar-and-run-collapse.md` §4.1, creator-blessed): pending unanswered entries
+  ABSORB new demands (`stopAbsorbedBy`, `newStops 0`) — the loop amends the pending entry
+  (append the folded question, increment `folds:`) instead of interrupting again; MR-3
+  satisfaction still beats absorption. **This seed is committed BEFORE the absorption code**
+  and fails against the pre-D classifier (`newStops 1` = A2 stop over-detection) — the
+  failure documents the behavior change. No existing expectation moves (verified: no prior
+  seed carries an unanswered ledger entry).
+
 - 2026-08-03 (step 6, **creator decision C-17**) — **two expectation changes**: SC-07 K2 and
   SC-08 K3 drop `openspec` **2 → 1**. Cause is a *design* change, not a classifier failure: M4 is
   **removed from C-13's distinct-surface count** (`C13_COUNTED` = M1/M2/M3). Rationale — M4
