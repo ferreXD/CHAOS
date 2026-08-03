@@ -387,6 +387,24 @@ before any L1 code):
 | **L1-D10** | Relative tiers (amendment) | ceiling/mid/floor resolve against the session model, collapsing downward (haiku-only must still work) (creator) | Floor pinned in the executor; specialist inherits ceiling; mid passed at spawn |
 | **L1-D11** | Implementation tier (amendment) | **Ceiling by default; mid allowed while the easy gate is open** (zero firings + no preset floor); gate closes for the run on any firing/X2/two failed test cycles; grader steps never below ceiling (creator) | Extends savings to band-A implementation — the largest cost block on the worst band; oracle regression on mid-tier arms closes L1-D11 rather than tuning it |
 
+**L3 + L4 — `chaos-scan` + `chaos-record`** (joint design of record:
+[`2026-08-03-l3-l4-scan-and-record.md`](2026-08-03-l3-l4-scan-and-record.md), decided
+2026-08-03, before any L3/L4 code; **the §5c prediction stays frozen and un-reopened**):
+
+| Id | Decision | Call | Why |
+|---|---|---|---|
+| **L3-D1** | Tool shape | `tools/chaos-scan/scan.py`, imports `classify()` as a library; classifier core untouched | Zero corpus movement; the audit.py import pattern |
+| **L3-D2** | Invocation surface | Subcommands per evidence class (`k1`/`rescan`/`k2`/`k4`/`merge`); inputs captured once into `scan-inputs.json` (working state, not a record); scope changes only via explicit `update-scope` citing a decision | Later calls need only the change id; no silent scope drift |
+| **L3-D3** | Diff mechanics | `git add -N` + C-15-scoped numstat/patch inside `rescan`, persisted under `scan/` | C-15 by construction; L4 reuses the same diff |
+| **L3-D4** | Verdict digest | Append-only `scan/verdict-<seq>.md`; MUST carry verbatim cites, demoted candidates + reasons, stop duty, vector, `adjudicationDue` + packet pointer | The C-6/C-12 evidence surface is non-negotiable; ~20 lines replaces raw JSON |
+| **L3-D5** | Adjudication flow | Sanitized packet written when due; orchestrator judges at ceiling; `merge` **fails closed on cite-less raises** | The corpus-validated blindness contract, mechanized |
+| **L3-D6** | TRG ledger writes | **Tool-appended by chaos-scan** (creator) — writer rule 2 amended: decision entries agent-only, `TRG-*` tool-appended; supersedes L1's floor assignment | Tool beats cheap model; TRG was already RECORDED/command-made |
+| **L4-D1** | Tool shape | `tools/chaos-record/record.py` emits frame/deliver/verify; `contract.json` stays agent-authored; render stays the projector | Emission ≠ projection; contract statements are judgement end-to-end |
+| **L4-D2** | Output mode | **Partial record at the real path** (creator): facts filled, judgement empty; agent fills; `render --check` gates; abort deletes | Writer rule 3 intent preserved; no draft-rename convention |
+| **L4-D3** | Derivation table | Envelope + auto pass-NN mechanical; deliver parses the loop's own logs + scan's numstat + scaffolds coverage/rules by id; frame adds intent verbatim + real `openspec status` proof | Derive facts, scaffold structure, never content |
+| **L4-D4** | Verify execution | **`record.py verify` re-runs build/tests/openspec itself** (creator); deliver stays parse-only | The independent re-run IS the check; results become untranscribable-wrong |
+| **L4-D5** | Honesty guard | Emitter never fills a judgement field — enforced by unit test; underivable facts stay empty | Guessing is the defect class this lever must never ship |
+
 **L2 — corpus amortization** (design of record:
 [`2026-08-03-l2-corpus-amortization.md`](2026-08-03-l2-corpus-amortization.md), decided
 2026-08-03, before any L2 code):
