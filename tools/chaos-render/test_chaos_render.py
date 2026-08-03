@@ -838,5 +838,49 @@ class TestDecisionAudit(unittest.TestCase):
             repo.cleanup()
 
 
+class TestExampleRecords(unittest.TestCase):
+    """The examples/ records are the agent-facing replacement for reading the schemas
+    (L2-D7, docs/design/2026-08-03-l2-corpus-amortization.md §3): agents pattern-match an
+    example and let `render.py --check` catch them, so an example that drifts from its
+    schema MUST fail here. The loop emits contract/frame/deliver/verify; review is not
+    emitted by chaos:run and deliberately has no example until a command needs one."""
+
+    EXAMPLES_DIR = os.path.join(HERE, "examples")
+    EXPECTED = ["contract.example.json", "frame.facts.example.json",
+                "deliver.facts.example.json", "verify.facts.example.json"]
+
+    def _load(self, name):
+        with open(os.path.join(self.EXAMPLES_DIR, name), encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_every_expected_example_exists(self):
+        for name in self.EXPECTED:
+            self.assertTrue(os.path.isfile(os.path.join(self.EXAMPLES_DIR, name)), name)
+
+    def test_examples_validate_against_their_schema(self):
+        facts_schema = render.load_schema("phase-facts.schema.json")
+        contract_schema = render.load_schema("contract.schema.json")
+        for name in self.EXPECTED:
+            data = self._load(name)
+            schema = contract_schema if name.startswith("contract") else facts_schema
+            issues = render.validate_schema(data, schema)
+            self.assertEqual(issues, [], "%s: %s" % (name, issues))
+
+    def test_examples_carry_the_honesty_fields(self):
+        """The whole point of curated examples: weak-evidence honesty stays visible."""
+        deliver = self._load("deliver.facts.example.json")
+        non_test = [c for c in deliver["facts"]["coverage"] if c["evidence"] != "test"]
+        self.assertTrue(non_test and all(c.get("whyNotTest") for c in non_test))
+        self.assertTrue(all(d.get("decision") for d in deliver["facts"]["deviations"]))
+        frame = self._load("frame.facts.example.json")
+        self.assertTrue(frame.get("confidenceLimiters"))
+
+    def test_examples_phase_matches_filename(self):
+        for name in self.EXPECTED:
+            if name.startswith("contract"):
+                continue
+            self.assertEqual(self._load(name)["phase"], name.split(".", 1)[0], name)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "example-change",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-01-01-chaos-run-example-change-abc123",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-01-01T12:30:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement is delivered and covered, build and tests are green, the one deviation is decision-backed, and the diff never left the approved scope.",
+  "commentary": "Coverage must enumerate EVERY contract statement id exactly once. Non-test evidence always carries whyNotTest — that is what keeps weak evidence visible.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 8,
+      "total": 8,
+      "note": "5 baseline tests unchanged and green + 3 added for the summary contract"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/Example.Tests/WidgetEndpointsTests.cs::Get_summary_returns_the_store_total"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/Example.Tests/WidgetEndpointsTests.cs::Summary_agrees_with_the_widget_list"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "code",
+        "refs": ["src/Example.Api/Program.cs — untouched; baseline registrations byte-identical"],
+        "whyNotTest": "Non-regression of untouched surface: the baseline suite already asserts it and the diff shows the file untouched; a duplicate test would assert the test suite, not the behaviour."
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 8/8, 0 failed; baseline tests unmodified" },
+      { "id": "R-004", "status": "pass", "evidence": "no Domain/** file changed; the aggregate is read at the endpoint boundary" }
+    ],
+    "files": [
+      { "path": "src/Example.Api/Endpoints/WidgetEndpoints.cs", "change": "modified" },
+      { "path": "tests/Example.Tests/WidgetEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [
+      {
+        "summary": "Route registered on the group builder instead of app.MapGet as the frame sketched — same public surface, idiomatic with the existing registrations.",
+        "decision": "RUN-DEC-002"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "the C-15-scoped diff (git diff -- src tests) covers exactly the paths declared in the approved scope at K1; M5 never fired"
+    }
+  }
+}

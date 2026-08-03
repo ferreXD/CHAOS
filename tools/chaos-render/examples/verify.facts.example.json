@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "example-change",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-01-01-chaos-run-example-change-abc123",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-01-01T12:45:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed and run inside the loop, attributed to the trigger that fired; build and tests re-run independently, the route delta confirmed additive, nothing deferred — READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: verify 1 buys the safeguards for the surface that actually fired. Safeguards NOT owed are recorded as an explicit n/a positive claim, never as silent omission.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run inside the loop"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 8,
+        "total": 8,
+        "note": "independent re-run inside the loop"
+      },
+      "contract": {
+        "ticked": 3,
+        "total": 3,
+        "note": "C-001..C-003, each covered"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "isComplete:false is EXPECTED at classified depth 1: the CLI measures the full set, which this change does not owe."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "diff paths are exactly the approved scope paths; M5 never fired at any scan"
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 8/8, 0 failed; baseline tests untouched" }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Widget summary — total agrees with the list",
+        "capability": "widget-api",
+        "implementation": "src/Example.Api/Endpoints/WidgetEndpoints.cs — total derived from the same enumeration GET /widgets returns",
+        "test": "tests/Example.Tests/WidgetEndpointsTests.cs::Summary_agrees_with_the_widget_list",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the route delta is purely additive",
+        "detail": "Attributed to TRG-001 (M3 contract-surface, breaking false). The diff shows exactly one added route registration; nothing removed, renamed, or tombstoned."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth and data-store safeguards were not run, and are not owed",
+        "detail": "Only the contract-dependency surface fired, so credential and persistence safeguards are N/A — asserted, not skipped silently: the diff touches no Domain/**, no secrets path, and no config key."
+      }
+    ]
+  }
+}

@@ -8,7 +8,14 @@ records**; the deterministic renderer (`tools/chaos-render/render.py`) projects
 
 Design of record: `docs/design/2026-07-24-artifact-model-roadmap.md` §Stage B.
 Formats: `chaos-shared/reference/change-template.md` (§5 = machine layer).
-Machine schemas: `tools/chaos-render/schema/*.schema.json`.
+Machine schemas: `tools/chaos-render/schema/*.schema.json` — the renderer's truth,
+**not reading material**.
+
+**Authoring protocol (L2): never read the schemas.** Copy the matching example from
+`tools/chaos-render/examples/` (`contract.example.json`, `frame.facts.example.json`,
+`deliver.facts.example.json`, `verify.facts.example.json`), adapt it, and let
+`render.py --check` catch any mismatch. The examples are schema-validated by unit test, so
+they cannot drift from the machine truth.
 
 ## The three writer rules (hard)
 

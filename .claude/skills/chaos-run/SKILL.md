@@ -36,7 +36,25 @@ never **what is owed**:
   invocable; `init`, `status`, `todo`, `doctor`, `code-review`, `sync`, `archive`, `help`,
   `resume` are untouched.
 
-## Required references
+## Required references — the digest, then (only on failure) the sources
+
+Reading protocol (L2, design `docs/design/2026-08-03-l2-corpus-amortization.md`): run
+
+```bash
+python tools/chaos-digest/digest.py --check
+```
+
+**before reading any change-specific file**.
+
+- **Exit 0** → read `.claude/skills/chaos-shared/reference/governance-digest.md` **now, once,
+  in one step**. It carries everything in the fallback list below — the pinned classifier and
+  adjudication contracts embedded **verbatim**, the rest compiled. Do **not** open the source
+  references, and never re-read a file already in context this session.
+- **Any other exit** → the digest is stale or missing. Never read a stale digest for content:
+  fall back to the full source list below, record the degradation in the frame facts, and
+  recommend `chaos:sync` at close.
+
+Fallback source list (used ONLY when the check fails):
 
 - `.claude/skills/chaos-shared/reference/model-robustness-policy.md` and
   `interactive-decision-protocol.md` (non-negotiable execution contract)
@@ -50,6 +68,10 @@ never **what is owed**:
   `task-delegation-contract.md`, `csharp-implementation-specialist-contract.md` (delivery
   mechanics inside the work loop)
 - `.claude/skills/chaos-resume/reference/resume-capsule-contract.md` (capsule schema)
+
+Record authoring in either path: copy the matching example from
+`tools/chaos-render/examples/`, adapt, validate with `render.py --check` — never read the
+schemas.
 
 ## The loop
 

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "example-change",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-01-01-chaos-run-example-change-abc123",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-01-01T12:00:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired zero triggers (scan + adjudication, scanSeq 2); vector at floors, classifier confidence HIGH."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The route delta this change introduces is expected to fire M3 at the first K3 diff scan; the K1 adjudication deliberately did not pre-empt it."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope and the contract are complete and testable against the green baseline; nothing in the K1 inputs is ambiguous or crosses recorded posture.",
+  "commentary": "Authored voice belongs ONLY here, in verdictRationale, and in per-finding detail. Everything else in this record is data.",
+  "facts": {
+    "title": "Widget summary endpoint",
+    "intent": [
+      "Add a read-only aggregate endpoint reporting how many widgets exist.",
+      "Contract: GET /widgets/summary -> 200 { \"total\": <int> }, always equal to the item count of GET /widgets."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the K1 classification fired no trigger, so no OpenSpec artifact is owed; the contract of record is change.md §Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files, pre-edit behaviour", "knowledge": "FACT" },
+      { "path": "src/Example.Api/Endpoints/WidgetEndpoints.cs", "role": "the HTTP surface the new route joins", "knowledge": "FACT" },
+      { "path": "tests/Example.Tests/WidgetEndpointsTests.cs", "role": "the green test baseline", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "Additive read-only route; no auth, no persistence-model change, no existing behaviour touched.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "`/widgets/summary` could be swallowed by the existing `/widgets/{id}` route.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing route carries an id constraint; covered by a test asserting 200 + JSON body."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "widget-summary (no OpenSpec artifact owed at depth 0)",
+        "statements": ["C-001", "C-002", "C-003"],
+        "tasks": "1 work unit: add the route + integration tests."
+      }
+    ]
+  }
+}

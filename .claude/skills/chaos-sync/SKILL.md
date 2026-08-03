@@ -61,6 +61,16 @@ repo-wide sync posture `ALLOWED|REQUIRES_CONFIRMATION|BLOCKED`, missing capabili
 profile: `syncChange` / `syncAll` (least privilege, read-only; remote writes require explicit
 confirmation per `mcp-security-policy.md`).
 
+## Governance-digest maintenance (L2)
+
+`chaos:sync` is the sole maintainer of the governance digest
+(`chaos-shared/reference/governance-digest.md`) — the hash-keyed projection `chaos:run`
+reads instead of the full governance sources. On every run (and always after any
+governance-source edit): `python tools/chaos-digest/digest.py --check`; on staleness,
+re-author only the stale **compiled** sections, `--stamp`, re-check to exit 0, and show the
+compiled diffs in the sync report. Full procedure:
+`reference/governance-digest-maintenance.md`.
+
 ## Required workflow
 
 1. Parse invocation and flags.
@@ -133,6 +143,7 @@ Read the reference files in this folder before executing:
 - `rule-gate-generation.md`
 - `templates.md`
 - `protected-doc-reconciliation.md`
+- `governance-digest-maintenance.md`
 - `report-template.md`
 - `.claude/skills/chaos-shared/reference/repository-context-contract.md`
 - `.claude/skills/chaos-shared/reference/repository-context-resolution-policy.md`
