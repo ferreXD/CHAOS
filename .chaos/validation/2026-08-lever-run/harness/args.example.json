@@ -1,0 +1,11 @@
+{
+  "_note": "Worktree paths are session-specific. Recreate with harness/setup-lever-worktrees.sh <scratch> and repoint wtA/wtB. changeIds, keys and task statements are the frozen contract and stay identical to Stage D. `key` selects the phase title AND the plain-prompt variant (P* = frozen ea-x2 variant, B* = Cost-B variant) — do not swap them.",
+  "pairs": [
+    { "key": "P1", "changeId": "require-api-key-auth", "wtA": "C:/lr/wt/P1-armA", "wtB": "C:/lr/wt/P1-armB" },
+    { "key": "P2", "changeId": "soft-delete-tasks", "wtA": "C:/lr/wt/P2-armA", "wtB": "C:/lr/wt/P2-armB" },
+    { "key": "P3", "changeId": "optimistic-concurrency-updates", "wtA": "C:/lr/wt/P3-armA", "wtB": "C:/lr/wt/P3-armB" },
+    { "key": "B1", "changeId": "task-count", "wtA": "C:/lr/wt/B1-armA", "wtB": "C:/lr/wt/B1-armB" },
+    { "key": "B2", "changeId": "filter-tasks-by-status", "wtA": "C:/lr/wt/B2-armA", "wtB": "C:/lr/wt/B2-armB" },
+    { "key": "B3", "changeId": "enforce-title-max-length", "wtA": "C:/lr/wt/B3-armA", "wtB": "C:/lr/wt/B3-armB" }
+  ]
+}
