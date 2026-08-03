@@ -9,7 +9,7 @@ mode, is exactly four artifacts, each with one job:
 | `change.md` | the **story**: intent → contract → review → delivery | propose (FRAME sections) + apply (Delivery section) |
 | `lifecycle.md` | the **state**: generated view of `change.md` frontmatter | stub at phase transitions (rendered mechanically in Stage B) |
 | `decision-events.md` | the **decisions**: append-only ledger | any command surfacing/resolving a decision |
-| `openspec/changes/<id>/` | the **spec**: full OpenSpec set | OpenSpec (all modes, unchanged) |
+| `openspec/changes/<id>/` | the **spec**, at the classified depth | OpenSpec — **none owed at `openspec 0`** (Stage C, C-10); delta at 1; full set at 2 |
 
 **Modes scale section depth, not file count.** Light = tables/checklists/single lines only
 (hard rule: **no paragraphs**). Standard = short prose allowed per section. Strict = fuller
@@ -87,6 +87,8 @@ chaosMetadata:
 - [ ] <testable statement 2>
 
 OpenSpec: `openspec/changes/<change-id>/` · decisions: see `decision-events.md`
+<!-- At `openspec 0` the renderer emits "none owed at the classified depth" instead: there is no
+     OpenSpec folder to point at, and the Contract above is the contract of record. -->
 
 ## Review
 

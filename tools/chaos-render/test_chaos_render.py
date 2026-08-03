@@ -444,6 +444,105 @@ class TestModelAndRendering(unittest.TestCase):
         self.assertNotIn("| Verify |", text)
         self.assertNotIn("traceability", text.split("\n")[7] if len(text.split("\n")) > 7 else "")
 
+    # --- C.1 repairs (Stage-C defects found by the step-5 measurement) -------------------
+
+    def _light_frame(self, openspec=None):
+        """Put the change on the collapsed base: a light frame record AND a ledger with no
+        escalation — an `escalates:` entry would raise the model's mode straight back up."""
+        facts = json.loads(json.dumps(FRAME_FACTS))
+        if openspec is not None:
+            facts["openspec"] = openspec
+        self.repo.write_record(
+            "frame.pass-01.facts.json",
+            make_facts("frame", "READY_FOR_REVIEW", "chaos-propose-fixture-e2858e",
+                       facts, mode="light"))
+        with open(os.path.join(self.repo.change_dir, "decision-events.md"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("\n".join(
+                line for line in GOLDEN_LEDGER.splitlines()
+                if not line.startswith("- escalates:")
+            ).replace("## ESC-001 — auto-escalated: intent crosses the auth non-goal",
+                      "## Removed heading"))
+
+    def test_light_lifecycle_still_projects_a_verify_that_actually_ran(self):
+        """`light` is floor provenance only under Stage C — verify runs at dimension >= 1.
+
+        Keying the projection off the mode word dropped a completed Verify phase and its
+        archiveReadiness from the state view (step-5 core tier, findings 4)."""
+        self._light_frame()
+        self.repo.write_record("verify.pass-01.facts.json", make_verify(3))
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["mode"], "light")
+        self.assertEqual(model["phases"]["verify"]["status"], "complete")
+        text = render.render_lifecycle_md(model, None)
+        self.assertIn("| Verify |", text)
+        self.assertIn("archive", text.split("Current:")[1].split("\n")[0])
+
+    def test_light_lifecycle_hides_phases_that_never_ran(self):
+        """The converse: a genuinely un-run phase must NOT appear as noise."""
+        self._light_frame()
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["phases"]["verify"]["status"], "pending")
+        self.assertNotIn("| Verify |", render.render_lifecycle_md(model, None))
+
+    def test_openspec_zero_emits_no_dangling_pointer(self):
+        """At `openspec 0` no folder exists; pointing at one is a dangling reference."""
+        self._light_frame(openspec={"status": "NOT_INVOKED", "depth": 0})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertNotIn(f"`openspec/changes/{model['changeId']}/`", change)
+        self.assertIn("none owed at the classified depth", change)
+        lifecycle = render.render_lifecycle_md(model, None)
+        self.assertNotIn(f"OpenSpec: openspec/changes/{model['changeId']}", lifecycle)
+        self.assertIn("none owed at the classified depth", lifecycle)
+
+    def test_openspec_invoked_still_points_at_the_folder(self):
+        """Guard the fix: a change that DOES owe OpenSpec keeps its pointer."""
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertIn(f"`openspec/changes/{model['changeId']}/`", render.render_change_md(model, None))
+
+    def test_incomplete_status_is_qualified_at_shallow_depth(self):
+        """`openspec status` measures the FULL set, so isComplete:false is EXPECTED at depth < 2.
+
+        Unqualified it read as unfinished work and drove an arm to rewrite a completed pass
+        record to remove the apparent contradiction (step-5 core tier, findings 3)."""
+        self._light_frame(openspec={"status": "INVOKED", "depth": 1,
+                                    "artifacts": ["openspec/changes/fixture-change/specs/x/spec.md"],
+                                    "statusCheck": {"isComplete": False}})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertIn("Classified depth: **1 — delta spec only**", change)
+        self.assertIn("expected: the CLI measures the full set", change)
+
+    def test_incomplete_status_is_not_excused_at_full_depth(self):
+        """At depth 2 an incomplete set is a REAL problem and must not be explained away."""
+        self._light_frame(openspec={"status": "INVOKED", "depth": 2,
+                                    "statusCheck": {"isComplete": False}})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertNotIn("expected: the CLI measures the full set", change)
+
+    def test_escalated_from_absent_when_never_escalated(self):
+        """`Escalated-from` is pre-C vocabulary; render it only when actually set."""
+        self._light_frame()
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertIsNone(model["escalatedFrom"])
+        self.assertNotIn("Escalated-from", render.render_lifecycle_md(model, None))
+
+    def test_escalated_from_still_shown_on_legacy_escalated_changes(self):
+        """Guard the fix: legacy escalated changes must keep the field visible."""
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["escalatedFrom"], "standard")
+        self.assertIn("Escalated-from: standard", render.render_lifecycle_md(model, None))
+
     def test_cross_ref_validation_catches_bogus_ref(self):
         model, errors, _ = self.build()
         self.assertEqual(errors, [])

@@ -103,6 +103,14 @@ Before operating, read the reference files in this skill (and the shared policie
    3. Confirm the OpenSpec change folder exists (`openspec/changes/<change-id>/`).
    4. Confirm proposal/spec/task artifacts were created or updated.
    5. Run OpenSpec validation (`openspec validate <change-id> --strict`) when available; record run/not-run/failed honestly.
+      **Completeness vs classified depth:** `openspec status --change <id> --json` measures the
+      **full** artifact set and has no notion of Stage-C depth, so at `openspec 0` or `1` it
+      reports `isComplete: false` **and that is the expected, correct answer** — it is NOT
+      degraded mode, NOT an escalation trigger, and NOT a verify finding. Record the classified
+      depth in the frame record's `facts.openspec.depth` (0|1|2); the renderer then labels the
+      status line accordingly. **Never edit an already-written pass record to remove the apparent
+      contradiction** — `record-emission.md` forbids rewriting a completed pass, and there is no
+      contradiction to remove.
    6. If OpenSpec is unavailable/failed: apply degraded-mode handling — strict blocks; standard asks one decision and STOPs, then caps confidence; light auto-escalates to standard first (the light valve); record the degraded-mode decision event.
    7. Only after the gate, apply CHAOS wrapping (confidence, decision events, archaeology references, lifecycle, review routing, governance recommendations).
    8. Record the **OpenSpec Invocation Proof** in the frame record's `facts.openspec` block — the renderer projects it into `change.md` §OpenSpec Invocation (see `reference/openspec-integration-contract.md`).

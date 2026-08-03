@@ -107,6 +107,35 @@ class TestPrimitives(unittest.TestCase):
             entries = C.parse_ledger("## PROP-DEC-001 — q\n\n- status: OPEN\n" + line)
             self.assertEqual(entries[0]["folds"], 1, line)
 
+    def test_checkpoints_run_is_a_set_not_a_call_log(self):
+        """The two-call pattern invokes each checkpoint twice (scan, then adjudication merge).
+
+        Appending unconditionally made four checkpoints read as six entries in the state file
+        and misled anyone auditing the trail (step-5 extended tier, findings 12)."""
+        sections = {"frontmatter": "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n",
+                    "intent": "Tidy a README typo.",
+                    "scope": "scope: README.md"}
+        state = None
+        for _ in range(2):                       # scan call, then the merge call
+            _, state = C.classify(sections, "K1", state, None, MAP)
+        self.assertEqual(state["checkpointsRun"], ["K1"])
+        for _ in range(2):
+            _, state = C.classify(sections, "K2", state, None, MAP)
+        self.assertEqual(state["checkpointsRun"], ["K1", "K2"])
+
+    def test_declared_triggers_still_fire_exactly_once(self):
+        """Guard the dedupe: the declared-trigger gate keys off checkpointsRun being empty."""
+        sections = {"frontmatter":
+                    "chaosMetadata:\n  mode: null\n  declaredTriggers: [sensitive-surface:auth]\n",
+                    "intent": "Rotate a credential.",
+                    "scope": "scope: src/App/Config.cs"}
+        state = None
+        first, state = C.classify(sections, "K1", state, None, MAP)
+        second, state = C.classify(sections, "K1", state, None, MAP)
+        self.assertEqual([f["trigger"] for f in first["newlyFired"]], ["M2"])
+        self.assertEqual(second["newlyFired"], [])          # already fired, not re-fired
+        self.assertEqual(len([f for f in state["fired"] if f["trigger"] == "M2"]), 1)
+
     def test_vague_scope(self):
         self.assertTrue(C.vague_scope(["src/App/", "tests/T/"]))
         self.assertFalse(C.vague_scope(["src/App/Endpoints/File.cs"]))

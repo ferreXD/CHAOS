@@ -561,7 +561,13 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     else:
         confidence = "HIGH"
 
-    state["checkpointsRun"].append(checkpoint)
+    # A checkpoint SET, not a call log. The two-call pattern (scan, then merge adjudication)
+    # invokes each checkpoint twice, so appending unconditionally made four checkpoints read as
+    # six entries and misled anyone auditing the trail (step-5 extended tier, findings 12).
+    # Note the declared-trigger gate above keys off this being empty — deduping preserves that:
+    # declarations still fire exactly once, on the first call of the first checkpoint.
+    if checkpoint not in state["checkpointsRun"]:
+        state["checkpointsRun"].append(checkpoint)
     verdict = {
         "checkpoint": checkpoint,
         "newlyFired": newly,
