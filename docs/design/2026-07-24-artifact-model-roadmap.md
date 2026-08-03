@@ -114,9 +114,10 @@ zero-trigger arm B2 — no OpenSpec, no ADR, no verify phase, every dimension at
 **3.65× (A) → 3.38× (B) → 6.00× (C)**: each stage improved something real and each cost more.
 
 **So D changes what the agent DOES, not what it writes.** One `chaos:run` replaces the mandatory
-`propose → review → apply → verify` march; the classifier runs continuously; the obligation audit
-becomes a deterministic in-loop assertion; `chaos:verify` becomes opt-in. **The artifact set is
-untouched** — records, `change.md`, `lifecycle.md`, OpenSpec deltas, ADRs, the ledger all stay,
+`propose → review → apply → verify` march; the classifier runs on evidence birth/growth; the
+obligation audit becomes a deterministic in-loop assertion; verification stays vector-driven
+inside the loop, with `chaos:verify` surviving as the human's opt-in *extra* pass. **The artifact
+set is untouched** — records, `change.md`, `lifecycle.md`, OpenSpec deltas, ADRs, the ledger all stay,
 because §3 of D's design shows they are affordable.
 
 **Gate to judge D:** the graduated cost bar (D §2), banded by the classifier's own verdict —

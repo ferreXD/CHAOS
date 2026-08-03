@@ -111,18 +111,77 @@ OpenSpec completeness misreport already drove one arm to rewrite a completed pas
 ### 4.1 What Stage D builds
 
 - **One `chaos:run`** replacing the mandatory `propose → review → apply → verify` march.
-- **A continuous classification rule.** K1–K4 were *defined by phase boundaries*; with no phases,
-  when the classifier runs is an **open design question D must answer**, not a detail. It is the
-  single biggest unknown in the build.
+- **The continuous classification rule — resolved (creator, 2026-08-03).** K1–K4 were never
+  phases; they were **evidence births**: intent exists (K1), answered decisions exist (K2), the
+  diff exists and grows (K3), the review verdict exists (K4). The rule: **the classifier runs
+  whenever evidence is born or grows — not when a phase boundary is crossed.** Model adjudication
+  still runs only on new *semantic* input (intent; previously un-adjudicated diff surface) —
+  C-12 carries over unchanged, as do raise-only, P1 (mechanical never stops) and P4 (monotone
+  dimensions).
 - **The obligation audit becomes a deterministic in-loop assertion** over
-  `classification-state.json` (adr owed ⇒ exists; openspec depth owed ⇒ exists; every stop
-  answered; dimensions never decreased). A checklist, not a model pass, so ~free.
-- **`chaos:verify` becomes opt-in**, human-invoked — a *semantics* change, which is why it belongs
-  in D and was deliberately excluded from the C.1 patch.
+  `classification-state.json` (adr owed ⇒ exists; openspec depth owed ⇒ matches; verify owed ⇒
+  record exists; every stop answered and consumed; dimensions never decreased). A checklist, not
+  a model pass, so ~free.
+- **Verification stays in the loop; only the *command* becomes the opt-in.** The rigor vector
+  drives verification exactly as in C (`verify→1/2` fired by M2/M3/X1/X2/X3): when owed, the loop
+  runs the pass internally before close, and the obligation audit asserts the record exists.
+  `chaos:verify` survives as the human's *extra* pass over an already-verified change. (An earlier
+  draft called this a semantics change — overstated: verification semantics are unchanged; only
+  the invocation surface moves.)
 - **Unchanged:** `init`, `status`, `todo`, `doctor`, `code-review`, `sync`, `archive`, `help` —
   none of them were ever in the delivery loop, so none of them carry per-change cost.
 - **Unchanged:** the artifact set — records, `change.md`, `lifecycle.md`, OpenSpec deltas, ADRs,
   the ledger. §3 shows they are affordable; they are not what D is cutting.
+
+#### The loop (blessed with two amendments, creator, 2026-08-03)
+
+0. **Open** — `begin_command`, change skeleton, intent captured verbatim.
+1. **Classify at intent** (K1-equivalent) — deterministic scan over intent + predicted scope,
+   one adjudication pass → the initial rigor vector; OpenSpec artifacts owed by this
+   classification are authored *here* (timing rule below); then **S1**.
+2. **Work loop**, per task-sized unit — do the unit; deterministic re-scan of the grown diff
+   (C-15 scope); adjudication only on previously un-adjudicated surface; **S2** if a
+   stop-carrying trigger fired (folded per scan); **S3** whenever the agent hits a discordance
+   (decision via the runtime, `folds: n`); each answered decision re-runs the M4 density scan
+   (scan-only).
+3. **Self-review** (mechanical) — X2 raises review→2 · verify→1; never stops (P1).
+4. **In-loop verify** — if the vector owes verify ≥1, run the pass now; a failing verify
+   re-enters the work loop with the failure as new evidence.
+5. **Obligation audit** — the deterministic gate above; failure names the owed artifact and
+   blocks close. A gate, not a stop.
+6. **Close** — render `change.md`/`lifecycle.md`, `complete_command`. **S4** only under preset
+   floor ≥2.
+
+**Stop points:**
+
+| Stop | When | Fires |
+|---|---|---|
+| **S1** frame approval | after classify-at-intent | **always** — the C-11 floor; the run's one unconditional stop |
+| **S2** materiality | any work-loop scan | conditional; folds per scan |
+| **S3** discordance | agent hits ambiguity/contradiction | agent-judged; carries `folds: n` |
+| **S4** verify sign-off | at close | only under preset floor ≥2 (`--standard`/`--strict`) |
+
+Two rules make the stops safe, and both are named build requirements:
+
+- **Pending-stop absorption.** Continuous scanning produces more scan events than four
+  checkpoints; without absorption D would *un-fold* stops and interrupt more often than step 5
+  measured. Rule: while a stop is pending unanswered, new firings attach to it (amend) rather
+  than creating another. Generalizes Stage C's HIGH-severity attach rule.
+- **Capsule at stop creation.** Every stop writes its resume capsule when created — loop cursor:
+  work-unit index, pending stop id, classification-state hash. Auto-continuation is a harness
+  convenience, never a guarantee (EA-X4 measured 60% pre-hardening; 100% only after EA-V3,
+  `647a472`). `chaos:resume` therefore survives the collapse and gets *simpler*: it trusts the
+  capsule for **position only** and re-derives obligations from `classification-state.json` on
+  disk.
+
+**OpenSpec authoring timing (creator amendment, 2026-08-03).** The artifact is authored **when
+its obligation fires, always before the surface it governs is implemented further**. Fired at
+intent-classify → authored before S1, approved together with the frame in one stop. Raised
+mid-loop (a scan on the actual diff fires M3/M1 on an unpredicted surface) → authored at that
+scan, attached to the folded stop; work on that surface pauses until approved. **Never at
+close** — a spec authored at the audit would document, not govern; the audit asserts existence
+and depth, it never authors. Post-authoring drift is the in-loop verify's contract check to
+catch, not the audit's.
 
 ### 4.2 What Stage D measures
 
@@ -175,10 +234,10 @@ inherits the correction rather than re-specifying it. Any divergence is a findin
 collapse, scored in both directions.
 
 **One prediction is weaker than it looks, and is registered as such.** "Classification must not
-move" is a clean expectation under phases, where K1–K4 have fixed evidence boundaries. D has to
-*invent* the continuous-classification rule (§4.1), and a different firing **order or timing**
-could legitimately change what fires when — e.g. M5 scope-spill and the M1 re-check are defined
-against a diff that, in a continuous loop, exists earlier and grows. If the verdicts diverge, the
+move" is a clean expectation under phases, where K1–K4 have fixed evidence boundaries. The
+continuous rule is now designed (§4.1: classify on evidence birth/growth), but it makes triggers
+fire **earlier and more often than K3 did** — e.g. M5 scope-spill and the M1 re-check are defined
+against a diff that, in a continuous loop, exists earlier and grows per work unit. If the verdicts diverge, the
 first question is whether the new rule is wrong or whether the step-5 verdicts were an artifact of
 phase boundaries. Both answers are findings; neither is automatically a regression.
 
