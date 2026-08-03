@@ -60,15 +60,36 @@ When `classification-state.json` exists:
 2. **Implement to contract** (unchanged: preflight, boundary construction, delegation, scope
    discipline).
 3. **K3 (DELIVER end):** regenerate the payload with `numstatFile`/`patchFile` from
-   `git diff --numstat` / `git diff` against the pre-apply base; scan call first, then perform
+   `git diff --numstat` / `git diff` against the pre-apply base — **scoped per the rule below**;
+   scan call first, then perform
    the **adjudication pass** per `tools/chaos-classify/adjudication-prompt.md` (K3 is an
    adjudication checkpoint) over the verdict's demoted candidates + full inputs, and merge
    raises via `--adjudication`. Record one `TRG-*` ledger event per new firing
    (`chaos-shared/reference/change-template.md` §2).
+
+   **Diff-scope rule (mandatory — governance must not amplify itself).** The numstat and patch
+   describe the **governed subject only**. Always exclude the change's own bookkeeping:
+   `.chaos/**` and `openspec/**` (and any ADR the change authored). Stage newly created files
+   first (`git add -N <subject paths>`) or the diff is blind to them. Concretely:
+
+   ```bash
+   git add -N src tests                      # subject paths; new files must be visible
+   git diff --numstat -- src tests > .tmp/k3.numstat
+   git diff          -- src tests > .tmp/k3.patch
+   ```
+
+   *Why this is a rule and not a preference:* measured on 2026-08-03 across six governed arms
+   (`.chaos/validation/2026-08-stage-c-step5-rerun/results.md` §3), **every** arm that counted its
+   own governance artifacts crossed X1's blast-radius threshold — the artifacts a change produces
+   trip the trigger that then demands more governance. One arm actually did it, producing the
+   program's only classification miss, and the spurious X1 also raised `verify` 0→1, which changed
+   whether the final checkpoint ran at all. Blast radius is a property of the **subject**, never
+   of the paperwork.
 4. **New-stop protocol:** `newStops > 0` in the K3 verdict (a scope spill, or first-fired
    materiality with no covering ANSWERED decision — MR-3 satisfaction is the classifier's,
-   not yours) ⇒ surface **one** runtime decision carrying every folded question, create the
-   resume capsule, and STOP (`mustStop`). Do not complete the deliver record until it is
+   not yours) ⇒ surface **one** runtime decision carrying every folded question, declaring
+   `folds: <n>` on the entry (`change-template.md` §2 — M4 counts questions, not headings),
+   create the resume capsule, and STOP (`mustStop`). Do not complete the deliver record until it is
    ANSWERED. A `stopSatisfiedBy` field means no stop — cite the covering decision in the
    delivery facts instead.
 5. **Late-fired obligations (design §5.3 law 5):** artifact obligations from K2/K3 firings

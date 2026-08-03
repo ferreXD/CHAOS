@@ -170,6 +170,11 @@ to the ledger always uses the `##` entry shape above, whatever shape a report te
 - recommendation: <letter> — <one clause>
 - answer: <letter or verbatim short answer>
 - why-material: <one line>
+- folds: <n> — <label> · <label> · <label>
+                                   # OPTIONAL. Present when this ONE stop carries N material
+                                   # questions folded into it (design section 5.3 law 2). The
+                                   # integer is machine-read by the M4 decision-density detector;
+                                   # omit it and the entry counts as exactly 1 question.
 - sync-action: NONE | CREATE_ADR | UPDATE_CHAOS_RULES | AMEND_OPENSPEC_SPEC | RECORD_ACCEPTED_RISK
                                    # "+"-combined when several apply; optional trailing "— <note>"
 - escalates: <from> → <to>         # ONLY when this entry's answer changed the mode (human escalation);

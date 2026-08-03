@@ -188,7 +188,7 @@ floors them):
 | review | inline self-review line | recommend review folded into verify | standalone `chaos:review` before implementation |
 | verify | contract + tests | trigger-relevant safeguard checks (the trigger id says which) | full verify orchestration |
 | adr | — | decision-log entry in the ledger | ADR required — `sync-action: CREATE_ADR`; verify blocks READY without it |
-| stops | the floor approval stop (`approves-change`) | K1-fired materiality **folds its named questions into the approval decision's presentation** — never a second stop at K1 | preset floor 2 adds the DELIVER-exit sign-off |
+| stops | the floor approval stop (`approves-change`) | K1-fired materiality **folds its named questions into the approval decision's presentation** — never a second stop at K1; the entry MUST declare `folds: <n>` (`change-template.md` §2) so M4 can count questions rather than headings | preset floor 2 adds the DELIVER-exit sign-off |
 
 Mid-flight (K3, `chaos:apply`'s checkpoint) is the only place a trigger creates a NEW stop, and
 only when no ANSWERED same-surface decision already covers it (MR-3 stop satisfaction).

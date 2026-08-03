@@ -25,7 +25,12 @@ import sys
 MATERIALITY = {"M1", "M2", "M3", "M4", "M5"}
 MECHANICAL = {"X1", "X2", "X3"}
 OPENSPEC_BASE = {"M1", "M3", "M4"}   # any of these fired -> openspec >= 1
-C13_COUNTED = {"M1", "M2", "M3", "M4"}  # M5 carries no surface, never counts (C-13/MR-2)
+C13_COUNTED = {"M1", "M2", "M3"}     # surface-bearing triggers only. M5 carries no surface;
+                                     # M4 measures DENSITY, not surface — its folded questions are
+                                     # by construction one decision on one surface (5.3 law 2), so
+                                     # counting "process" as a second surface double-counts the
+                                     # same event. M4 still raises openspec->1, review, evidence.
+                                     # (C-13/MR-2 as amended by C-17, creator 2026-08-03.)
 MAX_MATERIAL_DECISIONS = 2           # M4 threshold; held across all measured runs
 
 DECLARED_NAMES = {
@@ -58,6 +63,9 @@ SURFACE_KEYWORDS = {
 ROUTE_RE = re.compile(r'Map(Get|Post|Put|Delete)\(\s*"([^"]+)"')
 PKGREF_RE = re.compile(r'([+-])\s*<PackageReference\s+Include="([^"]+)"\s+Version="([^"]+)"')
 LEDGER_ENTRY_RE = re.compile(r"^## ([A-Z]+)-DEC-(\d+)\s*[—–-]?\s*(.*)$", re.MULTILINE)
+# M4 counts material QUESTIONS, not ledger headings. A stop that folds N questions declares
+# `- folds: N` (change-template section 2); absent, an entry is exactly one question.
+FOLDS_RE = re.compile(r"^-\s*folds:\s*(\d+)", re.MULTILINE)
 TOTALS_RE = re.compile(r"^#\s*totals:\s*files=(\d+)(?:\s+loc=(\d+))?", re.MULTILINE)
 PRED_FILES_RE = re.compile(r"~\s*(\d+)\s+files")
 YAML_PROP_REMOVED_RE = re.compile(r"^-\s+\w[\w-]*:\s*$")
@@ -160,9 +168,11 @@ def parse_ledger(text):
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         block = text[m.start():end]
+        fm = FOLDS_RE.search(block)
         entries.append({
             "id": "%s-DEC-%s" % (m.group(1), m.group(2)),
             "question": m.group(3).strip(),
+            "folds": max(1, int(fm.group(1))) if fm else 1,
             "answered": bool(re.search(r"-\s*status:\s*ANSWERED", block)),
             "text": block.lower(),
         })
@@ -372,10 +382,16 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     # -- K2+: ledger scans (M4 per the section-2 scan rule)
     ledger = parse_ledger(sections.get("ledger", "")) if checkpoint != "K1" else []
     if checkpoint in ("K2", "K3", "K4") and sections.get("ledger"):
-        if len(ledger) >= MAX_MATERIAL_DECISIONS:
+        # M4 measures material QUESTIONS, not ledger formatting. Counting headings made the
+        # trigger bimodal: stop-folding (design 5.3 law 2) collapses N questions into ONE entry,
+        # so a heavily-decisioned change could never reach the threshold, while any small change
+        # was one extra entry away from tripping it. Measured 2026-08-03, step-5 core tier.
+        questions = sum(e["folds"] for e in ledger)
+        if questions >= MAX_MATERIAL_DECISIONS:
             fire("M4", "scan", "process",
-                 "ledger scan rule: %d entries matching ^## *-DEC- >= threshold %d"
-                 % (len(ledger), MAX_MATERIAL_DECISIONS))
+                 "ledger scan rule: %d material question(s) across %d entr%s >= threshold %d"
+                 % (questions, len(ledger), "y" if len(ledger) == 1 else "ies",
+                    MAX_MATERIAL_DECISIONS))
 
     # -- K3: actual-diff scans
     redetected = set()

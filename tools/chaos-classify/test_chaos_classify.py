@@ -88,6 +88,24 @@ class TestPrimitives(unittest.TestCase):
         self.assertTrue(entries[0]["answered"])
         self.assertFalse(entries[1]["answered"])
         self.assertIn("data-store", C.decision_surfaces(entries[0]))
+        # No `folds:` declared => each entry is exactly one material question.
+        self.assertEqual([e["folds"] for e in entries], [1, 1])
+
+    def test_folded_questions_counted(self):
+        """M4 counts material QUESTIONS, not headings (step-5 core-tier finding)."""
+        one_folded = ("# Decision Events — x\n\n## PROP-DEC-001 — approve as framed?\n\n"
+                      "- status: ANSWERED (m, d)\n- approves-change: true\n"
+                      "- folds: 3 — accept crossing? · enforcement boundary? · key source?\n")
+        entries = C.parse_ledger(one_folded)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["folds"], 3)
+        self.assertGreaterEqual(sum(e["folds"] for e in entries), C.MAX_MATERIAL_DECISIONS)
+
+    def test_folds_malformed_falls_back_to_one(self):
+        """A missing/zero/garbage `folds:` never counts less than the entry itself."""
+        for line in ("", "- folds: 0\n", "- folds: not-a-number\n"):
+            entries = C.parse_ledger("## PROP-DEC-001 — q\n\n- status: OPEN\n" + line)
+            self.assertEqual(entries[0]["folds"], 1, line)
 
     def test_vague_scope(self):
         self.assertTrue(C.vague_scope(["src/App/", "tests/T/"]))

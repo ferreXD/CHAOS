@@ -44,7 +44,15 @@ python tools/chaos-classify/classify.py --inline payload.json \
 
 `payload.json`: `{checkpoint, intent, scope, declaredTriggers, mode, postureFiles[],
 mapFile, ledgerFile?, numstatFile?, patchFile?}` — the command reads nothing itself; the
-adapter reads the named files, the core stays pure. The **two-call pattern per checkpoint**:
+adapter reads the named files, the core stays pure.
+
+**`numstatFile`/`patchFile` scope (mandatory):** the diff describes the **governed subject only**.
+Exclude `.chaos/**`, `openspec/**` and any ADR the change authored, and stage new files first
+(`git add -N <subject paths>`) or the diff cannot see them. Counting a change's own governance
+output makes governance self-amplifying: measured 2026-08-03, six of six governed arms crossed
+X1's blast-radius threshold on their own paperwork
+(`.chaos/validation/2026-08-stage-c-step5-rerun/results.md` §3). Blast radius is a property of the
+subject, never of the bookkeeping. The **two-call pattern per checkpoint**:
 (1) scan call → read the verdict's candidates/demoted list; (2) the command performs the
 adjudication pass per `adjudication-prompt.md` and calls again with `--adjudication`
 (`{"raises": [...]}` form). Running the same checkpoint twice is safe — firings dedupe; the

@@ -33,10 +33,24 @@ assistant brought with a recommendation ("accepted rec" = the recommended option
 | C-13 | Full-OpenSpec threshold (amends C-10's "≥2 distinct triggers") | Full set requires ≥2 materiality triggers firing on **distinct surface classes** (each fired trigger carries its cited class); same-surface pairs — M1+M2 both citing auth — are correlated and owe a delta. Found authoring the corpus: the unqualified rule nulls the OpenSpec lever on the frozen-3 tasks | creator, accepted rec (corpus authoring) |
 | C-14 | Rename-shape guard on M2's scan | Rename-shaped diffs (numstat: many files, adds≈deletes) demote M2 class-path hits from scan-fire to adjudication candidates; the K3 adjudication (C-12) declines pure renames. Keeps P1 (mechanical-never-stops) true on the mega-rename seed without weakening the raise net | creator, accepted rec (corpus authoring) |
 
+**Step-6 decisions (creator, 2026-08-03)** — made against the step-5 evidence
+([core](../../.chaos/validation/2026-08-stage-c-step5-rerun/results.md) +
+[extended](../../.chaos/validation/2026-08-stage-c-step5-rerun/results.md#part-2--extended-tier-the-light-eligible-band-cs-cheap-end),
+commits `d9d6575` / `59e0bc7`):
+
+| # | Decision | Call | By |
+|---|---|---|---|
+| C-10 **resolved** | OpenSpec zero-base | **Kept trigger-gated 0/1/2 exactly as measured.** The lever is real (all three frozen tasks took a delta, never the full set) and small (8.3% of authored governance, ~1.4% of governed output). The 2026-07-24 "OpenSpec in all modes" overrule is now **unconditionally superseded, with data** | creator |
+| C-11 **resolved** | Floor stop | **Kept on every change.** Re-test condition fired (fidelity measured, stop priced) and the answer is keep: it costs almost nothing in tokens and it is the mechanism the product rests on — the human sees the contract before the agent acts | creator |
+| **Stage-B** | Writer fate | **Adopted.** `765ad41` + `c1ef7ac` stay; agents emit records, the renderer writes `change.md`/`lifecycle.md`. Records are the largest authored cost centre (54.9% core / 65.8% extended) and the projection ratio never beats ~0.8 (0.78 · 0.79 · 0.87, measured three times) — the trade is bought for correctness, not cost: drift structurally impossible, provenance by construction, 27 renders 0 failures, `--check` clean, 0 hand-written artifacts | creator |
+| C-15 | Blast-radius diff scope | **A change's own governance output never counts toward X1.** The K3 numstat/patch cover the governed subject only — always exclude `.chaos/**`, `openspec/**` and any ADR the change authored; stage new files (`git add -N`) or the diff is blind to them. Measured: 6/6 governed arms cross X1's threshold on their own paperwork; one actually did, producing the program's only classification miss, and the spurious X1 also decided whether the final checkpoint ran at all | creator ("fix it"), assistant-implemented |
+| C-16 | M4 counts questions, not headings | M4 was **bimodal and formatting-driven**: stop folding (§5.3 law 2) collapses N questions into one ledger entry, so a heavily-decisioned change could never reach the threshold, while any small change was one entry away from tripping it. The detector now sums **material questions**, declared as `folds: <n>` on the entry (`change-template.md` §2); absent/malformed ⇒ 1. `maxMaterialDecisions` stays 2 | creator, accepted rec |
+| C-17 | M4 leaves C-13's surface count | `C13_COUNTED` = {M1, M2, M3}. **M4 measures density, not surface** — its folded questions are by construction one decision on one surface, so counting `process` as a second surface double-counts the same event (same treatment M5 already had). M4 still fires and still raises `openspec→1`, `review`, `evidence.targeted`. Without this, C-16 would have escalated every posture-crossing change to the full OpenSpec set — verified on the real P1 ledger. Also dissolves the `adr 1` / M4 tension: a decision-log entry no longer manufactures surface diversity | creator, accepted rec |
+
 **Standing constraints inherited, not decided here:** classifier inputs are **ledger + git +
-frontmatter only, never `records/*.json`** (keeps all three Stage-B fate options live — adopt /
-revert `765ad41` keeping `c1ef7ac` / `chaos:lint`); Stage-B's fate stays deferred to post-C
-evidence; per-increment measurement discipline; `maxMaterialDecisions: 2` unchanged; no design
+frontmatter only, never `records/*.json`** — this kept all three Stage-B fate options live through
+the step-5 measurement, and the constraint remains (C never welds to B). **Stage-B's fate is no
+longer deferred: adopted 2026-08-03** (step-6 register above); per-increment measurement discipline; `maxMaterialDecisions: 2` unchanged; no design
 goal of rescuing the retracted "~1× via rendering" claim.
 
 ## 2. The model in one paragraph
@@ -254,19 +268,22 @@ a preset floor.
   (public API/schema/event paths, manifests). A change that never touches contract surface has
   nothing to tell a spec; one that does mechanically owes a delta. Path-class-map gaps are covered
   by the C-7 raise net.
-- **Provisionality:** this is the single biggest measured cost lever (handoff §3). The step-5
-  frozen-kit re-run prices it. If the saving is marginal, reverting to delta-always is a one-line
-  threshold change, not a redesign. The 2026-07-24 creator overrule is superseded **conditionally
-  on that measurement being run and recorded**.
+- **Priced, 2026-08-03 (step 5) — the provisionality is discharged.** The lever is **real**: all
+  three frozen-3 tasks took a delta spec, never the full set, and two light-eligible tasks authored
+  **no OpenSpec artifacts at all**. It is also **small**: 8.3% of authored governance / ~1.4% of
+  governed output on the materiality band, 1.6% / 0.24% on the light band. Creator kept the
+  trigger-gated 0/1/2 rule as measured (C-10 resolved), so the 2026-07-24 overrule is now
+  **unconditionally superseded, with data**.
 
 ## 10. Floor stop (C-11)
 
 Every change keeps ≥1 human stop (the FRAME approval; answering = approval), because (a) it is the
 fold-absorber that makes K1 materiality stops nearly free, and (b) until the classifier's error
 rates are measured it is the last line of defense against under-detection — the net stays up while
-the tightrope is unmeasured. **Re-test condition (registered):** after the fidelity corpus shows
-both error directions and the step-5 re-run prices the stop, dropping it or moving it post-hoc on
-zero-trigger changes returns to the table with data.
+the tightrope is unmeasured. **Re-test condition — fired and resolved 2026-08-03 (C-11).** Fidelity came back at 24/25 exact
+with **zero** under-detection, and the stop was priced at near-nothing in tokens. The creator
+**kept it on every change**: it costs almost nothing and it is the mechanism the product rests on —
+the human sees the contract before the agent acts. Not revisited again without new evidence.
 
 ## 11. Build & measurement plan (per-increment, unchanged discipline)
 
@@ -288,11 +305,14 @@ Step 1 of the handoff §6 plan (the design round) is this document; numbering co
 
 ## 12. Open items deliberately carried, not resolved
 
-- Numeric thresholds: X1 blast-radius values, the "≥2 materiality triggers ⇒ full OpenSpec set"
-  rule, preset floor vectors — all calibrated by corpus + step-5, not argued a priori.
-- C-10 and C-11 both carry explicit re-test conditions (step-5 measurement; fidelity data).
+- Numeric thresholds: X1 blast-radius **values** and the preset floor vectors are still
+  uncalibrated. X1's **scope** is now fixed (C-15); its thresholds are not. The
+  "≥2 materiality triggers" rule is settled by C-13 + C-17.
+- ~~C-10 and C-11 re-test conditions~~ — **both discharged 2026-08-03** (step-6 register).
 - Gate-catalog graft (two-axis 04) stays deferred; the verify-attribution hook is its landing pad.
-- Stage-B's fate — decided by step-5 data, not by this design.
+- ~~Stage-B's fate~~ — **decided 2026-08-03: adopted** (step-6 register). Follow-on now unblocked:
+  the `change.md` frontmatter classification block was deferred only to keep C unwelded from B
+  (`change-template.md` §2) and can be reconsidered.
 - Path-class map provenance: who authors/maintains the per-repo class map (likely a `chaos-init`
   template + governed edits). A wrong map is the largest deterministic failure mode; the corpus's
   map-gap seed measures the adjudication net, not the map itself.
