@@ -367,6 +367,23 @@ The creator approved **four** levers on 2026-08-03, to be built together and pri
 are largely invisible to that metric. The bar should probably be re-based on **blended cost +
 wall time** — a creator decision, not an assumption, and not to be changed silently.
 
+### 5e. Per-lever design register
+
+**L2 — corpus amortization** (design of record:
+[`2026-08-03-l2-corpus-amortization.md`](2026-08-03-l2-corpus-amortization.md), decided
+2026-08-03, before any L2 code):
+
+| Id | Decision | Call | Why |
+|---|---|---|---|
+| **L2-D1** | Digest production model | **Curated + sync-maintained** (creator) | Best compression (checklists, not marker extraction); staleness machine-detectable via source hashes; `chaos:sync` already owns governance reconciliation |
+| **L2-D2** | Pinned surfaces in the digest | **Embed verbatim, byte-equality checked** (creator) | Pinned contracts must never be paraphrased; one read serves everything; adjudication runs at K1 on every change anyway |
+| **L2-D3** | Adoption scope before re-measure | **`chaos:run` loop only** (creator) | Tight blast radius; the measured arms exercise exactly what changed; other commands adopt after validation |
+| **L2-D4** | How L2 is measured | **Read-volume + input diagnostics; output-token bar unchanged** (creator) | Bar re-base (§7 of the handoff) stays an open, explicit decision — not changed silently |
+| **L2-D5** | Digest location | `chaos-shared/reference/governance-digest.md`, manifest in frontmatter | Versioned and staged together with its sources — a worktree can never see a half-updated pair |
+| **L2-D6** | Staleness tool | `tools/chaos-digest/digest.py --check/--stamp`, stdlib, exit 0/1/2 | House style (render/classify); deterministic, no model in the gate |
+| **L2-D7** | Killing the 49k schema read | Curated example records + existing `render.py --check` validator; schema stays machine-truth, unread by agents | Examples are schema-validated by unit test so they cannot lie; generator rejected as complexity without honesty gain |
+| **L2-D8** | Staleness behavior in the loop | Fail closed on content, fall back open to full sources; degradation recorded in frame facts | Correctness never depends on digest freshness |
+
 ## 6. What Stage D does NOT settle
 
 - **Governance value.** Every arm in this program self-answers its own decisions. The mechanism the
