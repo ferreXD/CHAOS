@@ -86,6 +86,20 @@ adjudication, and record the gap). When the verdict says `adjudicationDue: true`
 adjudication pass yourself per the pinned contract (raise-only, cites mandatory) and merge via
 `--adjudication`; otherwise do not run it. Record one `TRG-*` ledger event per fired trigger.
 
+**Tiering (L1, `chaos-shared/reference/model-tier-map.md`):** your session model is the
+**ceiling** — never spawn a subagent on a stronger model than your own; a demanding change
+on a low ceiling proceeds at ceiling and records a `confidenceLimiter`, never upgrades.
+Delegate exactly three mechanical steps to the `chaos-mechanical-executor` subagent (floor
+tier) — `TRG-*` event transcription, the render repair loop, and mechanical audit repairs.
+It never decides; after two failed validator attempts it returns `ESCALATE` and you finish
+the step yourself. Implementation runs at ceiling by default; while the **easy gate** is
+open (zero triggers fired, no preset floor) you MAY delegate implementation units at mid
+tier — the gate closes for the rest of the run on any firing, an X2, or two failed test
+cycles, and a mid-tier unit that hits a failure signal is redone at ceiling. Classifier,
+adjudication, stops, and ledger answers are **never** below ceiling. Apply the overhead
+guard (inline beats a delegation that costs more than the step) and note every escalation
+in the final response.
+
 ### 0 · Open
 
 `chaos_begin_command` (`chaos:run`, the change intent as context). Derive the change id;
@@ -177,7 +191,9 @@ python tools/chaos-render/render.py <id> --check
 The audit recomputes the owed vector from state and asserts: every stop answered, every
 placed stop surfaced, owed ADR exists, owed OpenSpec depth exists, owed verify record exists,
 frame + deliver records present, vector ≥ floors. **A failure names the owed artifact: repair
-it (author the artifact, surface the unanswered stop) and re-assert.** The audit never
+it (author the artifact, surface the unanswered stop) and re-assert** — mechanical repair
+classes are delegable per the tier map; a failure naming a stop is governance and stays
+yours. The audit never
 authors anything, and the run cannot close while it fails. It is deterministic and ~free — a
 checklist, not a model pass.
 
