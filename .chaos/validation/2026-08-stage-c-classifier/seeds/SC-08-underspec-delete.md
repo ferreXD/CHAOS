@@ -104,11 +104,11 @@ scope: src/TaskTracker.Api/, tests/TaskTracker.Tests/
       "scanEcho": [],
       "newStops": 0,
       "stopSatisfiedBy": "PROP-DEC-001 (ANSWERED, same surface: the soft-delete/store-shape choice was the human's own answer at K2 — demanding a second stop would duplicate an answered decision)",
-      "dimensions": { "stops": 1, "evidence.targeted": 1, "evidence.breadth": 0, "review": 1, "verify": 1, "openspec": 2, "adr": 2 },
+      "dimensions": { "stops": 1, "evidence.targeted": 1, "evidence.breadth": 0, "review": 1, "verify": 1, "openspec": 1, "adr": 2 },
       "confidence": "MEDIUM"
     }
   },
-  "notes": "openspec reaches 2 at K3 (C-13: process + data-store are distinct surfaces). newStops stays 0 across ALL checkpoints — K1 folds into the floor stop, K3's materiality stop is satisfied by the answered K2 decision (stop-satisfaction rule, README micro-rule MR-3). The under-specified arc never pays a stop it didn't already pay as a decision.",
+  "notes": "openspec stays 1 (delta) at K3. Originally registered as 2 on the reading that process + data-store are distinct surfaces; C-17 (creator, 2026-08-03) removed M4 from C-13 counting, so the only surface in play is data-store. newStops stays 0 across ALL checkpoints — K1 folds into the floor stop, K3's materiality stop is satisfied by the answered K2 decision (stop-satisfaction rule, README micro-rule MR-3). The under-specified arc never pays a stop it didn't already pay as a decision.",
   "properties": ["P4"]
 }
 ```

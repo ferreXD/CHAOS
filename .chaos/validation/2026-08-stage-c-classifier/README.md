@@ -50,7 +50,7 @@ stops are not counted), `dimensions` (cumulative post-checkpoint vector, floors 
 | # | Rule |
 |---|---|
 | MR-1 | **Surface classes** (C-13's vocabulary): auth · data-store · contract-dependency · integration · deploy-ops · process. M1's surface = the posture section it cites, mapped to a class; M4 = process; **M5 carries no surface**. Defined in `assets/path-class-map.json`. |
-| MR-2 | **C-13 counting:** full OpenSpec set at ≥2 distinct surfaces over fired {M1,M2,M3,M4}; M5 excluded; breaking-M3 and preset floors demand it regardless. |
+| MR-2 | **C-13 counting:** full OpenSpec set at ≥2 distinct surfaces over fired {M1,M2,M3}; **M4 and M5 excluded** (M5 carries no surface; M4 measures density, not surface — C-17, creator 2026-08-03); breaking-M3 and preset floors demand it regardless. |
 | MR-3 | **Stop satisfaction:** a materiality stop demanded at Kn is satisfied (no new stop) by an ANSWERED ledger decision covering the same surface — the classifier emits `satisfied-by <id>`. K1 folding into the floor approval stop is the same principle. (SC-08 K3 is the seed.) |
 | MR-4 | **Confidence glossary:** HIGH = scan-grade determination (incl. declarations; adjudication ran and declined). MEDIUM = any adjudication raise. LOW = conflicting/thin signals — forces a confirmation fold (design doc §6). |
 | MR-5 | **X1 thresholds (provisional):** review→1 at ≥8 files or ≥400 changed LOC; review→2 at ≥20 files or ≥1000 LOC. |
@@ -70,8 +70,8 @@ golden-scenario recasts of the two-axis assessment's S1–S15. All 27 rows have 
 | SC-04 light-count | measured | K1,K3 | zero @K1 (adjudication declines); **M3 additive** @K3 ⇒ openspec 1 + adr 1, no stop (O-3) | — |
 | SC-05 light-statusfilter | measured | K1,K3 | zero both; route-delta precision anti-seed (param ≠ new route) | — |
 | SC-06 light-titlelen | measured | K1,K3 | zero both; validation-tightening blind spot registered (O-4) | — |
-| SC-07 underspec-secure | value | K1,K2 | M1+M2 adj @K1; **M4 @K2 ⇒ openspec 2** (auth+process distinct) | P4,P6 |
-| SC-08 underspec-delete | value | K1,K2,K3 | LOW @K1; M4 @K2; M2+M1 @K3 **stop-satisfied by answered decision** ⇒ 0 new stops ever; openspec 2 | P4 |
+| SC-07 underspec-secure | value | K1,K2 | M1+M2 adj @K1; **M4 @K2 ⇒ openspec 1** (delta; M4 not surface-counted, C-17) | P4,P6 |
+| SC-08 underspec-delete | value | K1,K2,K3 | LOW @K1; M4 @K2; M2+M1 @K3 **stop-satisfied by answered decision** ⇒ 0 new stops ever; openspec 1 (C-17) | P4 |
 | SC-09 underspec-concurrent | value | K1,K2 | LOW @K1; M4 @K2 ⇒ openspec 1 | P4 |
 | ADV-01 innocuous-crossing | adversarial | K1 | **M1 adj must fire** (data-store cite); scan structurally blind — the under-detection tripwire | — |
 | ADV-02 mega-rename | adversarial | K1,K3 | X1 only (review 2); C-14 guard demotes persistence path-hits; **zero stops** | P1 |
@@ -126,6 +126,20 @@ NOT a C v1 dimension; observation O-6).
   re-calibrated, ADV-06 changes via changelog entry, not silently.
 
 ## 7. Changelog
+
+- 2026-08-03 (step 6, **creator decision C-17**) — **two expectation changes**: SC-07 K2 and
+  SC-08 K3 drop `openspec` **2 → 1**. Cause is a *design* change, not a classifier failure: M4 is
+  **removed from C-13's distinct-surface count** (`C13_COUNTED` = M1/M2/M3). Rationale — M4
+  measures decision **density**, not surface; its folded questions are by construction one decision
+  on one surface (design §5.3 law 2), so counting `process` as a second surface double-counts the
+  same event. M4 still fires and still raises `openspec→1`, `review`, `evidence.targeted`. The
+  motivating finding is step-5's: M4 could never fire from K1-folded materiality because it counted
+  *headings*, so it is being fixed to count *questions* (`folds: <n>`, change-template §2) — which
+  without this amendment would have escalated every posture-crossing change to the full OpenSpec
+  set. Both affected rows are **value-band seeds**; their M4 firing, stop-satisfaction (MR-3),
+  monotonicity (P4) and fold behaviour (P6) are unchanged — only the OpenSpec depth moves.
+  MR-2 is amended accordingly. **This entry is committed BEFORE the classifier change**, per the
+  invariant below. Evidence: `.chaos/validation/2026-08-stage-c-step5-rerun/results.md` §2.1.
 
 - 2026-08-02 (step 4c prerequisite) — **SC-22 added** (corpus 27 → 28): the K4 / X2
   self-review-fail seed closing observation O-9 before `chaos:verify` is wired. K4 is

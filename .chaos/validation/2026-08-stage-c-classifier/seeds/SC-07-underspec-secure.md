@@ -87,11 +87,11 @@ scope: src/TaskTracker.Api/, tests/TaskTracker.Tests/
       ],
       "scanEcho": [],
       "newStops": 0,
-      "dimensions": { "stops": 1, "evidence.targeted": 1, "evidence.breadth": 0, "review": 1, "verify": 1, "openspec": 2, "adr": 2 },
+      "dimensions": { "stops": 1, "evidence.targeted": 1, "evidence.breadth": 0, "review": 1, "verify": 1, "openspec": 1, "adr": 2 },
       "confidence": "HIGH"
     }
   },
-  "notes": "openspec goes to 2 (FULL set) at K2 under C-13: M4 (surface: process) is DISTINCT from M1/M2 (surface: auth) — under-specified AND sensitive is exactly the band where EA-X2b showed the value (3/3 surfaced; the human's C answer overrode the recommendation). K2 is scan-only per C-12 — M4 needs no adjudication.",
+  "notes": "openspec stays 1 (delta) at K2. C-17 (creator, 2026-08-03) removed M4 from C-13 distinct-surface counting: M4 measures decision DENSITY, not surface, so its `process` label does not make an auth-only change multi-surface. M4 still fires and still carries openspec>=1 + review 1 + evidence.targeted 1. Originally registered as openspec 2 — under-specified AND sensitive is exactly the band where EA-X2b showed the value (3/3 surfaced; the human's C answer overrode the recommendation). K2 is scan-only per C-12 — M4 needs no adjudication.",
   "properties": ["P4", "P6"]
 }
 ```
