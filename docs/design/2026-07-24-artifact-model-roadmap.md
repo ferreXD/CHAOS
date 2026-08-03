@@ -125,7 +125,28 @@ zero-trigger **≤2.0×**, single-surface materiality **≤3.0×**, multi-surfac
 (provisional; never measured) — against the within-session plain arm on output tokens, same model.
 
 **Build status:** shipped 2026-08-03 (`6bfb41e` SC-23 seed → `bf92510` continuous classifier +
-obligation audit → `b03a93d` `chaos-run` skill). The 12-arm measurement has not run.
+obligation audit → `b03a93d` `chaos-run` skill).
+
+**MEASURED 2026-08-03 (`b31bb10`) — cost falsified, product kept.** Band A **4.81×** (bar ≤2.0×),
+band B **5.51×** (bar ≤3.0×), governed absolute **+19.7%** on band B; the registered direction
+test failed (non-artifact output *rose* 12%). Quality perfect: 0 oracle failures on 12/12 arms.
+`chaos:run` is **kept anyway** — one command replacing four, 12.4 KB of skill text replacing
+34.2 KB, mechanically clean on 6/6 — because its regression is a tunable rescan cadence, and a
+single loop is the precondition for Stage E.
+
+**A → E: the diagnosis, corrected by transcript decomposition.** Attributing cost by bytes on
+disk could only see artifacts. Decomposing the arms' actual output tokens shows **~61% of a
+governed arm's output is reasoning**, and that reasoning splits as: **classification machinery
+48.3%** (scan prep, running the classifier, payload authoring) · reading 17.4% · renderer 8.7% ·
+**authoring every governance artifact 12.1%** · audit 2.9%.
+
+So four stages attacked the wrong thing. A, B and C attacked artifacts (~12%). D attacked the
+phase march (a label, not a cost center). **Stage E attacks the 48%:** one deterministic
+`chaos-scan` wrapper owning scan prep, payload construction, the two-call adjudication sequence
+and verdict digestion — leaving the agent only the judgement a model must make. Pre-registered
+prediction: addressable ceiling ~29% of governed output; if E captures two-thirds, band B →
+~4.4× and band A → ~3.9× — **both still missing their bars**, which would mean no single
+mechanization reaches ≤3.0× and the bar must be revisited against reality.
 
 ## Sequencing summary
 

@@ -261,6 +261,93 @@ phase boundaries. Both answers are findings; neither is automatically a regressi
 (band A) across both arms. Any regression halts the cost reading — a cheaper governed arm that
 breaks the oracle is not a result, it is a defect.
 
+## 5b. OUTCOME (measured 2026-08-03, `b31bb10`) — and the landing decision
+
+Full scorecard: [`.chaos/validation/2026-08-stage-d-run-collapse/results.md`](../../.chaos/validation/2026-08-stage-d-run-collapse/results.md).
+**Cost falsified** (band A 4.81× vs ≤2.0×, band B 5.51× vs ≤3.0×, governed absolute +19.7% on
+band B, direction test failed — non-artifact output *rose* 12%). **Quality perfect**
+(0 oracle failures on 12/12). **Mechanics clean on 6/6.**
+
+### Where the money actually is (transcript decomposition, the analysis §3 lacked)
+
+§3 attributed cost by **bytes on disk**, which can only see artifacts. Decomposing the arms'
+actual assistant output instead — 12 transcripts, `output_tokens` per message, visible content
+(text + tool-call inputs) versus redacted reasoning — gives the real split:
+
+| | Governed (6 arms) | Plain (6 arms) | ratio |
+|---|---:|---:|---:|
+| output tokens | 273,539 | 51,396 | 5.32× |
+| visible (text + tool inputs) | ~39% | ~46% | 4.54× |
+| **reasoning (redacted thinking)** | **~61%** | ~54% | **5.98×** |
+| distinct deliberation turns | 207 | 39 | 5.3× |
+
+**Governance makes the agent think ~6× more while it writes only ~4.5× more.** The conclusion is
+robust to the chars-per-token assumption: across 3.0–4.5 chars/token, reasoning stays 54–70% of
+governed output and its ratio stays *above* the total ratio in every case.
+
+Attributing the 207 deliberation bursts to the action each precedes:
+
+| What the deliberation was for | share |
+|---|---:|
+| **classification machinery** — scan prep (`git add -N` / `git diff`) 22.7% + running the classifier 18.4% + authoring the payload JSON 7.2% | **48.3%** |
+| reading the governance surface | 17.4% |
+| running the renderer | 8.7% |
+| **authoring the governance artifacts** (records + ledger + OpenSpec + ADR) | **12.1%** |
+| build/test + writing code | 7.7% |
+| the obligation audit | 2.9% |
+
+**The artifact model is exonerated a third time and by a wider margin than §3 believed:**
+authoring every governance artifact accounts for ~12% of deliberation and ~18% of visible output.
+**The classifier's *operating protocol* — not its verdict, not its artifacts — is the single
+largest cost center in the product.** The agent spends four times more thought on *how to run a
+scan correctly* (scope the diff, build the payload, work the two-call pattern, read the verdict
+back) than on writing everything the governance model produces.
+
+### Landing decision (creator review, 2026-08-03)
+
+| Item | Call | Why |
+|---|---|---|
+| **`chaos:run` collapse** | **KEEP** | One command replaces four; 12.4 KB of skill text replaces 34.2 KB; 18 files read vs 21; mechanically proven 6/6 with zero governance weakened. Its cost regression is attributable and tunable (below), and a single loop is the **precondition** for mechanizing the protocol — you cannot wrap a scan protocol that is spread across four commands' checkpoint wiring. |
+| **C-15** diff scope | **KEEP** | Validated: B3 came out clean, erasing the program's only fidelity miss. |
+| **C-16 / C-17** M4 pair | **KEEP** | Validated in the wild as a pair: M4 fired on 3/3 frozen-3 arms and `openspec` still stayed at 1. |
+| **Obligation audit** | **KEEP** | Deterministic, 2.9% of deliberation, exit 0 on 6/6 plus 6/6 independent out-of-band replays, and it found a real defect on day one. |
+| **Stage-B renderer** | **KEEP** | 29 renders, 1 self-repaired failure, 0 hand-written artifacts across 6 arms. |
+| **Pending-stop absorption** | **KEEP, UNVALIDATED** | 0/6 as pre-registered, but measured *through* the `RESOLVED-IN-ARM` workaround — the mechanism never met its real trigger. |
+| **`RESOLVED-IN-ARM` defect** | **FIX** | `classify.py` reads it as unanswered; load-bearing for the audit gate, MR-3 and absorption. 0/29 corpus seeds affected ⇒ one-line predicate widening + regression test. |
+| **Per-work-unit rescan cadence** | **TUNE** | This is where D's +19.7% lives: 3 diff scans on P1 where C ran 1, driving classification +32.5%. The continuous *rule* is right; its *frequency* is uncalibrated. |
+
+**The verdict in one line: D's cost case failed and D's product case succeeded.** Keep it for
+simplicity and for what it unlocks, not for what it saved.
+
+## 5c. Stage E — the next hypothesis: mechanize the protocol, not the paperwork
+
+> **Hypothesis (pre-registered here, before any build).** The dominant cost is **deliberation
+> about how to operate the governance machinery**, not the machinery's output. Replacing the
+> classifier's operating protocol with a single deterministic command — one that does scan prep,
+> payload construction, the two-call adjudication dance and verdict interpretation itself — should
+> remove a share of governed output proportional to the deliberation it absorbs.
+
+**What E builds:** one `chaos-scan` wrapper owning what the agent currently reasons through by
+hand — `git add -N` + C-15-scoped `git diff`, payload JSON assembly from `change.md` + state,
+the scan → `adjudicationDue?` → merge sequence, and a verdict digest the agent reads instead of
+raw JSON. The agent's remaining job at a scan becomes exactly the one thing only a model can do:
+**the adjudication judgement itself**, when the tool says it is due.
+
+**Quantified prediction (frozen):** classification machinery is 48.3% of deliberation and
+deliberation is ~61% of output ⇒ up to **~29% of governed output** is addressable. If E captures
+two-thirds of it, band B goes 5.51× → **~4.4×** and band A 4.81× → **~3.9×**. **Both still miss
+their bars.** That is the honest prediction: E is the largest single lever measured in this
+program and it is still not sufficient alone — which is itself the finding, because it would mean
+no single mechanization reaches ≤3.0× and the bar needs revisiting against reality.
+
+**Why this is the right next probe:** it is the first lever in five stages aimed at the
+**residual** rather than the artifact model. A, B and C attacked artifacts (~12% of deliberation).
+D attacked the phase march (a label, not a cost center). E attacks the 48%.
+
+**What E must not do:** weaken any governance guarantee. Same triggers, same dimensions, same
+raise-only adjudication with mandatory citations, same stops, same audit. E moves *who performs
+mechanical steps*, never *what is decided*.
+
 ## 6. What Stage D does NOT settle
 
 - **Governance value.** Every arm in this program self-answers its own decisions. The mechanism the

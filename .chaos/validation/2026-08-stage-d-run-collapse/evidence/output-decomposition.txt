@@ -1,0 +1,42 @@
+arm          outTok  visChars  visTok~  reason~  %reas
+P1-gov        55446     74270    21220    34226  61.7%
+P1-plain       8759     14769     4220     4539  51.8%
+P2-gov        49411     72616    20747    28664  58.0%
+P2-plain      11297     16933     4838     6459  57.2%
+P3-gov        54436     80041    22869    31567  58.0%
+P3-plain      10672     18457     5273     5399  50.6%
+B1-gov        44225     63025    18007    26218  59.3%
+B1-plain       6112      9867     2819     3293  53.9%
+B2-gov        38509     44697    12771    25738  66.8%
+B2-plain       7651     10938     3125     4526  59.2%
+B3-gov        31512     39318    11234    20278  64.4%
+B3-plain       6905     11408     3259     3646  52.8%
+
+GOV    outTok 273,539 | visible ~39.1% | REASONING ~60.9% | 207 deliberation turns
+PLAIN  outTok 51,396 | visible ~45.8% | REASONING ~54.2% | 39 deliberation turns
+
+ratios governed:plain -> outTok 5.32x | visible 4.54x | REASONING 5.98x
+
+sensitivity to chars/token (the conclusion must not depend on it):
+  cpt   gov reasoning%   plain reasoning%   reasoning ratio
+  3.0       54.4%            46.6%            6.22x
+  3.5       60.9%            54.2%            5.98x
+  4.0       65.8%            59.9%            5.85x
+  4.5       69.6%            64.4%            5.75x
+
+DELIBERATION (207 bursts, governed arms) by the NEXT action taken:
+   scan prep / other bash           47   22.7%
+   run classifier                   38   18.4%
+   read governance/code             36   17.4%
+   run renderer                     18    8.7%
+   author classifier payload        15    7.2%
+   author ledger/decisions          14    6.8%
+   author records                   10    4.8%
+   build/test                        9    4.3%
+   write code/tests                  7    3.4%
+   run audit                         6    2.9%
+   return telemetry (harness)        6    2.9%
+   author ADR                        1    0.5%
+
+   classification machinery   48.3%   <- the Stage-E target
+   governance artifacts       12.1%   <- what A/B/C attacked
