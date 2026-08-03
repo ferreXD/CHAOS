@@ -1,0 +1,11 @@
+{
+  "_note": "Worktree paths are session-specific. Recreate with harness/setup-stage-d-worktrees.sh <scratch> and repoint wtA/wtB. changeIds, keys and task statements are the frozen contract and stay identical. `key` selects the phase title AND the plain-prompt variant (P* = frozen ea-x2 variant, B* = Cost-B variant) — do not swap them.",
+  "pairs": [
+    { "key": "P1", "changeId": "require-api-key-auth", "wtA": "C:/sd5/wt/P1-armA", "wtB": "C:/sd5/wt/P1-armB" },
+    { "key": "P2", "changeId": "soft-delete-tasks", "wtA": "C:/sd5/wt/P2-armA", "wtB": "C:/sd5/wt/P2-armB" },
+    { "key": "P3", "changeId": "optimistic-concurrency-updates", "wtA": "C:/sd5/wt/P3-armA", "wtB": "C:/sd5/wt/P3-armB" },
+    { "key": "B1", "changeId": "task-count", "wtA": "C:/sd5/wt/B1-armA", "wtB": "C:/sd5/wt/B1-armB" },
+    { "key": "B2", "changeId": "filter-tasks-by-status", "wtA": "C:/sd5/wt/B2-armA", "wtB": "C:/sd5/wt/B2-armB" },
+    { "key": "B3", "changeId": "enforce-title-max-length", "wtA": "C:/sd5/wt/B3-armA", "wtB": "C:/sd5/wt/B3-armB" }
+  ]
+}
