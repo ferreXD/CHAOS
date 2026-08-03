@@ -285,5 +285,108 @@ class TestClassify(unittest.TestCase):
         self.assertEqual([f["trigger"] for f in out["K1"]["newlyFired"]], ["M2"])
 
 
+class TestContinuousMode(unittest.TestCase):
+    """Stage-D: checkpoints are evidence classes; K3 repeats per work unit as the diff grows."""
+
+    FM = "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n"
+
+    def test_adjudication_due_first_k1_only(self):
+        sections = {"frontmatter": self.FM, "intent": "x", "scope": "scope: src/App/F.cs"}
+        first, state = C.classify(sections, "K1", None, None, MAP)
+        self.assertTrue(first["adjudicationDue"])
+        merge, state = C.classify(sections, "K1", state, None, MAP)  # two-call merge replay
+        self.assertFalse(merge["adjudicationDue"])
+        k2, _ = C.classify(sections, "K2", state, None, MAP)         # C-12: scan-only
+        self.assertFalse(k2["adjudicationDue"])
+
+    def test_repeated_k3_new_surface_drives_adjudication_due(self):
+        sections = {"frontmatter": self.FM, "intent": "x",
+                    "scope": "scope: src/App/, tests/",
+                    "numstat": "4\t1\tsrc/App/Endpoints/A.cs\n", "patch": ""}
+        v1, state = C.classify(sections, "K3", None, None, MAP)
+        self.assertEqual(v1["newSurfacePaths"], ["src/App/Endpoints/A.cs"])
+        self.assertTrue(v1["adjudicationDue"])
+        # same diff replayed (the merge call, or an idle rescan): nothing new, no adjudication
+        v2, state = C.classify(sections, "K3", state, None, MAP)
+        self.assertEqual(v2["newSurfacePaths"], [])
+        self.assertFalse(v2["adjudicationDue"])
+        # the diff grows a new path in the next work unit: due again, only the delta reported
+        grown = dict(sections)
+        grown["numstat"] = "4\t1\tsrc/App/Endpoints/A.cs\n7\t0\tsrc/App/Endpoints/B.cs\n"
+        v3, state = C.classify(grown, "K3", state, None, MAP)
+        self.assertEqual(v3["newSurfacePaths"], ["src/App/Endpoints/B.cs"])
+        self.assertTrue(v3["adjudicationDue"])
+        self.assertEqual(state["seenPaths"],
+                         ["src/App/Endpoints/A.cs", "src/App/Endpoints/B.cs"])
+
+    def test_repeated_k3_monotone_and_no_refire(self):
+        """P4 must hold across per-unit scans, not just across the four phase checkpoints."""
+        numstat = "9\t1\tsrc/App/Domain/Store.cs\n"
+        sections = {"frontmatter": self.FM, "intent": "x", "scope": "scope: src/App/",
+                    "numstat": numstat, "patch": "",
+                    "ledger": ("## RUN-DEC-001 — store shape\n\n- status: ANSWERED (m, d)\n"
+                               "- why-material: task model store / data-retention\n")}
+        v1, state = C.classify(sections, "K3", None, None, MAP)
+        self.assertEqual([f["trigger"] for f in v1["newlyFired"]], ["M2"])
+        dims1 = v1["dimensions"]
+        v2, state = C.classify(sections, "K3", state, None, MAP)
+        self.assertEqual(v2["newlyFired"], [])                    # no re-fire
+        self.assertEqual(v2["scanEcho"], ["M2"])                  # but the echo is honest
+        for k in C.DIM_KEYS:
+            self.assertGreaterEqual(v2["dimensions"][k], dims1[k])
+        self.assertEqual(v2["scanSeq"], 2)
+
+    def test_pending_stop_absorbs_new_demand(self):
+        """Stage-D absorption: while a stop is pending unanswered, new demands attach to it
+        instead of interrupting again — continuous scanning must not un-fold stops."""
+        base = {"frontmatter": self.FM, "intent": "x", "scope": "scope: src/App/",
+                "numstat": "9\t1\tsrc/App/Domain/Store.cs\n", "patch": ""}
+        v1, state = C.classify(base, "K3", None, None, MAP)
+        self.assertEqual(v1["newStops"], 1)                       # M2 fires, stop placed
+        # the skill surfaced that stop; it is now PENDING in the ledger; the next unit spills
+        grown = dict(base)
+        grown["ledger"] = "## RUN-DEC-001 — persistence surface\n\n- status: PENDING\n"
+        grown["numstat"] = ("9\t1\tsrc/App/Domain/Store.cs\n"
+                            "3\t0\tdeploy/pipeline.yml\n")       # out of scope -> M5
+        v2, state = C.classify(grown, "K3", state, None, MAP)
+        self.assertIn("M5", {f["trigger"] for f in v2["newlyFired"]})
+        self.assertEqual(v2["newStops"], 0)                       # absorbed, not multiplied
+        self.assertEqual(v2["stopAbsorbedBy"], ["RUN-DEC-001"])
+        self.assertEqual(len([s for s in state["stopsPlaced"] if "trigger-fold" in s]), 1)
+        # once answered with same-surface coverage gone stale, a NEW demand places a NEW stop
+        answered = dict(grown)
+        answered["ledger"] = ("## RUN-DEC-001 — persistence surface\n\n"
+                              "- status: ANSWERED (m, d)\n- why-material: store shape\n")
+        answered["numstat"] = ("9\t1\tsrc/App/Domain/Store.cs\n3\t0\tdeploy/pipeline.yml\n"
+                               "2\t0\tsomething/else.cs\n")
+        v3, _ = C.classify(answered, "K3", state, None, MAP)
+        self.assertNotIn("stopAbsorbedBy", v3)
+
+    def test_absorption_never_swallows_satisfaction(self):
+        """An ANSWERED same-surface decision still satisfies (MR-3) even when an unrelated
+        pending entry exists — satisfaction wins over absorption."""
+        sections = {"frontmatter": self.FM, "intent": "x", "scope": "scope: src/App/",
+                    "numstat": "9\t1\tsrc/App/Domain/Store.cs\n", "patch": "",
+                    "ledger": ("## RUN-DEC-001 — store shape\n\n- status: ANSWERED (m, d)\n"
+                               "- why-material: task model store / data-retention\n\n"
+                               "## RUN-DEC-002 — unrelated open question\n\n- status: PENDING\n")}
+        v, _ = C.classify(sections, "K3", None, None, MAP)
+        self.assertEqual(v["newStops"], 0)
+        self.assertEqual(v["stopSatisfiedBy"], ["RUN-DEC-001"])
+        self.assertNotIn("stopAbsorbedBy", v)
+
+    def test_state_backcompat_without_continuous_fields(self):
+        """A Stage-C state file (no seenPaths/scanCount) must load and keep working."""
+        sections = {"frontmatter": self.FM, "intent": "x", "scope": "scope: src/App/",
+                    "numstat": "2\t1\tsrc/App/F.cs\n", "patch": ""}
+        state = {"fired": [], "stopsPlaced": ["K1:floor-approval"],
+                 "floors": dict(C.FLOORS[None]), "mode": None, "x1Level": 0,
+                 "checkpointsRun": ["K1"]}
+        v, state = C.classify(sections, "K3", state, None, MAP)
+        self.assertEqual(v["scanSeq"], 1)
+        self.assertEqual(v["newSurfacePaths"], ["src/App/F.cs"])
+        self.assertEqual(state["seenPaths"], ["src/App/F.cs"])
+
+
 if __name__ == "__main__":
     unittest.main()

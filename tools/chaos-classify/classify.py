@@ -293,13 +293,60 @@ def vague_scope(entries):
 
 # --- the classifier ------------------------------------------------------------------------
 
+def compute_dimensions(state):
+    """The dimension vector from cumulative state (max-of; stops by placement; C-13 openspec).
+
+    Pure function of state — classify() uses it per verdict, and the obligation audit
+    (audit.py) recomputes the SAME vector from the persisted state file, so the gate can
+    never disagree with the classifier about what is owed."""
+    dims = dict(state["floors"])
+    fired_all = state["fired"]
+    ids = {f["trigger"] for f in fired_all}
+
+    def bump(key, val):
+        dims[key] = max(dims[key], val)
+
+    for f in fired_all:
+        t = f["trigger"]
+        if t == "M1":
+            bump("evidence.targeted", 1)
+            bump("adr", 2)
+        elif t == "M2":
+            bump("evidence.targeted", 1)
+            bump("verify", 1)
+        elif t == "M3":
+            bump("verify", 1)
+            bump("adr", 2 if f.get("breaking") else 1)
+        elif t == "M4":
+            bump("evidence.targeted", 1)
+            bump("review", 1)
+        elif t == "X1":
+            bump("evidence.breadth", 1)
+            bump("verify", 1)
+            bump("review", state.get("x1Level", 0))
+        elif t == "X2":
+            bump("review", 2)
+            bump("verify", 1)
+        elif t == "X3":
+            bump("verify", 1)
+
+    if ids & OPENSPEC_BASE:
+        bump("openspec", 1)
+    surfaces = {f.get("surface") for f in fired_all
+                if f["trigger"] in C13_COUNTED and f.get("surface")}
+    if len(surfaces) >= 2 or any(f["trigger"] == "M3" and f.get("breaking") for f in fired_all):
+        bump("openspec", 2)
+    dims["stops"] = len(state["stopsPlaced"])
+    return dims
+
+
 def initial_state(mode):
     floors = dict(FLOORS.get(mode, FLOORS[None]))
     placed = ["K1:floor-approval"]
     if floors["stops"] >= 2:
         placed.append("deliver-exit:floor-signoff")
     return {"fired": [], "stopsPlaced": placed, "floors": floors, "mode": mode, "x1Level": 0,
-            "checkpointsRun": []}
+            "checkpointsRun": [], "seenPaths": [], "scanCount": 0}
 
 
 def _fired_ids(state):
@@ -344,6 +391,11 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     already = _fired_ids(state)
     newly, echo, demoted_out = [], [], []
     classes = map_data.get("classes", {})
+    # Continuous mode (Stage D): checkpoints are EVIDENCE CLASSES, not phases — K3 may run
+    # once per work unit as the diff grows. scanCount is the loop cursor for resume capsules.
+    state["scanCount"] = state.get("scanCount", 0) + 1
+    k1_first = checkpoint == "K1" and "K1" not in state["checkpointsRun"]
+    new_surface = []
 
     def fire(trigger, by, surface, cite, breaking=None, meta=None):
         if trigger in already or trigger in {f["trigger"] for f in newly}:
@@ -398,6 +450,14 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     if checkpoint == "K3" and sections.get("numstat"):
         numstat = parse_numstat(sections["numstat"])
         patch = sections.get("patch", "")
+        # New-surface tracking (Stage D continuous form of C-12): adjudication is due only
+        # when this scan's diff contains paths no earlier scan has seen. The two-call pattern
+        # stays correct — the merge call replays the same paths, sees nothing new, reports
+        # adjudicationDue false.
+        seen = set(state.get("seenPaths", []))
+        scan_paths = {r["path"].replace("\\", "/") for r in numstat["rows"]}
+        new_surface = sorted(scan_paths - seen)
+        state["seenPaths"] = sorted(seen | scan_paths)
         m2_hits, demoted, artifact_paths, guard = _scan_diff_classes(numstat, patch, map_data)
         if m2_hits:
             h = m2_hits[0]
@@ -490,17 +550,21 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     if checkpoint == "K3":
         echo = sorted(t for t in redetected if t in already)
 
-    # -- stops (union of placed stops; folding per checkpoint; MR-3 satisfaction)
+    # -- stops (union of placed stops; folding per checkpoint; MR-3 satisfaction;
+    #    Stage-D pending-stop absorption)
     stop_demands = [f for f in newly
                     if f["trigger"] in {"M1", "M2", "M5"}
                     or (f["trigger"] == "M3" and f.get("breaking"))]
     new_stops = 0
     satisfied_by = None
+    absorbed_by = None
     if stop_demands:
         if checkpoint == "K1":
             new_stops = 0  # folds into the mandatory FRAME approval stop (fold-absorber)
         else:
-            answered = [e for e in parse_ledger(sections.get("ledger", "")) if e["answered"]]
+            all_entries = parse_ledger(sections.get("ledger", ""))
+            answered = [e for e in all_entries if e["answered"]]
+            pending = [e for e in all_entries if not e["answered"]]
             covered = []
             for f in stop_demands:
                 surf = f.get("surface")
@@ -508,50 +572,21 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
                 covered.append(match)
             if all(covered) and covered:
                 satisfied_by = sorted({e["id"] for e in covered})
+            elif pending:
+                # Pending-stop absorption (Stage D): continuous scanning produces more scan
+                # events than four checkpoints; a new stop per event would un-fold what 5.3
+                # law 2 folds. While a stop is pending unanswered, new demands attach to it —
+                # the caller amends that decision's presentation (and its `folds:` count)
+                # instead of surfacing a second interruption.
+                absorbed_by = sorted(e["id"] for e in pending)
             else:
                 state["stopsPlaced"].append("%s:trigger-fold" % checkpoint)
                 new_stops = 1
 
     # -- dimensions (max-of; stops by placement; C-13 openspec)
     state["fired"] = state["fired"] + newly
-    dims = dict(state["floors"])
     fired_all = state["fired"]
-    ids = {f["trigger"] for f in fired_all}
-
-    def bump(key, val):
-        dims[key] = max(dims[key], val)
-
-    for f in fired_all:
-        t = f["trigger"]
-        if t == "M1":
-            bump("evidence.targeted", 1)
-            bump("adr", 2)
-        elif t == "M2":
-            bump("evidence.targeted", 1)
-            bump("verify", 1)
-        elif t == "M3":
-            bump("verify", 1)
-            bump("adr", 2 if f.get("breaking") else 1)
-        elif t == "M4":
-            bump("evidence.targeted", 1)
-            bump("review", 1)
-        elif t == "X1":
-            bump("evidence.breadth", 1)
-            bump("verify", 1)
-            bump("review", state["x1Level"])
-        elif t == "X2":
-            bump("review", 2)
-            bump("verify", 1)
-        elif t == "X3":
-            bump("verify", 1)
-
-    if ids & OPENSPEC_BASE:
-        bump("openspec", 1)
-    surfaces = {f.get("surface") for f in fired_all
-                if f["trigger"] in C13_COUNTED and f.get("surface")}
-    if len(surfaces) >= 2 or any(f["trigger"] == "M3" and f.get("breaking") for f in fired_all):
-        bump("openspec", 2)
-    dims["stops"] = len(state["stopsPlaced"])
+    dims = compute_dimensions(state)
 
     # -- confidence (MR-4)
     if any(f["by"] == "adjudication" for f in newly):
@@ -578,9 +613,17 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
         "dimensions": {k: dims[k] for k in DIM_KEYS},
         "confidence": confidence,
         "adjudicationRan": checkpoint in ("K1", "K3"),  # C-12 cadence
+        # Continuous-mode fields (Stage D): the loop runs the model adjudication pass only
+        # when this is true — first K1 call, or a K3 scan whose diff grew new paths.
+        "adjudicationDue": k1_first or (checkpoint == "K3" and bool(new_surface)),
+        "scanSeq": state["scanCount"],
     }
+    if checkpoint == "K3":
+        verdict["newSurfacePaths"] = new_surface
     if satisfied_by:
         verdict["stopSatisfiedBy"] = satisfied_by
+    if absorbed_by:
+        verdict["stopAbsorbedBy"] = absorbed_by
     if adj_used:
         verdict["adjudicationRaised"] = True
     return verdict, state
