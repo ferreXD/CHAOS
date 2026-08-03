@@ -1,4 +1,4 @@
-# Artifact-model refactor roadmap — A → B → C
+# Artifact-model refactor roadmap — A → B → C → D
 
 > Toolkit meta-work (no CHAOS governance). Outcome of the 2026-07-22/24 design review in which the
 > assistant was asked to drop the sugarcoating and stress-test the light-mode design. The three
@@ -101,18 +101,51 @@ more when the change is bigger."*
   directions). The trigger classifier is load-bearing for everything in C; it is not trustworthy by
   assertion.
 
+## Stage D — Collapse the lifecycle: one command, no phases (added 2026-08-03)
+
+Design of record: [`2026-08-03-cost-bar-and-run-collapse.md`](2026-08-03-cost-bar-and-run-collapse.md).
+Builds on **C.1** (`297794c`).
+
+**Why D exists — the A/B/C outcome, stated plainly.** All three stages attacked the *artifact
+model*, and the measurements say the artifact model was never the dominant cost. Step 5 attributed
+a governed arm's output: **traceability is ~14% of it, and ~80% is the phase march itself.** The
+zero-trigger arm B2 — no OpenSpec, no ADR, no verify phase, every dimension at floor — still cost
+**4.60×**, with only 11.4% of its output in artifacts. On the light band the governed ratio went
+**3.65× (A) → 3.38× (B) → 6.00× (C)**: each stage improved something real and each cost more.
+
+**So D changes what the agent DOES, not what it writes.** One `chaos:run` replaces the mandatory
+`propose → review → apply → verify` march; the classifier runs continuously; the obligation audit
+becomes a deterministic in-loop assertion; `chaos:verify` becomes opt-in. **The artifact set is
+untouched** — records, `change.md`, `lifecycle.md`, OpenSpec deltas, ADRs, the ledger all stay,
+because §3 of D's design shows they are affordable.
+
+**Gate to judge D:** the graduated cost bar (D §2), banded by the classifier's own verdict —
+zero-trigger **≤2.0×**, single-surface materiality **≤3.0×**, multi-surface/breaking **≤4.0×**
+(provisional; never measured) — against the within-session plain arm on output tokens, same model.
+
 ## Sequencing summary
 
 ```
-A (now)      ship collapsed light path; strict structured formats; measure cost + valve fidelity
-   │             A's formats ARE B's schemas
+A (done)     ship collapsed light path; strict structured formats; measure cost + valve fidelity
+   │             A's formats ARE B's schemas.  Result: prose 45.5% -> 4.7%, governed -58%
    ▼
-B (next)     build the renderer; skills emit records; prose becomes projection; ~1x in sight
-   │             valve fidelity measured across A+B runs
+B (done)     build the renderer; skills emit records; prose becomes projection; ~1x in sight
+   │             Result: cost case FALSIFIED both paths; adopted for correctness, not cost
    ▼
-C (later)    threshold presets replace modes; one flow, auto-scaling rigor
+C (done)     threshold presets replace modes; one flow, auto-scaling rigor
+   │             Result: fidelity 24/25 exact; cost 4.86x materiality / 6.00x light
+   │             => the artifact model was never the dominant cost
+   ▼
+C.1          repair the five defects step 5 surfaced (no semantics change)
+   │
+   ▼
+D (next)     collapse the phase march; one command; artifacts unchanged; graduated cost bar
 ```
 
-Open items deliberately carried, not resolved: OpenSpec-on-light (creator kept; revisit at B),
-exact `maxMaterialDecisions` default (tune from A's measurement), whether C keeps explicit preset
-flags at all.
+Alongside, not in the sequence: **EA-D3**, the real-human value trial. Every arm in this program
+self-answered its own decisions, so the mechanism the product rests on — *stop, ask a human,
+record the answer* — is still unmeasured. It changes nothing, so it is a validation, not a stage.
+
+Open items carried here are **resolved** as of 2026-08-03 (see the Stage-C register, C-10..C-17):
+OpenSpec-on-light kept trigger-gated with data; `maxMaterialDecisions` stays 2; preset flags stay,
+as floor vectors. Still uncalibrated: the preset floor **vectors** and X1's numeric thresholds.
