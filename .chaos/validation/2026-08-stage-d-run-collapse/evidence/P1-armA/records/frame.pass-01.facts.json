@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth-2b53b7",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T14:50:54Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "Classifier confidence is MEDIUM at K1 because the M1 posture-crossing came from the adjudication layer, not the deterministic scan (MR: adjudication used ⇒ MEDIUM)."
+    },
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "The committed default key `test-secret-key` is treated as a demo credential, not a production secret — the contract mandates it and the subject is an in-memory demo API."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope, contract statements and the two K1-fired triggers (M2 scan / M1 adjudication, both on the `auth` surface) are recorded; the artifacts the classification owes at this firing — the OpenSpec delta spec (openspec 1) and ADR-001 (adr 2) — were authored before the stop, per the creator's authoring-timing rule. Nothing is blocked, so READY_FOR_REVIEW.",
+  "commentary": "Documented deviation (measurement condition): no live human is available in this Stage-D mechanized run. Every decision this run surfaces is recorded AND resolved by the agent with an explicit maintainer-style rationale, tagged `resolved-in-arm (no live human; Stage-D mechanized run)`. Answering the `approves-change` decision IS the approval. `mode: light` records the zero-floor preset row of design §8 (*(none)* and `--light` share the all-zero floor vector); no preset flag was passed on this run and no mode escalation exists under Stage C/D.",
+  "facts": {
+    "title": "Require API-key authentication on the task endpoints",
+    "intent": [
+      "The Task Tracker API is currently open (no authentication); add API-key authentication to the `/tasks` endpoints.",
+      "Every `/tasks` route must present a valid `X-Api-Key` header (config key `ApiKey`, default `test-secret-key`) or be rejected with 401 before any task is read or mutated.",
+      "`GET /` stays public and the existing visible test suite is updated so it supplies the key and stays green."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "engine": {
+        "name": "hand-authored delta spec (openspec CLI not installed in this environment)",
+        "version": null,
+        "configSource": "openspec/config.yaml"
+      },
+      "invocationPath": "openspec/changes/require-api-key-auth/",
+      "artifacts": [
+        "openspec/changes/require-api-key-auth/specs/task-api/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": false,
+        "note": "`openspec status` measures the FULL set; at classified depth 1 (delta spec only) isComplete:false is the expected answer, not degraded mode. CLI absence is not a trigger — hand-authoring stands in, as in every prior measured row."
+      },
+      "confidenceImpact": "None. Depth 1 is what C-13 owes here: M1 and M2 both cite the `auth` surface, so they are correlated, not distinct, and the full set is not owed."
+    },
+    "sourceManifest": [
+      { "path": ".chaos/architecture.md", "role": "crossed posture — Non-goals + auth posture section (evidence.targeted 1)", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "rules in play: R-003 test baseline, R-004 domain→HTTP boundary, R-005 TaskState naming, R-006 protected files", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "confidence doctrine + §6 ADR/decision compliance (drives ADR-001)", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the `/tasks` route group that enforcement attaches to", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "host composition; the public `GET /` health endpoint that must stay open", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline that must supply the key and stay green", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "MEDIUM",
+      "classRationale": "Small blast radius (3 predicted files, well under X1's 8-file/400-LOC threshold) but a material posture crossing on the `auth` surface: the change makes a previously open API closed, and a mistake here is a lockout or a bypass rather than a cosmetic defect.",
+      "items": [
+        { "id": "RK-1", "summary": "Enforcement attached too narrowly or too widely — a `/tasks` route left unguarded, or `GET /` accidentally closed.", "likelihood": "Medium", "impact": "High", "mitigation": "Attach the filter to the `/tasks` route group (one attachment point, all five routes) and test all five routes plus `GET /` explicitly." },
+        { "id": "RK-2", "summary": "Auth check runs after existence/validation, leaking 404/400 to unauthenticated callers.", "likelihood": "Medium", "impact": "Medium", "mitigation": "Use an endpoint filter, which runs before the route handler; test `GET /tasks/{unknown-id}` and a blank-title `POST` without a key and assert 401." },
+        { "id": "RK-3", "summary": "The committed default key `test-secret-key` is mistaken for a production-safe default.", "likelihood": "Low", "impact": "Medium", "mitigation": "Recorded in ADR-001 as an accepted demo risk with the follow-up (require configuration when hosted); carried as a todo candidate, not silently fixed." }
+      ]
+    }
+  },
+  "todoCandidates": [
+    {
+      "title": "Reconcile `.chaos/architecture.md` auth posture and Non-goals with the delivered API-key enforcement",
+      "ref": "ADR-001",
+      "note": "The posture doc still says the API is open and lists auth as a non-goal. Reconciliation is `chaos:sync`'s job; this run may not silently edit repository posture docs."
+    },
+    {
+      "title": "Require `ApiKey` configuration explicitly if the API is ever hosted (drop the committed default)",
+      "ref": "ADR-001",
+      "note": "Accepted risk RK-3 for the demo subject."
+    }
+  ]
+}

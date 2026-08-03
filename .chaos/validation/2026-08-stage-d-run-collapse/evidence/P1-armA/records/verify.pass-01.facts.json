@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth-2b53b7",
+  "mode": "light",
+  "verdict": "READY_WITH_DEBT",
+  "at": "2026-08-03T14:50:54Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "`verify 1` was owed and ran inside the loop, attributed to M2@K1 (TRG-001) and M1@K1 (TRG-002), both on the `auth` surface — so the safeguard family is credential/enforcement, not persistence or contract. Every enforcement claim in the contract is covered by an executed test (all five `/tasks` routes × missing key and × wrong key, auth-before-existence, auth-before-validation, no-mutation-on-reject, public root, default key accepted, configured key replaces the default). Build 0/0 and 21/21 tests were re-run independently after the last code change. Not clean READY: three findings are carried as accepted debt rather than fixed here — the posture document now contradicts the delivered behaviour, and the committed default credential plus the non-constant-time comparison are deliberately out of scope per ADR-001.",
+  "commentary": "`review 1` (fired by M4/TRG-003) is a focused review folded into this verify pass, per design §4 — a standalone review pass is owed only at `review 2`, which nothing fired. No `openspec` check row is reported because the `openspec` CLI is not installed here and the record's only vocabulary for that row is PASS/FAIL, which would assert a command that never ran. The post-authoring drift check was done by reading: every scenario in `openspec/changes/require-api-key-auth/specs/task-api/spec.md` maps to an executed test, so the depth-1 delta spec and the delivered behaviour agree. `openspec status` would read `isComplete: false` at depth 1 by design — it measures the FULL set.",
+  "facts": {
+    "archiveReadiness": "READY_WITH_DEBT",
+    "checks": {
+      "build": {
+        "command": "dotnet build TaskTracker.sln --no-incremental",
+        "warnings": 0,
+        "errors": 0,
+        "note": "Re-run independently after the final code change."
+      },
+      "tests": {
+        "command": "dotnet test TaskTracker.sln",
+        "passed": 21,
+        "total": 21,
+        "note": "Baseline was 5; the 5 pre-existing tests were updated to supply the key and 16 enforcement cases were added (10 of them theory cases over the five routes × missing/wrong key)."
+      },
+      "contract": {
+        "ticked": 7,
+        "total": 7,
+        "note": "C-001..C-006 carry executed-test evidence; C-007 is a boundary claim verified by direct inspection (code evidence)."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "Final C-15-scoped diff touches exactly the three approved paths; M5 never fired across three K3 scans."
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "dotnet test 21/21, 0 failed — the 5-test baseline is preserved and extended."
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "Enforcement is an IEndpointFilter in src/TaskTracker.Api/Security/; `git diff --numstat -- src/TaskTracker.Api/Domain src/TaskTracker.Api/Contracts` is empty and grep finds no Microsoft.AspNetCore reference under Domain/."
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "grep for `TaskStatus` in src/ and tests/ hits only the pre-existing doc comment in Domain/TaskItem.cs explaining why the name is avoided; no reintroduction."
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "`git status -- AGENTS.md README.md` is empty; neither protected file was read-modify-written by this run."
+        }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "C-001 every /tasks route requires X-Api-Key",
+        "capability": "task-api",
+        "implementation": "TaskEndpoints.MapTaskEndpoints -> group.AddEndpointFilter<ApiKeyEndpointFilter>()",
+        "test": "Every_task_route_rejects_a_missing_api_key (5 theory cases) + Every_task_route_rejects_an_incorrect_api_key (5 theory cases)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-002 missing/incorrect key -> 401",
+        "capability": "task-api",
+        "implementation": "ApiKeyEndpointFilter.InvokeAsync -> Results.Unauthorized()",
+        "test": "Every_task_route_rejects_a_missing_api_key · Every_task_route_rejects_an_incorrect_api_key",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-003 401 precedes existence/validation; nothing read or mutated",
+        "capability": "task-api",
+        "implementation": "endpoint filter runs before the route handler (group-level attachment)",
+        "test": "Unauthenticated_request_is_rejected_before_the_existence_check · Unauthenticated_request_is_rejected_before_the_validation_check · Unauthenticated_post_does_not_mutate_the_store",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-004 GET / stays public",
+        "capability": "task-api",
+        "implementation": "Program.cs maps GET / outside the /tasks group",
+        "test": "Root_health_endpoint_stays_public",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-005 key = config ApiKey, default test-secret-key",
+        "capability": "task-api",
+        "implementation": "ApiKeyEndpointFilter ctor: configuration[\"ApiKey\"] ?? \"test-secret-key\"",
+        "test": "Valid_api_key_from_the_default_configuration_is_accepted · Configured_api_key_replaces_the_default",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-006 build + tests stay green, CRUD behaviour unchanged",
+        "capability": "task-api",
+        "implementation": "no handler bodies changed; only the group gained a filter",
+        "test": "the 5 pre-existing CRUD tests, unchanged in assertions",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "C-007 enforcement stays in the HTTP layer (R-004/R-005)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs; Domain/** and Contracts/** untouched",
+        "test": null,
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "`.chaos/architecture.md` now contradicts the delivered behaviour",
+        "detail": "Refs TRG-002 (M1 posture-crossing, surface auth). The posture doc still reads \"Authentication / authorization posture — None. The API is open.\" and lists auth under Non-goals, while `/tasks` is now closed. The crossing itself is approved (PROP-DEC-001) and recorded (ADR-001); what remains is the document.",
+        "recommendation": "Reconcile the posture document via `chaos:sync` at archive. This run may not silently rewrite repository posture docs, so it is carried as debt rather than fixed here"
+      },
+      {
+        "id": "VFY-002",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "A working default credential is committed to the repository",
+        "detail": "Refs TRG-001 (M2 sensitive-surface, surface auth). `ApiKeyEndpointFilter.DefaultApiKey = \"test-secret-key\"` means an unconfigured deployment ships with a publicly known key. The change contract mandates exactly this default, and ADR-001 accepts it as a demo risk (RK-3).",
+        "recommendation": "If this API is ever hosted, make `ApiKey` a required configuration value and fail startup when it is absent"
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "MEDIUM",
+        "title": "Key comparison is ordinal, not constant-time",
+        "detail": "Refs TRG-001 (M2 sensitive-surface, surface auth). `string.Equals(..., StringComparison.Ordinal)` short-circuits, so it is theoretically timing-distinguishable. ADR-001 puts hashing/constant-time comparison explicitly out of scope; confidence is MEDIUM because the practical exploitability over HTTP against an in-memory demo is not measured, only reasoned.",
+        "recommendation": "Use `CryptographicOperations.FixedTimeEquals` over the UTF-8 bytes if this ever guards a real credential"
+      }
+    ]
+  }
+}

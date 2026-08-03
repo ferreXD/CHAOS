@@ -1,0 +1,4 @@
+11	2	src/TaskTracker.Api/Domain/TaskItem.cs
+42	7	src/TaskTracker.Api/Domain/TaskStore.cs
+13	7	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+118	1	tests/TaskTracker.Tests/TaskEndpointsTests.cs

@@ -1,0 +1,133 @@
+{
+ "worktree": "C:/sd5/wt/P1-armA",
+ "changeId": "require-api-key-auth",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 2070,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    2070
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 2703,
+  "files": [
+   [
+    ".chaos/changes/require-api-key-auth/adr/ADR-001-api-key-authentication-on-task-endpoints.md",
+    2703
+   ]
+  ]
+ },
+ "records": {
+  "bytes": 21349,
+  "files": [
+   [
+    "contract.json",
+    1814
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    4249
+   ],
+   [
+    "frame.pass-01.facts.json",
+    6313
+   ],
+   [
+    "verify.pass-01.facts.json",
+    8973
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 17611,
+  "files": {
+   "change.md": 16390,
+   "lifecycle.md": 1221
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 3344,
+  "decisions": 1595,
+  "trgEvents": 1534,
+  "header": 215,
+  "decisionCount": 1,
+  "trgCount": 3
+ },
+ "classifier": {
+  "stateBytes": 1408,
+  "authoredScratchBytes": 7121,
+  "generatedScratchBytes": 29103,
+  "scratchFiles": [
+   [
+    "k1-raises.json",
+    499
+   ],
+   [
+    "k1.json",
+    1193
+   ],
+   [
+    "k3-scan1-raises.json",
+    19
+   ],
+   [
+    "k3-scan1.json",
+    1341
+   ],
+   [
+    "k3-scan2.json",
+    1341
+   ],
+   [
+    "k3-scan3.json",
+    1341
+   ],
+   [
+    "k4.json",
+    1387
+   ],
+   [
+    "scan1.numstat",
+    160
+   ],
+   [
+    "scan1.patch",
+    6249
+   ],
+   [
+    "scan2.numstat",
+    161
+   ],
+   [
+    "scan2.patch",
+    10665
+   ],
+   [
+    "scan3.numstat",
+    161
+   ],
+   [
+    "scan3.patch",
+    11707
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 7878,
+  "files": 3,
+  "addedLines": 191,
+  "deletedLines": 5
+ },
+ "totals": {
+  "authoredGovernanceBytes": 37995,
+  "authoredPlusImplementationBytes": 45873,
+  "renderedBytes": 17611
+ }
+}

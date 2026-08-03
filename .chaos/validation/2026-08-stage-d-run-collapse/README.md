@@ -146,3 +146,17 @@ Filled in as the run proceeds; never back-dated.
   6 `*-armA` only; all 13 sanity checks pass (incl. `chaos-run` skill + `audit.py` present in
   governed, absent in plain). **This commit is the pre-registration: it lands before any arm
   runs.**
+- 2026-08-03 — **first launch REJECTED**: all 12 arms failed in 37 ms, "output schema too large to
+  classify safely". The telemetry schema serialized to 6.3 KB against step-5's working 4.0 KB. No
+  agent ran, so the worktrees stayed pristine. Fixed by cutting fields (S1–S4 merged into one
+  `stopCounts` string; three notes fields dropped) and reducing descriptions to labels →
+  **3,559 bytes**, verified by serializing both schemas with `node`. Note for future kits:
+  factoring the schema into shared `const`s shrinks the *source* but not the serialized JSON,
+  which is what the classifier measures. Plain-prompt hashes unchanged across the rebuild.
+- 2026-08-03 — 12 arms ran to completion: 106 min, 0 agent errors, 1.26 M subagent tokens.
+- 2026-08-03 — scored all 12 arms against the held-out oracles: **0 failures on 12/12**
+  (19/19 frozen-3, 16/16 light-3, both arms). Quality gate holds ⇒ the cost reading is valid.
+- 2026-08-03 — evidence archived; attribution run on all 6 governed arms; the obligation audit
+  independently replayed out of band on all 6 (**exit 0 on 6/6**). Results in
+  [`results.md`](results.md); dated row appended to the EA-X2 `RUNKIT.md` (51 insertions,
+  0 deletions — no prior row touched).

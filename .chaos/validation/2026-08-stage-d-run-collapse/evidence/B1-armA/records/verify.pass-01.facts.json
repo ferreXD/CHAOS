@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-task-count-8b90fa",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T16:04:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed and run inside the loop, attributed to TRG-001 (M3, surface contract-dependency), so the safeguard set is the contract checks. Build and tests were re-run independently (0/0, 8/8), the route delta was confirmed purely additive, no dependency manifest moved, the delta spec validates strict against the implemented contract, and a live request returned the declared body verbatim. All five contract statements are covered by tests; nothing is deferred, so READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: verify 1 buys the safeguards for the surface that actually fired. Auth and data-store safeguards were NOT run and are recorded as an explicit n/a positive claim (VFY-004), not as silent omission — no M2 fired and the diff touches no Domain/**, secrets or deploy path.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run inside the loop"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 8,
+        "total": 8,
+        "note": "5 baseline + 3 added; independent re-run inside the loop"
+      },
+      "contract": {
+        "ticked": 5,
+        "total": 5,
+        "note": "C-001..C-005, each test-covered"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "openspec validate task-count --strict -> valid. isComplete:false is EXPECTED at classified depth 1: the CLI measures the full set (proposal/design/tasks), which this change does not owe."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "diff paths are exactly the two approved scope paths; M5 never fired at any scan"
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 8/8, 0 failed; the 5 baseline tests are untouched and still pass" },
+        { "id": "R-004", "status": "pass", "evidence": "no Domain/** file changed; the count is read at the endpoint boundary via the existing TaskStore.All(), so the domain gained no HTTP dependency" },
+        { "id": "R-005", "status": "pass", "evidence": "no enum or domain type renamed; TaskState naming untouched (git diff -- src shows one added line in Endpoints/TaskEndpoints.cs)" },
+        { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md untouched (git status clean on both)" }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Count Tasks — count returns the store total",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — group.MapGet(\"/count\", ...)",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_count_returns_the_number_of_tasks_in_the_store",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — count agrees with the task list",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — count derived from the same TaskStore.All() enumeration GET /tasks returns",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_count_returns_the_number_of_tasks_in_the_store",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — creating a task increments the count",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — count is computed per request off the singleton store",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_increases_the_count_by_exactly_one",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — deleting a task decrements the count",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — count is computed per request off the singleton store",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_decreases_the_count_by_exactly_one",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — existing endpoints are unaffected",
+        "capability": "task-api",
+        "implementation": "Program.cs and the existing /tasks route registrations are byte-identical to baseline",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs — the 5 baseline tests",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the route delta is purely additive — no public surface removed or renamed",
+        "detail": "Attributed to TRG-001 (M3 contract-surface, surface contract-dependency, breaking false). `git diff -- src tests | grep '^[+-].*Map(Get|Post|Put|Delete)('` yields exactly one line, an addition: `group.MapGet(\"/count\", ...)`. No MapGet/MapPost/MapPut/MapDelete registration was deleted, renamed, or re-pointed at a 410 tombstone, so the breaking heuristic's negative verdict is confirmed by direct inspection."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the delta spec matches the implemented contract",
+        "detail": "Attributed to TRG-001 (M3). `openspec validate task-count --strict` reports \"Change 'task-count' is valid\". The five scenarios under Requirement: Count Tasks map 1:1 onto contract statements C-001..C-005, and a live request against the running app returned `{\"count\":4}` with HTTP 200 while `GET /tasks` returned 4 items — the declared shape and the C-002 equality hold in the real process, not only in the test host."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: no dependency manifest moved",
+        "detail": "Attributed to TRG-001 (M3's dependency arm, C-4). `git status --short -- '*.csproj' '**/packages.lock.json'` is empty: no new direct dependency and no version bump, so neither the M3 manifest arm nor X3 has anything to answer for."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth and data-store safeguards were not run, and are not owed",
+        "detail": "verify 1 runs the safeguards of the surface that fired. Only TRG-001 (contract-dependency) fired, so credential/enforcement checks and persistence/migration checks are N/A — asserted, not skipped silently: the diff touches no `src/**/Domain/**`, no `**/secrets/**`, no `appsettings*.json` key, and no deploy path, and the intent explicitly disclaims auth and persistence-model change. No M2 fired at any of the six scans."
+      }
+    ]
+  }
+}

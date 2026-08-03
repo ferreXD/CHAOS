@@ -1,0 +1,10 @@
+{
+  "raises": [
+    {
+      "trigger": "M1",
+      "surface": "auth",
+      "cite": "intent 'Add API-key authentication to the /tasks endpoints ... must present a valid API key in the X-Api-Key request header' x posture '.chaos/architecture.md' Non-goals 'Authentication / authorization / multi-tenant concerns.' (and 'Authentication / authorization posture: None. The API is open. [FACT]. Any auth is out of scope and would be strict, decision-bearing work.')",
+      "breaking": false
+    }
+  ]
+}

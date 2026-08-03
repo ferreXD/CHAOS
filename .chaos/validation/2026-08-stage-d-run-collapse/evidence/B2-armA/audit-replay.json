@@ -1,0 +1,40 @@
+{
+  "pass": true,
+  "dimensions": {
+    "stops": 1,
+    "evidence.targeted": 0,
+    "evidence.breadth": 0,
+    "review": 0,
+    "verify": 0,
+    "openspec": 0,
+    "adr": 0
+  },
+  "scanCount": 6,
+  "assertions": [
+    {
+      "id": "stops.all-answered",
+      "pass": true,
+      "detail": "1 entry, all ANSWERED"
+    },
+    {
+      "id": "stops.placed-have-entries",
+      "pass": true,
+      "detail": "1 ledger entry vs 1 placed stop(s)"
+    },
+    {
+      "id": "records.frame-exists",
+      "pass": true,
+      "detail": "found frame.pass-01.facts.json"
+    },
+    {
+      "id": "records.deliver-exists",
+      "pass": true,
+      "detail": "found deliver.pass-01.facts.json"
+    },
+    {
+      "id": "dims.at-or-above-floor",
+      "pass": true,
+      "detail": "vector >= floors on all 7 dimensions"
+    }
+  ]
+}

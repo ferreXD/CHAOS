@@ -1,0 +1,51 @@
+{
+ "fired": [
+  {
+   "trigger": "M2",
+   "by": "scan",
+   "surface": "auth",
+   "cite": "auth class: predicted scope includes src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs",
+   "checkpoint": "K1"
+  },
+  {
+   "trigger": "M1",
+   "by": "adjudication",
+   "surface": "auth",
+   "cite": "intent 'Add API-key authentication to the /tasks endpoints ... must present a valid API key in the X-Api-Key request header' x posture '.chaos/architecture.md' Non-goals 'Authentication / authorization / multi-tenant concerns.' (and 'Authentication / authorization posture: None. The API is open. [FACT]. Any auth is out of scope and would be strict, decision-bearing work.')",
+   "checkpoint": "K1",
+   "breaking": false
+  },
+  {
+   "trigger": "M4",
+   "by": "scan",
+   "surface": "process",
+   "cite": "ledger scan rule: 3 material question(s) across 1 entry >= threshold 2",
+   "checkpoint": "K3"
+  }
+ ],
+ "stopsPlaced": [
+  "K1:floor-approval"
+ ],
+ "floors": {
+  "stops": 1,
+  "evidence.targeted": 0,
+  "evidence.breadth": 0,
+  "review": 0,
+  "verify": 0,
+  "openspec": 0,
+  "adr": 0
+ },
+ "mode": null,
+ "x1Level": 0,
+ "checkpointsRun": [
+  "K1",
+  "K3",
+  "K4"
+ ],
+ "seenPaths": [
+  "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+  "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs",
+  "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+ ],
+ "scanCount": 7
+}

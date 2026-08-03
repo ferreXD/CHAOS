@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth-2b53b7",
+  "recordedAt": "2026-08-03T14:50:54Z",
+  "groups": ["Enforcement", "Configuration", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Enforcement",
+      "text": "Every `/tasks` route — `GET /tasks`, `GET /tasks/{id}`, `POST /tasks`, `PUT /tasks/{id}`, `DELETE /tasks/{id}` — requires a valid API key in the `X-Api-Key` request header."
+    },
+    {
+      "id": "C-002",
+      "group": "Enforcement",
+      "text": "A request to a `/tasks` route with a missing or incorrect `X-Api-Key` header is rejected with HTTP 401 Unauthorized."
+    },
+    {
+      "id": "C-003",
+      "group": "Enforcement",
+      "text": "The 401 is returned before any existence or validation check: an unauthenticated request reads no task and mutates no task."
+    },
+    {
+      "id": "C-004",
+      "group": "Enforcement",
+      "text": "The root health endpoint `GET /` stays public — no API key required."
+    },
+    {
+      "id": "C-005",
+      "group": "Configuration",
+      "text": "The valid API key is the string value of configuration key `ApiKey`, defaulting to `test-secret-key` when that configuration value is not set."
+    },
+    {
+      "id": "C-006",
+      "group": "Non-regression",
+      "text": "`dotnet build` and `dotnet test` stay green: the existing visible test suite supplies the key and the CRUD endpoints keep their unrelated behaviour (R-003)."
+    },
+    {
+      "id": "C-007",
+      "group": "Non-regression",
+      "text": "Enforcement lives in the HTTP layer only: `Domain/**` gains no dependency on ASP.NET types and `TaskState` naming is untouched (R-004, R-005)."
+    }
+  ]
+}

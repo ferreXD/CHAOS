@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-soft-delete-tasks-6985f2",
+  "recordedAt": "2026-08-03T15:20:00Z",
+  "groups": ["Model & serialization", "Endpoint behaviour", "Compatibility & constraints"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Model & serialization",
+      "text": "The task model carries a nullable `deletedAt` timestamp, serialized in JSON as `deletedAt` — an ISO-8601 string when set, `null` when the task is active."
+    },
+    {
+      "id": "C-002",
+      "group": "Endpoint behaviour",
+      "text": "`DELETE /tasks/{id}` soft-deletes: it sets `deletedAt` to the current time, retains the task in the store, and returns 204 No Content."
+    },
+    {
+      "id": "C-003",
+      "group": "Endpoint behaviour",
+      "text": "`DELETE /tasks/{id}` for an unknown id still returns 404 Not Found."
+    },
+    {
+      "id": "C-004",
+      "group": "Endpoint behaviour",
+      "text": "`GET /tasks` returns only active (not soft-deleted) tasks by default."
+    },
+    {
+      "id": "C-005",
+      "group": "Endpoint behaviour",
+      "text": "`GET /tasks?includeDeleted=true` returns all tasks, including soft-deleted ones whose `deletedAt` is non-null."
+    },
+    {
+      "id": "C-006",
+      "group": "Endpoint behaviour",
+      "text": "`GET /tasks/{id}` returns 404 Not Found for a soft-deleted task."
+    },
+    {
+      "id": "C-007",
+      "group": "Compatibility & constraints",
+      "text": "The four seeded tasks remain active (`deletedAt` = null) after startup — existing rows keep working (backward-compatible migration)."
+    },
+    {
+      "id": "C-008",
+      "group": "Compatibility & constraints",
+      "text": "`dotnet build` and `dotnet test` stay green and the five pre-existing tests still pass."
+    },
+    {
+      "id": "C-009",
+      "group": "Compatibility & constraints",
+      "text": "The other CRUD endpoints (POST /tasks, PUT /tasks/{id}, GET /) keep their existing behaviour, and the change stays inside `src/TaskTracker.Api` and `tests/TaskTracker.Tests`."
+    }
+  ]
+}

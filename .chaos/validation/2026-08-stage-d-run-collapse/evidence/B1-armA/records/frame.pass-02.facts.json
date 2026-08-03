@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 2,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-task-count-8b90fa",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T15:58:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "M3 contract-surface fired at the first K3 diff scan (scan, surface contract-dependency, additive route delta 'GET /count', breaking false), raising openspec 0->1, adr 0->1, verify 0->1. Recorded as TRG-001."
+    }
+  ],
+  "verdictRationale": "Second framing pass: the openspec obligation the K1 vector did not owe was raised by a late-fired M3 at K3, so the delta spec was authored at the firing (design 5.3 law 5) and the frame artifact set is re-recorded to match. Nothing about intent, scope or the contract statements changed.",
+  "commentary": "Pass 1 recorded the K1 truth honestly: zero triggers, openspec dimension 0, no artifact owed, contract of record in change.md. Pass 2 supersedes only the OpenSpec facts, after M3 fired on the actual route delta at K3 scan 1. The delta spec was authored before the surface was implemented further, never at close. No mode escalation and no ESC-* entry: under Stage C/D a firing raises dimensions, it does not change the mode.",
+  "facts": {
+    "title": "Active-task count endpoint",
+    "intent": [
+      "Add a lightweight aggregate endpoint that reports how many tasks exist.",
+      "This is a read-only convenience for the dashboard; it introduces no authentication and no persistence-model change.",
+      "Contract: GET /tasks/count -> 200 { \"count\": <int> }, always equal to the item count of GET /tasks; +1 on POST /tasks (201), -1 on DELETE /tasks/{id} (204); GET / and existing /tasks CRUD unchanged."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "engine": {
+        "name": "openspec",
+        "version": "1.6.0",
+        "configSource": "openspec/config.yaml"
+      },
+      "invocationPath": "Delta spec hand-authored at the M3 firing (K3 scan 1), then validated with the installed CLI. Depth 1 owes the delta spec only — no proposal.md, design.md or tasks.md.",
+      "artifacts": [
+        "openspec/changes/task-count/specs/task-api/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": false,
+        "note": "artifacts: specs done; proposal ready; design/tasks blocked on the artifacts depth 1 does not owe"
+      },
+      "validation": {
+        "command": "openspec validate task-count --strict",
+        "result": "PASS",
+        "note": "Change 'task-count' is valid"
+      },
+      "confidenceImpact": "None. Depth 1 is exactly what the fired M3 owes under Stage-C C-10."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files, pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "knowledge/confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007 executable constraints", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, non-goals, posture (classifier postureFile)", "knowledge": "FACT" },
+      { "path": "openspec/specs/task-api/spec.md", "role": "the base capability spec the delta extends", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the new route joins", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the store whose item count the endpoint reports", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "Additive read-only route on an in-memory store; no auth, no persistence-model change, no existing behaviour touched.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "`/tasks/count` could be swallowed by the existing `/tasks/{id:guid}` route.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing route carries a `:guid` constraint, so `count` cannot match it; asserted by a test that expects 200 + a JSON count body."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Reading the count off the store could drift from `GET /tasks` if a second enumeration path were introduced.",
+          "likelihood": "Low",
+          "impact": "Low",
+          "mitigation": "The endpoint counts the same `TaskStore.All()` enumeration `GET /tasks` returns; C-002 is asserted by test."
+        }
+      ]
+    },
+    "framingTraceability": [
+      { "capability": "task-api", "requirements": 1, "statements": ["C-001", "C-002", "C-003", "C-004", "C-005"], "tasks": "1 work unit: add the route in Endpoints/TaskEndpoints.cs + 3 integration tests in tests/TaskTracker.Tests." }
+    ]
+  }
+}

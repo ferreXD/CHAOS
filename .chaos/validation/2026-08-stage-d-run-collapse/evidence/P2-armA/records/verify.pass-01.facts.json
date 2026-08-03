@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-soft-delete-tasks-6985f2",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T15:50:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 (trigger-attributed safeguards, surface data-store per TRG-001/TRG-002) ran inside the loop: build and tests were re-run independently (0/0, 12/12), all nine contract statements are covered, and each data-store safeguard — backward-compatible migration, retention, no reachable hard-delete path, lost-update safety, serialization shape — was checked directly against the code and the suite. No finding above ADVISORY.",
+  "commentary": "This is the in-loop verify the vector owed, not the optional `chaos:verify` command pass. Attribution decided which checks ran: the data-store surface bought persistence/migration checks; no auth or contract-dependency checks were owed and none were run — recorded here as a positive claim, not an omission.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "Re-run independently at verify, after the delivery run."
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 12,
+        "total": 12,
+        "note": "5 pre-existing tests (untouched, still green — R-003) + 7 added for the soft-delete contract."
+      },
+      "contract": {
+        "ticked": 9,
+        "total": 9,
+        "note": "C-001..C-007 by test; C-008 by the build/test evidence above; C-009 by diff inspection (no other endpoint's behaviour changed)."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "4 files changed, all inside the approved scope (2 Domain, 1 Endpoints, 1 test file); M5 never fired across 4 diff scans."
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "dotnet test 12/12; the five baseline test methods are byte-unchanged."
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "grep over src/TaskTracker.Api/Domain/: no Microsoft.AspNetCore / IResult / Results. reference; the endpoint layer still maps query params and status codes."
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "No TaskStatus identifier introduced; the only occurrences are the pre-existing doc comment explaining the naming choice."
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "git diff --numstat -- AGENTS.md README.md is empty: no protected file was touched."
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Backward-compatible migration verified: existing rows stay active",
+        "detail": "Safeguard attributed to TRG-001 (M2 sensitive-surface, data-store) and TRG-002 (M1 posture-crossing, data-store). DeletedAt is a nullable record parameter with default null and the seeder never sets it, so the four seeded rows need no migration step; asserted by Seeded_tasks_are_active_after_startup (C-007).",
+        "recommendation": "None."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Retention holds: no hard-delete path remains reachable",
+        "detail": "Safeguard attributed to TRG-001 (M2, data-store). TaskStore.Remove was removed with the change; grep over src/ finds no TryRemove / .Remove( call, so nothing in the process can evict a task. Delete_soft_deletes_and_retains_the_task proves the row survives DELETE (C-002).",
+        "recommendation": "None."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Serialized shape checked at the wire, not just at the type",
+        "detail": "Safeguard attributed to TRG-002 (M1, data-store — the crossing put the field on the store's public shape). Active_task_serializes_deleted_at_as_null asserts the raw response body contains \"deletedAt\":null, which pins the JSON field NAME and the null-when-active rule (C-001) rather than trusting camelCase defaults.",
+        "recommendation": "None."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "Lost-update safety on the soft-delete transition",
+        "detail": "Safeguard attributed to TRG-001 (M2, data-store — persistence semantics). SoftDelete uses a TryGetValue/TryUpdate compare-and-swap loop on the ConcurrentDictionary rather than an indexer write, so a concurrent PUT cannot be silently overwritten by the delete stamp. INFERENCE because concurrency is reasoned from the code path, not exercised by a stress test — consistent with the store's documented demo-grade thread-safety posture.",
+        "recommendation": "If concurrency ever becomes a contract concern, add a racing PUT/DELETE test; not owed by this change."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "No auth or contract-dependency safeguards were owed, and none ran",
+        "detail": "Positive n/a claim (Stage-C §4, verify level 1 'n/a-as-positive-claim'): the fired surfaces were data-store (TRG-001, TRG-002) and process (TRG-003, M4 decision-density). No auth surface fired, no dependency manifest changed, and the route-marker delta was empty across both K3 scans, so credential/enforcement and supply-chain checks were correctly not run.",
+        "recommendation": "None."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Default read semantics changed for existing clients",
+        "detail": "GET /tasks now means 'active tasks' and PUT/repeat-DELETE on a hidden task return 404 (APPLY-DEC-001). This is the contract as specified and is spec'd in the delta, but it is a behavioural break for any client that assumed GET /tasks returns everything; the opt-in ?includeDeleted=true restores the old view.",
+        "recommendation": "Carry into release notes at archive; no code action.",
+        "confirms": "APPLY-DEC-001"
+      }
+    ]
+  }
+}

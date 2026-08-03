@@ -1,0 +1,12 @@
+{
+  "checkpoint": "K3",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Add a lightweight aggregate endpoint that reports how many tasks exist. This is a read-only convenience for the dashboard; it introduces no authentication and no persistence-model change. Add GET /tasks/count returning HTTP 200 with {\"count\": <integer>} where count is the total number of tasks currently in the store. count must always equal the number of items returned by GET /tasks (same store, same moment). Creating a task (POST /tasks, 201) increases count by exactly 1; deleting a task (DELETE /tasks/{id}, 204) decreases count by exactly 1. The root health endpoint GET / and all existing /tasks CRUD behaviour are unchanged.",
+  "scope": "scope: src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/task-count/decision-events.md",
+  "numstatFile": ".tmp/scan1.numstat",
+  "patchFile": ".tmp/scan1.patch"
+}

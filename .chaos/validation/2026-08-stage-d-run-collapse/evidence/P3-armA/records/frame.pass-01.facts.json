@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-optimistic-concurrency-updates-b26153",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T15:31:31Z",
+  "assessment": {
+    "confidence": "MEDIUM",
+    "evidenceCoverage": "PARTIAL",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "M1 was raised by the adjudication layer against a hedged posture line ([INFERENCE · MEDIUM] boundary posture, 'unless a decision says otherwise'); the classifier reports MEDIUM confidence whenever a firing comes from adjudication."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "Baseline measured before any edit: dotnet build clean, dotnet test 5/5 green."
+    }
+  ],
+  "verdictRationale": "Intent, contract and the classified obligations (openspec 1 delta spec authored; adr 2 and verify 1 owed) are all in place, so the frame is ready for the single approval stop.",
+  "commentary": "Documented deviation (measurement arm): no live human is available. Each decision is recorded AND resolved with an explicit maintainer-style rationale, status tagged `RESOLVED-IN-ARM` alongside `ANSWERED` and labelled 'resolved-in-arm (no live human; Stage-D mechanized run)'. Answering the `approves-change` decision IS the approval. Classification telemetry in this record comes from the classifier verdicts and classification-state.json, not from memory.",
+  "facts": {
+    "title": "Optimistic concurrency on task updates",
+    "intent": [
+      "PUT /tasks/{id} overwrites unconditionally, so a client holding a stale copy can silently clobber another writer (lost-update race).",
+      "Add optimistic concurrency: an integer `version` on the task (new and seeded tasks start at 1), incremented on every successful PUT.",
+      "`UpdateTaskRequest` gains an optional `expectedVersion`: mismatch -> 409 Conflict with the task untouched; match -> 200 + bump; omitted -> unconditional last-writer-wins + bump."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "engine": {
+        "name": "hand-authored (openspec CLI not present in this environment)",
+        "version": null,
+        "configSource": "openspec/config.yaml"
+      },
+      "invocationPath": "openspec/changes/optimistic-concurrency-updates/",
+      "artifacts": [
+        "openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md"
+      ],
+      "statusCheck": {
+        "isComplete": false,
+        "note": "openspec dimension 1 = delta spec ONLY (no proposal.md/tasks.md/design.md). `openspec status` measures the FULL set, so isComplete:false is the expected answer at depth 1 and is not degraded mode. The CLI is absent here; hand-authoring stands in for it, which is also not degraded mode and not a trigger."
+      },
+      "confidenceImpact": "None on the contract: the delta spec restates the same testable statements recorded in contract.json."
+    },
+    "sourceManifest": [
+      {
+        "path": ".chaos/architecture.md",
+        "role": "posture of record; the boundary/data-access lines the M1 firing cites (evidence.targeted 1)",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/rules/index.md",
+        "role": "R-003 green baseline, R-004 domain must not depend on HTTP, R-005 TaskState naming, R-006 protected files",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/constitution.md",
+        "role": "knowledge/confidence doctrine applied to every verdict in this run",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/path-class-map.json",
+        "role": "classifier path/marker classes; persistence class matched the predicted scope (M2)",
+        "knowledge": "FACT"
+      }
+    ]
+  }
+}

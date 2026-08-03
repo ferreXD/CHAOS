@@ -1,0 +1,116 @@
+{
+ "worktree": "C:/sd5/wt/B1-armA",
+ "changeId": "task-count",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 1483,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    1483
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 0,
+  "files": []
+ },
+ "records": {
+  "bytes": 22295,
+  "files": [
+   [
+    "contract.json",
+    1132
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    3661
+   ],
+   [
+    "frame.pass-01.facts.json",
+    4791
+   ],
+   [
+    "frame.pass-02.facts.json",
+    5138
+   ],
+   [
+    "verify.pass-01.facts.json",
+    7573
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 14528,
+  "files": {
+   "change.md": 13389,
+   "lifecycle.md": 1139
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 2966,
+  "decisions": 1729,
+  "trgEvents": 441,
+  "header": 796,
+  "decisionCount": 1,
+  "trgCount": 1
+ },
+ "classifier": {
+  "stateBytes": 648,
+  "authoredScratchBytes": 4535,
+  "generatedScratchBytes": 3719,
+  "scratchFiles": [
+   [
+    "app.log",
+    450
+   ],
+   [
+    "k1-raises.json",
+    14
+   ],
+   [
+    "k1.json",
+    923
+   ],
+   [
+    "k2.json",
+    987
+   ],
+   [
+    "k3-scan1-raises.json",
+    14
+   ],
+   [
+    "k3-scan1.json",
+    1061
+   ],
+   [
+    "k4.json",
+    1086
+   ],
+   [
+    "scan1.numstat",
+    102
+   ],
+   [
+    "scan1.patch",
+    3617
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 2302,
+  "files": 2,
+  "addedLines": 56,
+  "deletedLines": 0
+ },
+ "totals": {
+  "authoredGovernanceBytes": 31927,
+  "authoredPlusImplementationBytes": 34229,
+  "renderedBytes": 14528
+ }
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-filter-tasks-by-status-6c05c9",
+  "recordedAt": "2026-08-03T16:09:30Z",
+  "groups": ["Filtering behaviour", "Preserved behaviour"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Filtering behaviour",
+      "text": "`GET /tasks?status=<state>` returns only tasks whose status equals `<state>`, for each `TaskState` name (`Open`, `InProgress`, `Done`)."
+    },
+    {
+      "id": "C-002",
+      "group": "Filtering behaviour",
+      "text": "The status match is case-insensitive: `?status=open` returns exactly what `?status=Open` returns."
+    },
+    {
+      "id": "C-003",
+      "group": "Filtering behaviour",
+      "text": "An unrecognised status value (e.g. `?status=Bogus`) returns HTTP 400 Bad Request and no task list."
+    },
+    {
+      "id": "C-004",
+      "group": "Preserved behaviour",
+      "text": "`GET /tasks` with no `status` parameter returns all tasks — unchanged behaviour."
+    },
+    {
+      "id": "C-005",
+      "group": "Preserved behaviour",
+      "text": "`dotnet build` and `dotnet test` stay green: the 5 pre-existing tests still pass (R-003)."
+    },
+    {
+      "id": "C-006",
+      "group": "Preserved behaviour",
+      "text": "The other CRUD endpoints (`GET /tasks/{id}`, `POST`, `PUT`, `DELETE`) keep their behaviour, and filtering lives at the endpoint/query boundary — `Domain/**` is not modified (R-004, R-005)."
+    }
+  ]
+}

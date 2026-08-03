@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-filter-tasks-by-status-6c05c9",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T16:09:30Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are delivered and covered; `dotnet build` is 0 warnings / 0 errors and `dotnet test` is 13/13 (the 5 baseline tests plus 8 new cases). The diff is exactly the two approved paths — no scope drift, no `Domain/**` edit, no dependency change. `[FACT · HIGH]`",
+  "commentary": "One work unit, one K3 scan: the whole contract is a single endpoint handler plus its tests, so splitting it would have manufactured scan events without new evidence. The run closed at the K1 vector — zero triggers fired at any of the four checkpoints (scanSeq 6), so `verify 0` means no verification pass was owed and none ran; build + tests are the level-0 base check that DELIVER already carries. `[FACT · HIGH]`",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 13,
+      "total": 13,
+      "note": "5 pre-existing + 8 new (two [Theory] sets of 3, two [Fact])"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_with_status_returns_only_that_status (Open, InProgress, Done)"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_status_filter_is_case_insensitive (open, inprogress, DONE)"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_with_unknown_status_is_rejected"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Get_tasks_without_status_returns_every_task",
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks (baseline, unchanged)"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["dotnet build: 0/0", "dotnet test: 13/13, all 5 baseline tests unchanged and passing"]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "whyNotTest": "Half of it is test-evidenced — the four untouched baseline tests for GET /tasks/{id}, POST, PUT and DELETE still pass. The other half is a structural claim no runtime test can assert: the change touches no `Domain/**` file and adds no HTTP reference there (R-004), and `TaskState` is unrenamed (R-005). Evidence is the C-15-scoped numstat: exactly `src/TaskTracker.Api/Endpoints/TaskEndpoints.cs` and `tests/TaskTracker.Tests/TaskEndpointsTests.cs`.",
+        "refs": [".tmp/scan1.numstat (2 files, +98/-2)"]
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 13/13; the 5 baseline tests are untouched and green." },
+      { "id": "R-004", "status": "pass", "evidence": "Filtering is implemented in `Endpoints/TaskEndpoints.cs` over `store.All()`; `Domain/**` is not in the diff and gains no ASP.NET reference." },
+      { "id": "R-005", "status": "pass", "evidence": "The filter parses against `TaskState` names via `Enum.GetValues<TaskState>()`; no `TaskStatus` identifier is introduced." },
+      { "id": "R-006", "status": "pass", "evidence": "`AGENTS.md` and root `README.md` are untouched (not in the diff)." }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "The K3 numstat is exactly the two paths approved at S1; M5 did not fire at any scan."
+    }
+  }
+}

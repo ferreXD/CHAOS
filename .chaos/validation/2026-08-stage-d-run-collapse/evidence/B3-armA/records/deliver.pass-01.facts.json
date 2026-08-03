@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-enforce-title-max-length-a7c3f1",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T16:40:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement is covered by an executed integration test; build is 0 warnings / 0 errors and the suite is 10/10 (5 pre-existing + 5 added). One work unit, no scope drift, no deviations, no unanswered decision.",
+  "commentary": "The bound is enforced at the HTTP boundary only (`Endpoints/TaskEndpoints.cs`), after the existing blank-title guard, so the blank-title 400 keeps precedence and the domain (`TaskStore`/`TaskItem`) is untouched — R-004's direction is preserved by construction. Length is measured on the raw title, matching the store, which never trims.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 10,
+      "total": 10,
+      "note": "5 pre-existing tests + 5 added for the title bound"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Post_with_title_at_exactly_the_maximum_is_accepted",
+          "TaskEndpointsTests.Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Put_with_title_longer_than_the_maximum_is_rejected_and_leaves_the_task_unchanged"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Post_with_title_at_exactly_the_maximum_is_accepted",
+          "TaskEndpointsTests.Put_with_title_at_exactly_the_maximum_is_accepted"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Post_with_blank_title_is_rejected",
+          "TaskEndpointsTests.Put_with_blank_title_is_rejected"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks",
+          "TaskEndpointsTests.Post_creates_a_task_and_get_by_id_returns_it",
+          "TaskEndpointsTests.Put_updates_an_existing_task",
+          "TaskEndpointsTests.Delete_removes_a_task",
+          "dotnet build 0 warnings / 0 errors"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 10/10 green (5 baseline tests unchanged and passing)"
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "validation added in Endpoints/TaskEndpoints.cs only; Domain/** untouched and free of Microsoft.AspNetCore.* references"
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "no enum or naming change; TaskState untouched"
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md not modified (git diff scope: src, tests only)"
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "K3 scan 1 (C-15 scoped: git diff -- src tests) reported no M5 firing; both touched paths are the approved scope."
+    }
+  }
+}

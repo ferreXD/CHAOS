@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-task-count-8b90fa",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T16:06:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement is delivered and test-covered, build and tests are green, no deviation was taken and the diff never left the approved scope — APPLIED, not PARTIALLY_APPLIED.",
+  "commentary": "One work unit delivered the whole contract: one added route registration in Endpoints/TaskEndpoints.cs plus three integration tests. The count is computed from the same TaskStore.All() enumeration GET /tasks returns, which is what makes C-002 structural rather than merely tested. Six classifier scans ran across K1/K2/K3/K4; the only firing was M3 at the first diff scan (TRG-001).",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 8,
+      "total": 8,
+      "note": "5 baseline tests unchanged and green + 3 added for the count contract"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_count_returns_the_number_of_tasks_in_the_store"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_count_returns_the_number_of_tasks_in_the_store"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_increases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_decreases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs — the 5 baseline tests (Get_tasks_returns_the_seeded_tasks, Post_creates_a_task_and_get_by_id_returns_it, Put_updates_an_existing_task, Delete_removes_a_task, Post_with_blank_title_is_rejected), all still passing; Program.cs untouched so GET / is byte-identical"]
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 8/8, 0 failed; the 5 baseline tests are unmodified" },
+      { "id": "R-004", "status": "pass", "evidence": "no Domain/** file changed; the aggregate is read at the endpoint boundary, so the domain gained no HTTP dependency and TaskStore's public shape did not widen" },
+      { "id": "R-005", "status": "pass", "evidence": "no rename of TaskState or any domain type; the only src change is one added route registration" },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md untouched" }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "the C-15-scoped diff (git diff -- src tests) covers exactly the two paths declared in the approved scope at K1; M5 never fired"
+    }
+  }
+}

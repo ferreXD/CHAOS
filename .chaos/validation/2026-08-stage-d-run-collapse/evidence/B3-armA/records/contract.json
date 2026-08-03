@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-enforce-title-max-length-a7c3f1",
+  "recordedAt": "2026-08-03T16:23:00Z",
+  "groups": [
+    "Bound",
+    "Rejection",
+    "Preserved behaviour"
+  ],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Bound",
+      "text": "A task title may be at most 200 characters long."
+    },
+    {
+      "id": "C-002",
+      "group": "Rejection",
+      "text": "`POST /tasks` with a title longer than 200 characters is rejected with HTTP 400 Bad Request and creates no task."
+    },
+    {
+      "id": "C-003",
+      "group": "Rejection",
+      "text": "`PUT /tasks/{id}` with a title longer than 200 characters is rejected with HTTP 400 Bad Request and does not modify the task."
+    },
+    {
+      "id": "C-004",
+      "group": "Rejection",
+      "text": "A title of exactly 200 characters is accepted: `POST` returns 201, `PUT` returns 200."
+    },
+    {
+      "id": "C-005",
+      "group": "Preserved behaviour",
+      "text": "The existing blank/whitespace title → 400 behaviour is preserved for both `POST` and `PUT`."
+    },
+    {
+      "id": "C-006",
+      "group": "Preserved behaviour",
+      "text": "Titles of normal length keep working exactly as before and the other CRUD endpoints are unchanged; `dotnet build` and `dotnet test` stay green with the 5 existing tests passing."
+    }
+  ]
+}

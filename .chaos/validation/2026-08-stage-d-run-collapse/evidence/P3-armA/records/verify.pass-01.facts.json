@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-optimistic-concurrency-updates-b26153",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T15:52:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by the M2 data-store firing (TRG-001), so the trigger-attributed safeguard family is persistence/store semantics — not the full orchestration. Build and tests were re-run independently (0/0, 11/11) and every persistence-semantics safeguard passed: version monotonicity, no-op-on-conflict, initial version 1, in-memory-only store (the durability non-goal is untouched), and compare-and-set atomicity by construction. One ADVISORY finding remains (no multi-threaded stress probe), which is debt-free at this blast radius, so the verdict is READY rather than READY_WITH_DEBT.",
+  "confidenceLimiters": [
+    {
+      "kind": "INFERENCE",
+      "confidence": "HIGH",
+      "text": "Compare-and-set atomicity is evidenced by construction (ConcurrentDictionary.TryUpdate under a re-read loop), not by a concurrent-writer stress test — see VFY-001."
+    }
+  ],
+  "commentary": "This is the in-loop verify pass driven by the `verify 1` dimension, not the opt-in `chaos:verify` command. The checks below are the ones the firing's surface names (data-store -> persistence/semantics checks); full orchestration would have required `verify 2`, which nothing fired.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "re-run independently at verify time"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 11,
+        "total": 11,
+        "note": "5 pre-existing + 6 added; the pre-existing PUT test still omits expectedVersion and still passes"
+      },
+      "contract": {
+        "ticked": 12,
+        "total": 12,
+        "note": "10 of 12 statements carry direct test evidence; C-011 and C-012 are evidenced by the build/test run itself and by the unchanged pre-existing tests"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "the C-15-scoped diff touches exactly the 5 predicted paths under src/TaskTracker.Api and tests/TaskTracker.Tests; M5 never fired across scans 4-7"
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "dotnet test 11/11, 0 failed; baseline of 5 preserved"
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "grep over src/TaskTracker.Api/Domain: no Microsoft.AspNetCore / Results. / HttpContext reference; the store returns UpdateOutcome and only TaskEndpoints.cs mentions Results.Conflict"
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "TaskState is untouched; the only TaskStatus occurrences are the pre-existing doc-comment explaining the collision"
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "git status shows no modification to AGENTS.md or root README.md"
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "HIGH",
+        "title": "Compare-and-set atomicity is evidenced by construction, not by a concurrency stress probe",
+        "detail": "Safeguard check for TRG-001 (M2, data-store). TaskStore.Update re-reads inside a loop and commits with ConcurrentDictionary.TryUpdate(id, updated, existing), whose comparison is TaskItem record value-equality including Version — so a writer that lost the race fails TryUpdate and retries against fresh state. The alternative rejected in ADR-001 (endpoint reads, compares, writes back) is exactly what would leave the race open. No multi-threaded probe was run: at this blast radius (single-process, in-memory, 5 files) construction plus the stale-version integration test is proportionate evidence.",
+        "recommendation": "If the store ever moves off ConcurrentDictionary, add a parallel-writer test before that change lands."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Persistence non-goal preserved: no durability introduced",
+        "detail": "Safeguard check for TRG-001 (M2, data-store) and TRG-002 (M1, data-store). The store is still a single ConcurrentDictionary<Guid, TaskItem> with no DbContext, no SqlConnection and no file I/O; version numbers reset with the process, which is the correct semantics for a process-lifetime store. The architecture non-goal 'persistence / durability across restarts' is untouched, so the M1 crossing authorized by PROP-DEC-001 stays confined to the store's in-memory shape."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Conflict path is a true no-op",
+        "detail": "Safeguard check for TRG-001 (M2, data-store). TaskStore.Update returns VersionConflict before constructing the updated record, so a rejected PUT mutates nothing. Verified end-to-end: Put_with_stale_expected_version_is_rejected_and_changes_nothing asserts 409 and then re-reads the task, confirming title, status, priority and version are all the winner's values (C-006, C-007)."
+      }
+    ]
+  }
+}

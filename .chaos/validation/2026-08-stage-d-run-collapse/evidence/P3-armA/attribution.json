@@ -1,0 +1,129 @@
+{
+ "worktree": "C:/sd5/wt/P3-armA",
+ "changeId": "optimistic-concurrency-updates",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 2554,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    2554
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 3449,
+  "files": [
+   [
+    ".chaos/changes/optimistic-concurrency-updates/adr/ADR-001-store-owned-optimistic-concurrency.md",
+    3449
+   ]
+  ]
+ },
+ "records": {
+  "bytes": 18686,
+  "files": [
+   [
+    "contract.json",
+    2541
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    6500
+   ],
+   [
+    "frame.pass-01.facts.json",
+    3945
+   ],
+   [
+    "verify.pass-01.facts.json",
+    5700
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 14467,
+  "files": {
+   "change.md": 13226,
+   "lifecycle.md": 1241
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 4127,
+  "decisions": 2459,
+  "trgEvents": 1463,
+  "header": 205,
+  "decisionCount": 1,
+  "trgCount": 3
+ },
+ "classifier": {
+  "stateBytes": 2081,
+  "authoredScratchBytes": 9696,
+  "generatedScratchBytes": 22230,
+  "scratchFiles": [
+   [
+    "k1-raises.json",
+    1077
+   ],
+   [
+    "k1.json",
+    1597
+   ],
+   [
+    "k2.json",
+    1681
+   ],
+   [
+    "k3-scan1-raises.json",
+    15
+   ],
+   [
+    "k3-scan1.json",
+    1755
+   ],
+   [
+    "k3-scan2-raises.json",
+    15
+   ],
+   [
+    "k3-scan2.json",
+    1755
+   ],
+   [
+    "k4.json",
+    1801
+   ],
+   [
+    "scan1.numstat",
+    192
+   ],
+   [
+    "scan1.patch",
+    7810
+   ],
+   [
+    "scan2.numstat",
+    244
+   ],
+   [
+    "scan2.patch",
+    13984
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 9797,
+  "files": 5,
+  "addedLines": 216,
+  "deletedLines": 14
+ },
+ "totals": {
+  "authoredGovernanceBytes": 40593,
+  "authoredPlusImplementationBytes": 50390,
+  "renderedBytes": 14467
+ }
+}

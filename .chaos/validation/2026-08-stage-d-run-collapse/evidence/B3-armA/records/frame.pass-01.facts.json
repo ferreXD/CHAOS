@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-enforce-title-max-length-a7c3f1",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T16:23:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "K1 classification fired zero triggers (scan + adjudication, confidence HIGH): the vector sits at the zero-trigger floor — stops 1 (C-11), every other dimension 0. The contract is fully pinned by the task statement (200 chars, 400 on POST/PUT, 200-char boundary accepted, blank-title behaviour preserved), the touched surface is the endpoint validation block only, and the posture already describes endpoint-level title validation, so nothing is inferred.",
+  "commentary": "Documented deviation (measurement condition): no live human is available in this Stage-D mechanized run. Every decision is recorded in `decision-events.md` and resolved in-arm with an explicit maintainer-style rationale, tagged `resolved-in-arm (no live human; Stage-D mechanized run)`. Answering the `approves-change` decision IS the approval. The interaction runtime (Decision Center) was not invoked: this arm runs in a detached measurement worktree.",
+  "facts": {
+    "title": "Enforce a maximum title length (200 characters) on task create and update",
+    "intent": [
+      "Task titles are currently unbounded. Add an upper bound on title length as input validation.",
+      "This is a request-validation convenience: no authentication, no persistence-model change.",
+      "At most 200 characters; POST/PUT reject longer titles with 400; exactly 200 is accepted; blank-title 400 preserved."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "confidenceImpact": "none — skipped, openspec dimension 0. The K1 classification fired zero triggers, so no OpenSpec artifacts are owed (Stage-C C-10 zero-base) and none were authored; the Contract section of `change.md` is the contract of record. This is the classified outcome, not degraded mode and not a CLI-availability gap."
+    }
+  }
+}

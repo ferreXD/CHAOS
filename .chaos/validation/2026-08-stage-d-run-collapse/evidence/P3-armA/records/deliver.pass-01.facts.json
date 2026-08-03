@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-optimistic-concurrency-updates-b26153",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T15:55:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All twelve contract statements are delivered and covered, build is clean, tests are 11/11 green, no scope drift, no deviations. APPLIED rather than PARTIALLY_APPLIED.",
+  "commentary": "Delivered in two work units, each followed by a C-15-scoped K3 rescan: (1) the vertical slice — TaskItem.Version, the compare-and-set in TaskStore.Update with an HTTP-free UpdateOutcome, UpdateTaskRequest.ExpectedVersion, and the 409 mapping at the endpoint; (2) the six integration tests. No S2 fired (no scan produced newStops) and no S3 discordance arose: the task contract was fully specified and the repository answered every remaining question (R-004 direction, R-005 naming, the in-memory non-goal).",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 11,
+      "total": 11,
+      "note": "baseline 5 preserved + 6 added for optimistic concurrency"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Post_returns_a_task_serialized_with_version_1 (asserts the JSON property is literally `version`)"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Seeded_tasks_start_at_version_1"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Post_returns_a_task_serialized_with_version_1"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Put_without_expected_version_wins_last_and_increments_version (omitted)",
+          "TaskEndpointsTests.Put_with_matching_expected_version_succeeds_and_increments_version (supplied)"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Put_without_expected_version_wins_last_and_increments_version (1 -> 2 -> 3)",
+          "TaskEndpointsTests.Put_with_matching_expected_version_succeeds_and_increments_version (1 -> 2)"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Put_with_stale_expected_version_is_rejected_and_changes_nothing"]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Put_with_stale_expected_version_is_rejected_and_changes_nothing (re-reads and asserts title, status, priority and version are all unchanged)"]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Put_with_matching_expected_version_succeeds_and_increments_version"]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Put_without_expected_version_wins_last_and_increments_version",
+          "TaskEndpointsTests.Put_updates_an_existing_task (the pre-existing test, unmodified)"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Put_for_an_unknown_id_is_404_with_or_without_expected_version"]
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "dotnet build: 0 warnings / 0 errors",
+          "dotnet test: 11/11 passed",
+          "TaskEndpointsTests.Put_updates_an_existing_task — the pre-existing PUT test, still omitting expectedVersion, still green"
+        ]
+      },
+      {
+        "statement": "C-012",
+        "covered": true,
+        "evidence": "code",
+        "whyNotTest": "The behavioural half IS test-covered by the four unchanged pre-existing tests (GET list, GET by id via POST round-trip, DELETE, blank-title 400). The second half — 'changes stay inside src/TaskTracker.Api and tests/TaskTracker.Tests' — is a property of the diff rather than of any test: the C-15-scoped numstat for scan 2 lists exactly five files, all under those two trees, and M5 scope-spill never fired across scans 4-7.",
+        "refs": [
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks",
+          "TaskEndpointsTests.Post_creates_a_task_and_get_by_id_returns_it",
+          "TaskEndpointsTests.Delete_removes_a_task",
+          "TaskEndpointsTests.Post_with_blank_title_is_rejected",
+          ".tmp/scan2.numstat (5 files, all in scope)"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 11/11 green; the 5-test baseline is intact"
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "Domain/** references no ASP.NET type; TaskStore.Update returns the HTTP-free UpdateOutcome and TaskEndpoints.cs owns the 409 mapping"
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "TaskState naming untouched; no TaskStatus introduced"
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md unmodified"
+      }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs", "change": "modified" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "the delivered diff is exactly the five paths predicted in the K1 scope; M5 never fired"
+    }
+  }
+}

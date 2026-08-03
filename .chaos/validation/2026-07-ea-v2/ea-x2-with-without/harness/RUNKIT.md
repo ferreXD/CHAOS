@@ -202,6 +202,57 @@ failures, 6 adjudications 0 raises, 8 renders 0 failures, 0 hand-written artifac
 leakage, oracle **16/16 both arms** unregressed. On the light band the governed ratio across four
 stages now reads **3.65× (A) → 3.38× (B) → 6.00× (C)**.
 
+## Re-run — Stage-D collapsed `chaos:run`, no preset flag (2026-08-03, model claude-opus-5[1m])
+
+Governed arm runs **one continuous `chaos:run`** instead of the `propose → review → apply →
+verify` march: checkpoints become evidence classes (K3 repeats per work unit), the obligation
+audit is a deterministic close gate, verification stays vector-driven inside the loop. **The
+artifact set is unchanged.** Same frozen tasks, same held-out oracles, **plain-arm prompt
+byte-identical** (lifted programmatically, sha256-fingerprinted). Harness:
+`../../../2026-08-stage-d-run-collapse/harness/stage-d-arms.workflow.js`; full scorecard,
+fidelity table and attribution in that kit's `results.md`. Both tiers ran in ONE 12-arm workflow,
+so the frozen-3 and light-3 rows share a session.
+
+| Pair | task | Stage-D time | plain time | time ratio | Stage-D out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| P1 | auth gate | 899 s | 124 s | 7.25× | 65,872 | 9,234 | 7.13× | clean |
+| P2 | soft-delete | 913 s | 309 s | 2.95× | 60,570 | 16,176 | 3.74× | clean |
+| P3 | concurrency | 958 s | 141 s | 6.79× | 62,141 | 10,645 | 5.84× | clean |
+| **Σ frozen-3** | | **2,770 s** | **574 s** | **4.83×** | **188,583** | **36,055** | **5.23×** | 19/19 both |
+| B1 | task-count | 742 s | 102 s | 7.27× | 46,595 | 6,603 | 7.06× | clean |
+| B2 | filter-by-status | 675 s | 127 s | 5.31× | 39,321 | 7,970 | 4.93× | clean |
+| B3 | title-max-length | 511 s | 100 s | 5.11× | 31,941 | 6,847 | 4.66× | clean |
+| **Σ light-3** | | **1,928 s** | **329 s** | **5.86×** | **117,857** | **21,420** | **5.50×** | 16/16 both |
+
+**Fifth cost hypothesis falsified — and this one closes the artifact/phase line of inquiry.**
+Pre-registered predictions (band A 2.0–3.0×, band B 3.0–4.0×) both **missed**, and by the
+classifier's own banding the result is **band A 4.81× / band B 5.51×** against bars of ≤2.0× /
+≤3.0×. Governed absolute vs Stage C: frozen-3 **+19.7% tokens**, light-3 +1.2%. The registered
+direction test — non-artifact output must fall ≥30% — failed outright: it **rose 12%**, and
+authored governance is 15.1% of governed output vs Stage C's 16.2%. Attribution shows why: every
+artifact center shrank 5–9% (OpenSpec −9.4%, ADR −6.8%, records −4.7%) and **classification grew
++32.5%**, because K3 now runs once per work unit. The phase march was never a separable cost
+center; it was a label for work the collapse preserved in full. Reading *did* fall as designed
+(P1 read 12.4 KB of skill text vs 34.2 KB; 18 vs 21 distinct files) and it was swamped. Governed
+prompts were length-matched as a control: 14,621 vs 14,619 chars.
+
+**Fidelity: OpenSpec depth 6/6 correct; vectors 3/6 exact.** The three divergences are one
+pre-registration error of mine, not a classifier fault: §3 carried step-5's verdicts forward, but
+**C-16 shipped in between** and exists to make M4 count folded questions — so M4 firing on all
+three frozen-3 arms is the fix working. **C-17 held** (M1+M2+M4 stayed at `openspec 1` instead of
+escalating to the full set). **C-15 held: B3 came out clean**, erasing step-5's only fidelity
+miss. B2 reproduced exactly — zero triggers, `verify 0`, no verify phase, no OpenSpec, no ADR —
+and still cost **4.93×**.
+
+**Mechanically clean on 6/6:** exactly one S1 stop, `newStops` 0, S4 0, absorption 0, audit exit 0
+(plus 6/6 independent out-of-band replays), `adjudicationPasses == adjudicationDueCount` (the
+continuous C-12 cadence), 0 hand-written artifacts, 0 legacy `ESC-*`, 42 classifier invocations 0
+failures, 29 renders 1 self-repaired failure, OpenSpec authored at the firing on 4/4 owed arms.
+One S3 discordance stop (P2). **A real defect surfaced:** `RESOLVED-IN-ARM` is first-class in the
+renderer/schema/template but `classify.py`'s `parse_ledger` matches only `ANSWERED`, so it reads
+as unanswered in the audit gate, MR-3 satisfaction and absorption; all six arms independently
+worked around it, which qualifies the absorption 0/6 result (see that kit's `results.md` §5).
+
 ## Files
 
 | File | Role |

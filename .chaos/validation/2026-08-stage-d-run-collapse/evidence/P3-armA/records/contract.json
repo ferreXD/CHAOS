@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-optimistic-concurrency-updates-b26153",
+  "recordedAt": "2026-08-03T15:31:31Z",
+  "groups": ["Task representation", "Update semantics", "Regression safety"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Task representation",
+      "text": "TaskItem carries an integer version, serialized in JSON as `version`."
+    },
+    {
+      "id": "C-002",
+      "group": "Task representation",
+      "text": "Seeded tasks are returned with `version` = 1."
+    },
+    {
+      "id": "C-003",
+      "group": "Task representation",
+      "text": "POST /tasks returns 201 with a task whose `version` = 1."
+    },
+    {
+      "id": "C-004",
+      "group": "Update semantics",
+      "text": "UpdateTaskRequest accepts an optional integer `expectedVersion` (absent/null is legal)."
+    },
+    {
+      "id": "C-005",
+      "group": "Update semantics",
+      "text": "Every successful PUT /tasks/{id} increments the task's `version` by exactly 1."
+    },
+    {
+      "id": "C-006",
+      "group": "Update semantics",
+      "text": "PUT /tasks/{id} with an `expectedVersion` that does not equal the task's current `version` is rejected with HTTP 409 Conflict."
+    },
+    {
+      "id": "C-007",
+      "group": "Update semantics",
+      "text": "A 409-rejected PUT leaves the stored task completely unchanged: no field updated and no version bump."
+    },
+    {
+      "id": "C-008",
+      "group": "Update semantics",
+      "text": "PUT /tasks/{id} with an `expectedVersion` equal to the current `version` succeeds with 200 and increments `version`."
+    },
+    {
+      "id": "C-009",
+      "group": "Update semantics",
+      "text": "PUT /tasks/{id} with `expectedVersion` omitted proceeds unconditionally (last-writer-wins) with 200 and increments `version`."
+    },
+    {
+      "id": "C-010",
+      "group": "Update semantics",
+      "text": "PUT /tasks/{id} for an unknown id returns 404 whether or not `expectedVersion` is supplied."
+    },
+    {
+      "id": "C-011",
+      "group": "Regression safety",
+      "text": "dotnet build and dotnet test stay green, including the pre-existing PUT test that omits `expectedVersion`."
+    },
+    {
+      "id": "C-012",
+      "group": "Regression safety",
+      "text": "GET /tasks, GET /tasks/{id} and DELETE /tasks/{id} keep their existing behaviour; changes stay inside src/TaskTracker.Api and tests/TaskTracker.Tests."
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..fd18057 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -1,5 +1,6 @@
+ using TaskTracker.Api.Contracts;
+ using TaskTracker.Api.Domain;
++using TaskTracker.Api.Security;
+ 
+ namespace TaskTracker.Api.Endpoints;
+ 
+@@ -17,6 +18,12 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
++        // Every /tasks route requires a valid X-Api-Key header. Attached to the GROUP so no
++        // route can be added later without the gate, and so the check runs before the handler
++        // (and therefore before any existence/validation check). GET / is mapped outside this
++        // group in Program.cs and stays public.
++        group.AddEndpointFilter<ApiKeyEndpointFilter>();
++
+         // GET /tasks — returns every task in the store. No filtering (yet).
+         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+ 
+diff --git a/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+new file mode 100644
+index 0000000..5ae78c5
+--- /dev/null
++++ b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+@@ -0,0 +1,44 @@
++namespace TaskTracker.Api.Security;
++
++/// <summary>
++/// Endpoint filter that requires a valid API key in the <c>X-Api-Key</c> request header.
++/// </summary>
++/// <remarks>
++/// Enforcement deliberately lives in the HTTP layer: it is attached to the <c>/tasks</c> route
++/// group, so the domain (<c>Domain/**</c>) gains no dependency on ASP.NET types (R-004). Because
++/// an endpoint filter runs <em>before</em> the route handler, an unauthenticated request never
++/// reaches the store — it can neither read nor mutate a task, and it never sees a 404/400 that
++/// would leak whether a task exists. The public root health endpoint <c>GET /</c> is mapped
++/// outside this group and therefore stays open.
++/// <para>
++/// The posture crossing this represents (the API was documented as deliberately open) is
++/// recorded in <c>.chaos/changes/require-api-key-auth/adr/ADR-001-*.md</c>.
++/// </para>
++/// </remarks>
++public sealed class ApiKeyEndpointFilter : IEndpointFilter
++{
++    /// <summary>Request header the API key must be presented in.</summary>
++    public const string HeaderName = "X-Api-Key";
++
++    /// <summary>Configuration key holding the valid API key.</summary>
++    public const string ConfigurationKey = "ApiKey";
++
++    /// <summary>Key used when <see cref="ConfigurationKey"/> is not configured.</summary>
++    public const string DefaultApiKey = "test-secret-key";
++
++    private readonly string _expectedKey;
++
++    public ApiKeyEndpointFilter(IConfiguration configuration)
++        => _expectedKey = configuration[ConfigurationKey] ?? DefaultApiKey;
++
++    public ValueTask<object?> InvokeAsync(
++        EndpointFilterInvocationContext context, EndpointFilterDelegate next)
++    {
++        var presented = context.HttpContext.Request.Headers[HeaderName].ToString();
++
++        if (!string.Equals(presented, _expectedKey, StringComparison.Ordinal))
++            return ValueTask.FromResult<object?>(Results.Unauthorized());
++
++        return next(context);
++    }
++}
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..945b483 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -16,10 +16,21 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+ 
+     public TaskEndpointsTests(WebApplicationFactory<Program> factory) => _factory = factory;
+ 
++    /// <summary>The API key every /tasks route requires (config `ApiKey`, default value).</summary>
++    private const string ValidApiKey = "test-secret-key";
++
++    /// <summary>A client that presents the valid `X-Api-Key` header on every request.</summary>
++    private HttpClient CreateAuthenticatedClient()
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
++        return client;
++    }
++
+     [Fact]
+     public async Task Get_tasks_returns_the_seeded_tasks()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
+ 
+@@ -31,7 +42,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Post_creates_a_task_and_get_by_id_returns_it()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "Write tests", status = "Open", priority = "High" });
+@@ -50,7 +61,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Put_updates_an_existing_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -67,7 +78,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Delete_removes_a_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Temporary", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -82,7 +93,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "", status = "Open", priority = "Low" });
+@@ -90,6 +101,112 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    // -- API-key enforcement (change: require-api-key-auth) ------------------------------
++
++    public static TheoryData<string, string> TaskRoutes() => new()
++    {
++        { "GET", "/tasks" },
++        { "GET", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "POST", "/tasks" },
++        { "PUT", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "DELETE", "/tasks/11111111-1111-1111-1111-111111111111" },
++    };
++
++    [Theory]
++    [MemberData(nameof(TaskRoutes))]
++    public async Task Every_task_route_rejects_a_missing_api_key(string method, string route)
++    {
++        var client = _factory.CreateClient();
++
++        var response = await client.SendAsync(Request(method, route));
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Theory]
++    [MemberData(nameof(TaskRoutes))]
++    public async Task Every_task_route_rejects_an_incorrect_api_key(string method, string route)
++    {
++        var client = _factory.CreateClient();
++        var request = Request(method, route);
++        request.Headers.Add("X-Api-Key", "wrong-key");
++
++        var response = await client.SendAsync(request);
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Unauthenticated_request_is_rejected_before_the_existence_check()
++    {
++        var client = _factory.CreateClient();
++
++        // An id that certainly does not exist: with a valid key this is a 404, so a 401 here
++        // proves the auth check ran first and no task was read.
++        var response = await client.GetAsync("/tasks/22222222-2222-2222-2222-222222222222");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Unauthenticated_request_is_rejected_before_the_validation_check()
++    {
++        var client = _factory.CreateClient();
++
++        // With a valid key a blank title is a 400; a 401 here proves the auth check ran first.
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = "", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Unauthenticated_post_does_not_mutate_the_store()
++    {
++        var anonymous = _factory.CreateClient();
++        var authenticated = CreateAuthenticatedClient();
++
++        var before = await authenticated.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        var rejected = await anonymous.PostAsJsonAsync(
++            "/tasks", new { title = "Smuggled in", status = "Open", priority = "High" });
++        var after = await authenticated.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, rejected.StatusCode);
++        Assert.Equal(before!.Count, after!.Count);
++        Assert.DoesNotContain(after!, t => t.Title == "Smuggled in");
++    }
++
++    [Fact]
++    public async Task Root_health_endpoint_stays_public()
++    {
++        var client = _factory.CreateClient();
++
++        var response = await client.GetAsync("/");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Valid_api_key_from_the_default_configuration_is_accepted()
++    {
++        // No `ApiKey` is configured anywhere in the test host, so the documented default
++        // (`test-secret-key`) is what the filter must accept.
++        var client = CreateAuthenticatedClient();
++
++        var response = await client.GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    private static HttpRequestMessage Request(string method, string route)
++    {
++        var request = new HttpRequestMessage(new HttpMethod(method), route);
++        if (method is "POST" or "PUT")
++            request.Content = JsonContent.Create(
++                new { title = "Should never be created", status = "Open", priority = "Low" });
++        return request;
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

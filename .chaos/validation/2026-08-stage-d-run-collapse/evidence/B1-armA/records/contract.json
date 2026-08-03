@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-task-count-8b90fa",
+  "recordedAt": "2026-08-03T15:50:00Z",
+  "groups": ["Endpoint", "Invariants", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Endpoint",
+      "text": "`GET /tasks/count` returns HTTP 200 with a JSON object `{ \"count\": <integer> }`."
+    },
+    {
+      "id": "C-002",
+      "group": "Invariants",
+      "text": "`count` equals the number of items returned by `GET /tasks` for the same store at the same moment."
+    },
+    {
+      "id": "C-003",
+      "group": "Invariants",
+      "text": "A successful `POST /tasks` (201) increases `count` by exactly 1."
+    },
+    {
+      "id": "C-004",
+      "group": "Invariants",
+      "text": "A successful `DELETE /tasks/{id}` (204) decreases `count` by exactly 1."
+    },
+    {
+      "id": "C-005",
+      "group": "Non-regression",
+      "text": "`GET /` and all existing `/tasks` CRUD behaviour are unchanged: the 5 baseline tests still pass and `dotnet build` stays green."
+    }
+  ]
+}

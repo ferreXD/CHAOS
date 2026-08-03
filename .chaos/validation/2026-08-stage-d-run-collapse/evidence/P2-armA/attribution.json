@@ -1,0 +1,133 @@
+{
+ "worktree": "C:/sd5/wt/P2-armA",
+ "changeId": "soft-delete-tasks",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 3086,
+  "files": [
+   [
+    "specs/task-api/spec.md",
+    3086
+   ]
+  ]
+ },
+ "adr": {
+  "bytes": 3268,
+  "files": [
+   [
+    ".chaos/changes/soft-delete-tasks/adr/ADR-001-soft-delete-lives-in-the-store.md",
+    3268
+   ]
+  ]
+ },
+ "records": {
+  "bytes": 18933,
+  "files": [
+   [
+    "contract.json",
+    2152
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    5527
+   ],
+   [
+    "frame.pass-01.facts.json",
+    4497
+   ],
+   [
+    "verify.pass-01.facts.json",
+    6757
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 15896,
+  "files": {
+   "change.md": 14735,
+   "lifecycle.md": 1161
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 6184,
+  "decisions": 4529,
+  "trgEvents": 1465,
+  "header": 190,
+  "decisionCount": 2,
+  "trgCount": 3
+ },
+ "classifier": {
+  "stateBytes": 1399,
+  "authoredScratchBytes": 9642,
+  "generatedScratchBytes": 16334,
+  "scratchFiles": [
+   [
+    "audit-final.json",
+    1272
+   ],
+   [
+    "k1-raises.json",
+    450
+   ],
+   [
+    "k1.json",
+    1468
+   ],
+   [
+    "k2-a.json",
+    1539
+   ],
+   [
+    "k3-1-raises.json",
+    14
+   ],
+   [
+    "k3-1.json",
+    1620
+   ],
+   [
+    "k3-2-raises.json",
+    14
+   ],
+   [
+    "k3-2.json",
+    1620
+   ],
+   [
+    "k4.json",
+    1645
+   ],
+   [
+    "scan1.numstat",
+    89
+   ],
+   [
+    "scan1.patch",
+    3727
+   ],
+   [
+    "scan2.numstat",
+    193
+   ],
+   [
+    "scan2.patch",
+    12325
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 8359,
+  "files": 4,
+  "addedLines": 184,
+  "deletedLines": 17
+ },
+ "totals": {
+  "authoredGovernanceBytes": 42512,
+  "authoredPlusImplementationBytes": 50871,
+  "renderedBytes": 15896
+ }
+}

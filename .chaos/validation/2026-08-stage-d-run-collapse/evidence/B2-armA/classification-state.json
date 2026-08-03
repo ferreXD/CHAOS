@@ -1,0 +1,28 @@
+{
+ "fired": [],
+ "stopsPlaced": [
+  "K1:floor-approval"
+ ],
+ "floors": {
+  "stops": 1,
+  "evidence.targeted": 0,
+  "evidence.breadth": 0,
+  "review": 0,
+  "verify": 0,
+  "openspec": 0,
+  "adr": 0
+ },
+ "mode": null,
+ "x1Level": 0,
+ "checkpointsRun": [
+  "K1",
+  "K2",
+  "K3",
+  "K4"
+ ],
+ "seenPaths": [
+  "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+  "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+ ],
+ "scanCount": 6
+}

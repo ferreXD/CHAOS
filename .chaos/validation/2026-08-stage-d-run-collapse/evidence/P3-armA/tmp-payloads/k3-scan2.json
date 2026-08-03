@@ -1,0 +1,12 @@
+{
+  "checkpoint": "K3",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Optimistic concurrency on task updates. PUT /tasks/{id} currently overwrites a task unconditionally, so a client working from a stale copy can silently clobber someone else's update (lost-update race). Add optimistic concurrency control: add an integer version to the task, serialized as version; new and seeded tasks start at version 1; every successful PUT /tasks/{id} increments version by 1; UpdateTaskRequest gains an optional integer expectedVersion; when expectedVersion is provided and does not equal the task's current version the update is rejected with HTTP 409 Conflict and the task is left unchanged (no field updated, version not bumped); when expectedVersion is provided and matches, the update succeeds (200) and version increments; when expectedVersion is omitted (null) the update proceeds unconditionally (backward-compatible last-writer-wins) and version increments; POST /tasks returns a task with version = 1. Constraints: keep dotnet build and dotnet test green (the existing PUT test omits expectedVersion and must keep working); do not change unrelated behaviour of the other CRUD endpoints; work only inside src/TaskTracker.Api and tests/TaskTracker.Tests.",
+  "scope": "scope: src/TaskTracker.Api/Domain/TaskItem.cs, src/TaskTracker.Api/Domain/TaskStore.cs, src/TaskTracker.Api/Contracts/TaskRequests.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/optimistic-concurrency-updates/decision-events.md",
+  "numstatFile": ".tmp/scan2.numstat",
+  "patchFile": ".tmp/scan2.patch"
+}

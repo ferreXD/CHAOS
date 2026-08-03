@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth-2b53b7",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T14:50:54Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All seven contract statements are delivered and covered; build 0 warnings / 0 errors, 21/21 tests green; no scope drift across three K3 scans; no deviation from the approved frame. APPLIED, not PARTIALLY_APPLIED.",
+  "commentary": "Delivered in three work units inside one continuous run: (1) the endpoint filter plus wiring, with the five pre-existing tests updated to supply the key; (2) the enforcement test set; (3) the configured-key test, added because the `verify 1` attribution (auth ⇒ credential/enforcement checks) named a safeguard that had code evidence only. Each unit was followed by a C-15-scoped K3 scan.",
+  "facts": {
+    "build": {
+      "command": "dotnet build TaskTracker.sln --no-incremental",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test TaskTracker.sln",
+      "passed": 21,
+      "total": 21,
+      "note": "5 pre-existing (updated to supply the key) + 16 added enforcement cases."
+    },
+    "coverage": [
+      { "statement": "C-001", "covered": true, "evidence": "test", "refs": ["Every_task_route_rejects_a_missing_api_key", "Every_task_route_rejects_an_incorrect_api_key"] },
+      { "statement": "C-002", "covered": true, "evidence": "test", "refs": ["Every_task_route_rejects_a_missing_api_key", "Every_task_route_rejects_an_incorrect_api_key"] },
+      { "statement": "C-003", "covered": true, "evidence": "test", "refs": ["Unauthenticated_request_is_rejected_before_the_existence_check", "Unauthenticated_request_is_rejected_before_the_validation_check", "Unauthenticated_post_does_not_mutate_the_store"] },
+      { "statement": "C-004", "covered": true, "evidence": "test", "refs": ["Root_health_endpoint_stays_public"] },
+      { "statement": "C-005", "covered": true, "evidence": "test", "refs": ["Valid_api_key_from_the_default_configuration_is_accepted", "Configured_api_key_replaces_the_default"] },
+      { "statement": "C-006", "covered": true, "evidence": "test", "refs": ["dotnet build (0/0)", "dotnet test (21/21)", "the 5 pre-existing CRUD tests with unchanged assertions"] },
+      { "statement": "C-007", "covered": true, "evidence": "code", "refs": ["src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs", "git diff --numstat -- src/TaskTracker.Api/Domain src/TaskTracker.Api/Contracts (empty)"], "whyNotTest": "A boundary claim is about what the code does NOT reference, which no runtime test can assert. Verified mechanically instead: the domain/contracts diff is empty and grep finds no Microsoft.AspNetCore reference under Domain/. An architecture-test package (e.g. NetArchTest) would make it a test, and adding one is outside this change's approved scope." }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 21/21, 0 failed; the 5-test baseline preserved." },
+      { "id": "R-004", "status": "pass", "evidence": "Domain/** and Contracts/** untouched; enforcement lives in Security/ApiKeyEndpointFilter.cs (HTTP layer)." },
+      { "id": "R-005", "status": "pass", "evidence": "No `TaskStatus` reintroduced; the only hits are the pre-existing explanatory doc comment." },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md untouched (clean git status for both)." }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs", "change": "added" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "Final C-15-scoped diff: 3 files / 191 added / 5 removed, exactly the three approved paths. M5 never fired; X1 never fired (well under 8 files / 400 LOC)."
+    }
+  }
+}

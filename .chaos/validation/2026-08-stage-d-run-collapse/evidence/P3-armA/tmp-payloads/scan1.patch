@@ -1,0 +1,171 @@
+diff --git a/src/TaskTracker.Api/Contracts/TaskRequests.cs b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+index afb9da7..2b2cc63 100644
+--- a/src/TaskTracker.Api/Contracts/TaskRequests.cs
++++ b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+@@ -6,4 +6,13 @@ namespace TaskTracker.Api.Contracts;
+ public record CreateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
+ 
+ /// <summary>Request body for PUT /tasks/{id}.</summary>
+-public record UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
++/// <param name="ExpectedVersion">
++/// Optional optimistic-concurrency token. Omit it (or send null) for the historic
++/// last-writer-wins behaviour; send the version the client last read to have a stale update
++/// rejected with 409 Conflict instead of silently clobbering someone else's write.
++/// </param>
++public record UpdateTaskRequest(
++    string Title,
++    TaskState Status,
++    TaskPriority Priority,
++    int? ExpectedVersion = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..2aca69c 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -20,10 +20,19 @@ public enum TaskPriority
+     High
+ }
+ 
+-/// <summary>An immutable task record held in the in-memory store.</summary>
++/// <summary>
++/// An immutable task record held in the in-memory store.
++/// </summary>
++/// <remarks>
++/// <see cref="Version"/> is the optimistic-concurrency token: it starts at 1 for seeded and
++/// newly created tasks and increments by exactly 1 on every successful update. See
++/// ADR-001 (change <c>optimistic-concurrency-updates</c>) for why the token lives on the
++/// stored record rather than at the endpoint boundary.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    int Version);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..933b915 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -2,6 +2,28 @@ using System.Collections.Concurrent;
+ 
+ namespace TaskTracker.Api.Domain;
+ 
++/// <summary>Outcome kind of an optimistic-concurrency update attempt.</summary>
++public enum UpdateResult
++{
++    /// <summary>No task with that id exists.</summary>
++    NotFound,
++
++    /// <summary>An <c>expectedVersion</c> was supplied and did not match; nothing was mutated.</summary>
++    VersionConflict,
++
++    /// <summary>The update was applied and the version incremented by 1.</summary>
++    Updated
++}
++
++/// <summary>
++/// The result of <see cref="TaskStore.Update"/>. Deliberately HTTP-free: the store reports a
++/// domain outcome and the endpoint layer maps it to a status code (R-004, ADR-001).
++/// <c>Task</c> carries the updated task on <see cref="UpdateResult.Updated"/>, the untouched
++/// current task on <see cref="UpdateResult.VersionConflict"/>, and <c>null</c> on
++/// <see cref="UpdateResult.NotFound"/>.
++/// </summary>
++public readonly record struct UpdateOutcome(UpdateResult Result, TaskItem? Task);
++
+ /// <summary>
+ /// Process-lifetime, in-memory task store. Registered as a singleton, so all requests share
+ /// one instance for the lifetime of the process. Thread-safe for the demo's needs.
+@@ -31,22 +53,55 @@ public class TaskStore
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+ 
+-    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority)
++    /// <summary>
++    /// Applies an update under optimistic concurrency control.
++    /// </summary>
++    /// <param name="expectedVersion">
++    /// The version the caller believes the task is at. When <c>null</c> the update proceeds
++    /// unconditionally (backward-compatible last-writer-wins). When supplied and different from
++    /// the task's current version the update is rejected and nothing is mutated.
++    /// </param>
++    /// <remarks>
++    /// The compare-and-set lives here, not at the endpoint: only the store can make
++    /// read-compare-write atomic against the shared dictionary. An endpoint-side check would
++    /// reintroduce the lost-update race between its read and its write (ADR-001).
++    /// </remarks>
++    public UpdateOutcome Update(
++        Guid id, string title, TaskState status, TaskPriority priority, int? expectedVersion)
+     {
+-        if (!_tasks.TryGetValue(id, out var existing))
+-            return null;
++        while (true)
++        {
++            if (!_tasks.TryGetValue(id, out var existing))
++                return new UpdateOutcome(UpdateResult.NotFound, null);
++
++            if (expectedVersion is { } expected && expected != existing.Version)
++                return new UpdateOutcome(UpdateResult.VersionConflict, existing);
+ 
+-        var updated = existing with { Title = title, Status = status, Priority = priority };
+-        _tasks[id] = updated;
+-        return updated;
++            var updated = existing with
++            {
++                Title = title,
++                Status = status,
++                Priority = priority,
++                Version = existing.Version + 1
++            };
++
++            // TryUpdate only writes when the stored value still equals the one we compared
++            // against (TaskItem is a record, so this is value equality including Version).
++            // Losing the race means another writer got there first: re-read and retry.
++            if (_tasks.TryUpdate(id, updated, existing))
++                return new UpdateOutcome(UpdateResult.Updated, updated);
++        }
+     }
+ 
+     public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt);
++        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt, InitialVersion);
+         _tasks[task.Id] = task;
+         return task;
+     }
++
++    /// <summary>Seeded and newly created tasks start here.</summary>
++    private const int InitialVersion = 1;
+ }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..172ddb6 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -40,9 +40,22 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+-                ? Results.Ok(updated)
+-                : Results.NotFound();
++            // Optimistic concurrency: the store owns the compare-and-set (ADR-001); this layer
++            // only maps the domain outcome onto HTTP.
++            var outcome = store.Update(
++                id, request.Title, request.Status, request.Priority, request.ExpectedVersion);
++
++            return outcome.Result switch
++            {
++                UpdateResult.Updated => Results.Ok(outcome.Task),
++                UpdateResult.VersionConflict => Results.Conflict(new
++                {
++                    error = "Version conflict: the task was modified by someone else.",
++                    expectedVersion = request.ExpectedVersion,
++                    actualVersion = outcome.Task!.Version
++                }),
++                _ => Results.NotFound()
++            };
+         });
+ 
+         // DELETE /tasks/{id}

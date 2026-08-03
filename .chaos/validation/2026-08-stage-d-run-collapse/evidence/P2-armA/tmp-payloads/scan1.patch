@@ -1,0 +1,88 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2c66d92..a15bf8b 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -20,10 +20,19 @@ public enum TaskPriority
+     High
+ }
+ 
+-/// <summary>An immutable task record held in the in-memory store.</summary>
++/// <summary>
++/// An immutable task record held in the in-memory store.
++/// </summary>
++/// <remarks>
++/// <see cref="DeletedAt"/> carries soft-delete state: <c>null</c> means the task is active,
++/// a timestamp means it was soft-deleted at that instant and is hidden from the default reads.
++/// The property is nullable with a default so existing rows (the seeded tasks) stay active
++/// without a data migration. See <c>.chaos/changes/soft-delete-tasks/adr/</c> ADR-001.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+-    DateTimeOffset CreatedAt);
++    DateTimeOffset CreatedAt,
++    DateTimeOffset? DeletedAt = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index 33b1045..1ccd954 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -21,12 +21,24 @@ public class TaskStore
+         AddAt("Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2));
+     }
+ 
+-    /// <summary>All tasks, in creation order.</summary>
+-    public IReadOnlyList<TaskItem> All() =>
+-        _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
++    /// <summary>
++    /// Tasks in creation order. Active tasks only by default; pass <paramref name="includeDeleted"/>
++    /// to include soft-deleted ones (whose <see cref="TaskItem.DeletedAt"/> is non-null).
++    /// </summary>
++    public IReadOnlyList<TaskItem> All(bool includeDeleted = false) =>
++        _tasks.Values
++            .Where(t => includeDeleted || t.DeletedAt is null)
++            .OrderBy(t => t.CreatedAt)
++            .ToList();
+ 
+-    public TaskItem? Get(Guid id) =>
+-        _tasks.TryGetValue(id, out var task) ? task : null;
++    /// <summary>
++    /// One task by id. A soft-deleted task reads as absent unless
++    /// <paramref name="includeDeleted"/> is set.
++    /// </summary>
++    public TaskItem? Get(Guid id, bool includeDeleted = false) =>
++        _tasks.TryGetValue(id, out var task) && (includeDeleted || task.DeletedAt is null)
++            ? task
++            : null;
+ 
+     public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+         AddAt(title, status, priority, DateTimeOffset.UtcNow);
+@@ -41,7 +53,26 @@ public class TaskStore
+         return updated;
+     }
+ 
+-    public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
++    /// <summary>
++    /// Soft-deletes a task: stamps <see cref="TaskItem.DeletedAt"/> and RETAINS the row.
++    /// Returns the soft-deleted task, or <c>null</c> when no active task carries that id
++    /// (unknown id, or a task that was already soft-deleted — see APPLY-DEC-001).
++    /// There is deliberately no hard-delete path: retention is what the change buys.
++    /// </summary>
++    public TaskItem? SoftDelete(Guid id, DateTimeOffset deletedAt)
++    {
++        while (_tasks.TryGetValue(id, out var existing))
++        {
++            if (existing.DeletedAt is not null)
++                return null;
++
++            var deleted = existing with { DeletedAt = deletedAt };
++            if (_tasks.TryUpdate(id, deleted, existing))
++                return deleted;
++        }
++
++        return null;
++    }
+ 
+     private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
+     {

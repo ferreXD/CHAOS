@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-filter-tasks-by-status-6c05c9",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T16:09:30Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "K1 classification (scan + adjudication, scanSeq 2) fired zero triggers: vector stops 1 · evidence.targeted 0 · evidence.breadth 0 · review 0 · verify 0 · openspec 0 · adr 0, confidence HIGH. The intent is the extension point the architecture already names (`GET /tasks` query filtering), stays at the endpoint/query boundary, and disclaims both non-goals it could have crossed (auth, persistence). The contract is fully testable against the existing integration-test harness. `[FACT · HIGH]`",
+  "commentary": "Documented deviation (measurement arm): no live human is available in this run. Every stop is still surfaced as a ledger decision entry and then resolved with an explicit maintainer-style rationale, tagged `resolved-in-arm (no live human; Stage-D mechanized run)`; answering the `approves-change` entry IS the approval. `[FACT · HIGH]`\n\nOpenSpec: **skipped, openspec dimension 0** — the classifier owed no OpenSpec artifacts (C-10: zero-trigger changes owe none), so `openspec/changes/filter-tasks-by-status/` was deliberately not created and the Contract above is the contract of record. This is the classified depth, not a degraded invocation. `[FACT · HIGH]`\n\nStage-D run with no preset flag: zero floors. `mode: light` records the level-0 base of the dimension ladder (design §8, the *(none)* / `--light` row), not a mode word driving rigor — the vector does that. `[INFERENCE · HIGH]`",
+  "facts": {
+    "title": "Filter GET /tasks by status",
+    "intent": [
+      "`GET /tasks` returns every task; add an optional `?status=<state>` filter over the `TaskState` names (`Open`, `InProgress`, `Done`), matched case-insensitively.",
+      "No `status` parameter keeps today's behaviour (all tasks); an unrecognised value returns HTTP 400 and no task list.",
+      "Query-shaping convenience only — no authentication, no persistence-model change; work stays in `src/TaskTracker.Api` and `tests/TaskTracker.Tests`."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "artifacts": [],
+      "invocationPath": null,
+      "confidenceImpact": "none — skipped, openspec dimension 0 (no trigger fired at K1; C-10). No CLI invocation was owed, so CLI presence/absence is irrelevant here."
+    },
+    "sourceManifest": [
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the filter is added to", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "role": "`TaskState` names the filter parses against (R-005)", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "`All()` ordering + the four seeded tasks (2 Open, 1 InProgress, 1 Done)", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline the change extends", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "posture: filtering is the named extension point and belongs at the endpoint/query boundary; OQ-002 defers invalid-filter-value behaviour to the change", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-003 green tests · R-004 domain→HTTP boundary · R-005 `TaskState` naming · R-006 protected files", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "One endpoint handler plus its tests; in-memory store untouched; no auth, persistence, dependency or deployment surface. `[INFERENCE · HIGH]`",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "Case-insensitive parsing could silently accept a numeric enum value (`?status=0`) that is not a `TaskState` name.",
+          "likelihood": "Medium",
+          "impact": "Low",
+          "mitigation": "Parse against the declared `TaskState` names only and reject anything else with 400; covered by C-003."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Filtered assertions could be polluted by tasks other tests POST into the shared singleton store.",
+          "likelihood": "Medium",
+          "impact": "Low",
+          "mitigation": "Assert the filter's invariant (every returned task carries the requested status, and the known seeded task is present) rather than absolute counts."
+        }
+      ]
+    }
+  }
+}

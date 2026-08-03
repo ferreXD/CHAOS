@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-task-count-8b90fa",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T15:50:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired zero triggers (scan + adjudication, scanSeq 2); vector stops 1 / evidence.targeted 0 / evidence.breadth 0 / review 0 / verify 0 / openspec 0 / adr 0, classifier confidence HIGH."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The route-delta that `GET /tasks/count` introduces is expected to fire M3 at the first K3 diff scan; the K1 adjudication deliberately did not pre-empt it (pinned prompt rule 12)."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope and the contract are complete and testable against the existing green baseline; nothing in the K1 inputs is ambiguous or crosses recorded posture, so the frame is ready for the approval stop.",
+  "commentary": "Documented deviation for this measurement run: no live human is available. Every decision is recorded AND resolved in-arm with an explicit maintainer-style rationale, with the entry's status line set to RESOLVED-IN-ARM and tagged \"resolved-in-arm (no live human; Stage-D mechanized run)\". Answering the approves-change decision IS the approval.",
+  "facts": {
+    "title": "Active-task count endpoint",
+    "intent": [
+      "Add a lightweight aggregate endpoint that reports how many tasks exist.",
+      "This is a read-only convenience for the dashboard; it introduces no authentication and no persistence-model change.",
+      "Contract: GET /tasks/count -> 200 { \"count\": <int> }, always equal to the item count of GET /tasks; +1 on POST /tasks (201), -1 on DELETE /tasks/{id} (204); GET / and existing /tasks CRUD unchanged."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the K1 classification fired no trigger, so under Stage-C C-10 (zero-base, trigger-gated) no OpenSpec artifact is owed and none was authored; the contract of record is change.md §Contract. This is the classified outcome, not a CLI failure and not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation; `openspec status` is not consulted because there is no change folder to measure."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files, pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "knowledge/confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007 executable constraints", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, non-goals, posture (classifier postureFile)", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the new route joins", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the store whose item count the endpoint reports", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "Additive read-only route on an in-memory store; no auth, no persistence-model change, no existing behaviour touched.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "`/tasks/count` could be swallowed by the existing `/tasks/{id:guid}` route.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing route carries a `:guid` constraint, so `count` cannot match it; covered by a test that asserts 200 + JSON body on GET /tasks/count."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Reading the count off the store could drift from `GET /tasks` if a second enumeration path were introduced.",
+          "likelihood": "Low",
+          "impact": "Low",
+          "mitigation": "The endpoint derives the count from the same `TaskStore.All()` enumeration `GET /tasks` uses; C-002 is asserted by test."
+        }
+      ]
+    },
+    "framingTraceability": [
+      { "capability": "task-count (no OpenSpec artifact owed at depth 0)", "statements": ["C-001", "C-002", "C-003", "C-004", "C-005"], "tasks": "1 work unit: add the route in Endpoints/TaskEndpoints.cs + 3 integration tests in tests/TaskTracker.Tests." }
+    ]
+  }
+}

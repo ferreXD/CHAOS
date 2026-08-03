@@ -1,0 +1,131 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..167130d 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -13,6 +13,9 @@ namespace TaskTracker.Api.Endpoints;
+ /// </remarks>
+ public static class TaskEndpoints
+ {
++    /// <summary>Maximum accepted length of a task title, in characters (inclusive).</summary>
++    private const int MaxTitleLength = 200;
++
+     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
+     {
+         var group = app.MapGroup("/tasks");
+@@ -30,6 +33,9 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
++            if (request.Title.Length > MaxTitleLength)
++                return Results.BadRequest(new { error = $"Title must be {MaxTitleLength} characters or fewer." });
++
+             var task = store.Add(request.Title, request.Status, request.Priority);
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+@@ -40,6 +46,9 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
++            if (request.Title.Length > MaxTitleLength)
++                return Results.BadRequest(new { error = $"Title must be {MaxTitleLength} characters or fewer." });
++
+             return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+                 ? Results.Ok(updated)
+                 : Results.NotFound();
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..e1592ef 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,92 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing()
++    {
++        var client = _factory.CreateClient();
++        var tooLong = new string('x', MaxTitleLength + 1);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = tooLong, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(tasks!, t => t.Title == tooLong);
++    }
++
++    [Fact]
++    public async Task Post_with_title_at_exactly_the_maximum_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var atLimit = new string('a', MaxTitleLength);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = atLimit, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(atLimit, created!.Title);
++    }
++
++    [Fact]
++    public async Task Put_with_title_longer_than_the_maximum_is_rejected_and_leaves_the_task_unchanged()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Keep me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}",
++            new { title = new string('y', MaxTitleLength + 1), status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Keep me", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++        Assert.Equal("Low", fetched.Priority);
++    }
++
++    [Fact]
++    public async Task Put_with_title_at_exactly_the_maximum_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Before", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var atLimit = new string('b', MaxTitleLength);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = atLimit, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(atLimit, fetched!.Title);
++    }
++
++    [Fact]
++    public async Task Put_with_blank_title_is_rejected()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Still here", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = "   ", status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Still here", fetched!.Title);
++    }
++
++    /// <summary>The API's accepted title bound, mirrored here so the tests state the contract.</summary>
++    private const int MaxTitleLength = 200;
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

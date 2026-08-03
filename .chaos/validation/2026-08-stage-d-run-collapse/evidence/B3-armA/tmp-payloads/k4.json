@@ -1,0 +1,15 @@
+{
+  "checkpoint": "K4",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Task titles are currently unbounded. Add an upper bound on title length as input validation. This is a request-validation convenience: no authentication, no persistence-model change. A task title may be at most 200 characters; POST /tasks and PUT /tasks/{id} reject a longer title with HTTP 400 and do not create or modify the task; exactly 200 characters is accepted (POST 201, PUT 200); the existing blank/whitespace title 400 behaviour is preserved.",
+  "scope": "scope: src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+  "postureFiles": [
+    ".chaos/architecture.md"
+  ],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/enforce-title-max-length/decision-events.md",
+  "numstatFile": ".tmp/scan1.numstat",
+  "patchFile": ".tmp/scan1.patch",
+  "selfReview": "clean"
+}
