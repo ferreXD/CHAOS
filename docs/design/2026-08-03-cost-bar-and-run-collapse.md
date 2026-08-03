@@ -348,6 +348,25 @@ D attacked the phase march (a label, not a cost center). E attacks the 48%.
 raise-only adjudication with mandatory citations, same stops, same audit. E moves *who performs
 mechanical steps*, never *what is decided*.
 
+### 5d. E is one of four approved levers — see the handoff
+
+Protocol mechanization is **not** the only lever, and on the measured evidence not the largest.
+The creator approved **four** levers on 2026-08-03, to be built together and priced in one run:
+
+| | Lever | Attacks | Measured target |
+|---|---|---|---|
+| **L1** | **Model tiering** — cheap tier for mechanical steps, strong model for adjudication / implementation / discordance | **price** | ~50–60% of the work is mechanical; **reduces cost without reducing tokens**, so it is invisible to every metric this program has used |
+| **L2** | **Amortize the fixed corpus** — prompt-cache it, then compile a hash-keyed governance digest | **input** | **93.4%** of read volume is identical every change (~147.6k chars/change); the only lever whose saving grows as (N−1)/N |
+| **L3** | **Protocol mechanization** (§5c above) | **reasoning** | classification machinery = 48.3% of deliberation |
+| **L4** | **Derive records** instead of authoring them — emit facts, agent keeps judgement prose | **output** | records = 49% of authoring bytes / ~29.6% of visible output |
+
+**L5 (incremental scan cadence) is deferred.** Execution brief, standing rules and traps:
+[`2026-08-03-performance-levers-handoff.md`](2026-08-03-performance-levers-handoff.md).
+
+**Open metric question carried by that handoff:** every number here is *output tokens*, and L1/L2
+are largely invisible to that metric. The bar should probably be re-based on **blended cost +
+wall time** — a creator decision, not an assumption, and not to be changed silently.
+
 ## 6. What Stage D does NOT settle
 
 - **Governance value.** Every arm in this program self-answers its own decisions. The mechanism the
