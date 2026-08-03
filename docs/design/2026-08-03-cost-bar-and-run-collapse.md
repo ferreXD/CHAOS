@@ -110,6 +110,13 @@ OpenSpec completeness misreport already drove one arm to rewrite a completed pas
 
 ### 4.1 What Stage D builds
 
+> **BUILT 2026-08-03** — corpus seed SC-23 first (`6bfb41e`, absorption pre-registered before
+> the code), then continuous-mode classifier + the obligation audit (`bf92510`: repeatable K3,
+> `adjudicationDue`/`newSurfacePaths`/`scanSeq`, absorption, `audit.py`; 28+8 unit tests,
+> corpus 9/9 both modes over 29 seeds), then the loop itself
+> (`.claude/skills/chaos-run/SKILL.md`, `b03a93d`) with the `chaos:verify` role note. The
+> measurement (§4.2) has NOT run.
+
 - **One `chaos:run`** replacing the mandatory `propose → review → apply → verify` march.
 - **The continuous classification rule — resolved (creator, 2026-08-03).** K1–K4 were never
   phases; they were **evidence births**: intent exists (K1), answered decisions exist (K2), the

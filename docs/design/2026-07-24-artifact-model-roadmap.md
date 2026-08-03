@@ -124,6 +124,9 @@ because §3 of D's design shows they are affordable.
 zero-trigger **≤2.0×**, single-surface materiality **≤3.0×**, multi-surface/breaking **≤4.0×**
 (provisional; never measured) — against the within-session plain arm on output tokens, same model.
 
+**Build status:** shipped 2026-08-03 (`6bfb41e` SC-23 seed → `bf92510` continuous classifier +
+obligation audit → `b03a93d` `chaos-run` skill). The 12-arm measurement has not run.
+
 ## Sequencing summary
 
 ```
