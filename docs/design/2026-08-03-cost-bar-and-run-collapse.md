@@ -369,6 +369,24 @@ wall time** — a creator decision, not an assumption, and not to be changed sil
 
 ### 5e. Per-lever design register
 
+**L1 — model tiering** (design of record:
+[`2026-08-03-l1-model-tiering.md`](2026-08-03-l1-model-tiering.md), decided 2026-08-03,
+before any L1 code):
+
+| Id | Decision | Call | Why |
+|---|---|---|---|
+| **L1-D1** | Tiering architecture | **Strong loop, cheap subagents** (creator) | The only mechanism Claude Code has (model varies per subagent); same boundary as existing delegation, one tier down. Cheap-orchestrator inversion shelved unless savings disappoint |
+| **L1-D2** | The mechanical tier | **Haiku 4.5** (`model: haiku`) (creator) | Largest price gap; validator containment is what the design pays for. Also pins "weakest supported model" in the robustness policy to a concrete model |
+| **L1-D3** | Tier-map baseline | **Post-L3/L4 composed loop; deterministic-first ladder** (creator) | Tool > cheap > strong — L3/L4 absorb most of the handoff's candidate list; tiering them would price a shape that stops existing this batch |
+| **L1-D4** | The tier map | Cheap: TRG transcription · render repair loop · mechanical audit repair · harness telemetry. Strong-reserved: adjudication, implementation + S3, judgement prose, ledger answers, OpenSpec, self-review, verify | Judgement and governance never leave the strong model; only validator-gated mechanics descend |
+| **L1-D5** | Executor contract | Generic mechanical-executor agent: one named step, explicit inputs, named validator, structured return; **never decides** | The C# specialist boundary, one tier down |
+| **L1-D6** | Failure handling | 2 attempts cheap → orchestrator finishes strong inline; never a stop; persistent escalation = todo to make the step a tool | A validator failure is data, not a defect |
+| **L1-D7** | Overhead guard | Delegate only validator-gated, self-contained steps; a delegation that inflates total tokens is a map defect | Handoff overhead must not eat the price win; +5% total-token ceiling registered |
+| **L1-D8** | Measurement | Tier-split + blended-cost diagnostics beside every ratio; output-token bar unchanged; predictions frozen (cheap share 10–25%, blended −10–25%, tokens ≤ +5%) | Same posture as L2-D4; the §7 bar re-base stays an open explicit decision |
+| **L1-D9** | Ceiling rule (amendment) | **Session model = tier ceiling; no subagent ever exceeds it** (creator) | The user's model choice is a cost-consent boundary; strict on a low ceiling proceeds + records a confidenceLimiter, never blocks, never upgrades |
+| **L1-D10** | Relative tiers (amendment) | ceiling/mid/floor resolve against the session model, collapsing downward (haiku-only must still work) (creator) | Floor pinned in the executor; specialist inherits ceiling; mid passed at spawn |
+| **L1-D11** | Implementation tier (amendment) | **Ceiling by default; mid allowed while the easy gate is open** (zero firings + no preset floor); gate closes for the run on any firing/X2/two failed test cycles; grader steps never below ceiling (creator) | Extends savings to band-A implementation — the largest cost block on the worst band; oracle regression on mid-tier arms closes L1-D11 rather than tuning it |
+
 **L2 — corpus amortization** (design of record:
 [`2026-08-03-l2-corpus-amortization.md`](2026-08-03-l2-corpus-amortization.md), decided
 2026-08-03, before any L2 code):
