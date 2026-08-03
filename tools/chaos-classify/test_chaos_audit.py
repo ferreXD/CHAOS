@@ -67,6 +67,17 @@ class TestAudit(unittest.TestCase):
         self.assertIn("RUN-DEC-002", [c for c in r["assertions"]
                                       if c["id"] == "stops.all-answered"][0]["detail"])
 
+    def test_terminal_statuses_pass_stop_gate(self):
+        """RESOLVED-IN-ARM and RECORDED entries are resolved, not unanswered (Stage-D
+        results section 5 — all six arms tripped the ANSWERED-only match at close)."""
+        ledger = ("## RUN-DEC-001 — approve as framed?\n\n- status: RESOLVED-IN-ARM\n"
+                  "- approves-change: true\n\n"
+                  "## RUN-DEC-002 — spill accepted\n\n- status: RECORDED (2026-08-03)\n")
+        self._prime(make_state(), ledger=ledger)
+        r = A.run_audit(self.state_path, self.ledger_path, self.change)
+        self.assertTrue(r["pass"], r)
+        self.assertIn("stops.all-answered", self._ids(r, ok=True))
+
     def test_placed_stop_without_entry_blocks(self):
         """A stop the classifier placed but the loop never surfaced is a compliance hole."""
         self._prime(make_state(stops_placed=["K1:floor-approval", "K3:trigger-fold"]))

@@ -100,8 +100,14 @@ python tools/chaos-classify/audit.py --state <classification-state.json> \
 
 - **MR-7 / 410 tombstone:** a route re-registered to return `Results.StatusCode(410)` counts as
   a removed route (breaking) — 410 Gone is HTTP's removal signal.
-- **MR-3 stop satisfaction:** an ANSWERED ledger decision covers a same-surface materiality stop;
+- **MR-3 stop satisfaction:** a resolved ledger decision covers a same-surface materiality stop;
   decision surfaces are inferred from a documented keyword map (`SURFACE_KEYWORDS`).
+- **Ledger `answered` predicate:** a decision entry is pending only while `status: OPEN`.
+  ANSWERED, RESOLVED-IN-ARM and RECORDED all read as resolved — the full decision-entry enum
+  (`change-template.md` §2, `tools/chaos-render/schema/decision-entry.schema.json`). Fixed
+  2026-08-03: the ANSWERED-only match made in-arm-resolved stops read as unanswered in the
+  audit stop gate, MR-3 satisfaction, and pending-stop absorption (Stage-D results §5; all six
+  arms hit it and invented dual-status workarounds).
 - **MR-4 LOW confidence:** nothing fired AND vague scope (no file entries; all entries depth ≤ 2;
   a trailing slash marks a directory regardless of dots in its name).
 - **Numstat totals trailer:** `# totals: files=N loc=M` is authoritative for abbreviated fixture
@@ -125,3 +131,7 @@ python tools/chaos-classify/audit.py --state <classification-state.json> \
   `newSurfacePaths` / `scanSeq`, pending-stop absorption (seed SC-23, corpus 28 → 29), and the
   obligation audit gate (`audit.py`). 28 classify + 8 audit unit tests; scan-only corpus 9/9
   PASS over all 29 seeds. Consumed by `.claude/skills/chaos-run/SKILL.md`.
+- 2026-08-03 (later) — **Stage-D §5 defect fixed**: `parse_ledger` `answered` widened to the
+  full terminal-status enum (RESOLVED-IN-ARM, RECORDED). 0/29 corpus seeds use either status
+  (verified before the change) — no expectation moved; scan-only corpus 9/9 PASS unchanged.
+  30 classify + 9 audit unit tests.

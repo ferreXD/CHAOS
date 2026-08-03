@@ -91,6 +91,16 @@ class TestPrimitives(unittest.TestCase):
         # No `folds:` declared => each entry is exactly one material question.
         self.assertEqual([e["folds"] for e in entries], [1, 1])
 
+    def test_terminal_statuses_read_as_answered(self):
+        """Only OPEN is pending; RESOLVED-IN-ARM and RECORDED are terminal (Stage-D results
+        section 5: the ANSWERED-only match made every in-arm-resolved stop read as unanswered
+        in the audit stop gate, MR-3 satisfaction, and pending-stop absorption)."""
+        text = ("## RUN-DEC-001 — a\n\n- status: RESOLVED-IN-ARM\n\n"
+                "## RUN-DEC-002 — b\n\n- status: RECORDED (2026-08-03) · run: RUN-X\n\n"
+                "## RUN-DEC-003 — c\n\n- status: OPEN\n")
+        entries = C.parse_ledger(text)
+        self.assertEqual([e["answered"] for e in entries], [True, True, False])
+
     def test_folded_questions_counted(self):
         """M4 counts material QUESTIONS, not headings (step-5 core-tier finding)."""
         one_folded = ("# Decision Events — x\n\n## PROP-DEC-001 — approve as framed?\n\n"
@@ -207,6 +217,19 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(trigs2, {"M2"})  # in scope now; M2 satisfied by answered decision
         self.assertEqual(out2["K3"]["newStops"], 0)
         self.assertIn("stopSatisfiedBy", out2["K3"])
+
+    def test_resolved_in_arm_satisfies_stop(self):
+        """MR-3 satisfaction accepts RESOLVED-IN-ARM same-surface coverage, same as ANSWERED."""
+        sections = {"frontmatter": "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n",
+                    "intent": "x", "scope": "scope: src/App/",
+                    "numstat": "9\t1\tsrc/App/Domain/Store.cs\n", "patch": "",
+                    "ledger": ("## RUN-DEC-001 — delete semantics\n\n- status: RESOLVED-IN-ARM\n"
+                               "- why-material: task model store shape / data-retention\n")}
+        out, _ = self._run(sections, ["K1", "K3"])
+        self.assertEqual([f["trigger"] for f in out["K3"]["newlyFired"]], ["M2"])
+        self.assertEqual(out["K3"]["newStops"], 0)
+        self.assertEqual(out["K3"].get("stopSatisfiedBy"), ["RUN-DEC-001"])
+        self.assertNotIn("stopAbsorbedBy", out["K3"])
 
     def test_c13_correlated_vs_distinct(self):
         adj_same = {"K1": {"raises": [{"trigger": "M1", "surface": "data-store", "cite": "c"}]}}

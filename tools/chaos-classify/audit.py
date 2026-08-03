@@ -52,7 +52,7 @@ def run_audit(state_path, ledger_path, change_dir, openspec_dir=None, adr_dirs=N
         unanswered = [e["id"] for e in ledger if not e["answered"]]
         check("stops.all-answered", not unanswered,
               "unanswered: %s" % ", ".join(unanswered) if unanswered
-              else "%d entr%s, all ANSWERED" % (len(ledger), "y" if len(ledger) == 1 else "ies"))
+              else "%d entr%s, all resolved" % (len(ledger), "y" if len(ledger) == 1 else "ies"))
         placed = state.get("stopsPlaced", [])
         check("stops.placed-have-entries", len(ledger) >= len(placed),
               "%d ledger entr%s vs %d placed stop(s)%s"

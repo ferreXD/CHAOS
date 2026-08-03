@@ -173,7 +173,13 @@ def parse_ledger(text):
             "id": "%s-DEC-%s" % (m.group(1), m.group(2)),
             "question": m.group(3).strip(),
             "folds": max(1, int(fm.group(1))) if fm else 1,
-            "answered": bool(re.search(r"-\s*status:\s*ANSWERED", block)),
+            # Pending means status: OPEN. ANSWERED, RESOLVED-IN-ARM and RECORDED are all
+            # terminal per the decision-entry enum (change-template section 2,
+            # tools/chaos-render/schema/decision-entry.schema.json). Matching ANSWERED alone
+            # made in-arm-resolved stops read as unanswered in the audit stop gate, MR-3
+            # satisfaction, and pending-stop absorption (Stage-D results section 5, all 6 arms).
+            "answered": bool(re.search(r"-\s*status:\s*(?:ANSWERED|RESOLVED-IN-ARM|RECORDED)",
+                                       block)),
             "text": block.lower(),
         })
     return entries
