@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-filter-tasks-by-status-b87de4",
+  "recordedAt": "2026-08-03T08:36:13Z",
+  "groups": ["Filter behaviour", "Compatibility", "Governance"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Filter behaviour",
+      "text": "GET /tasks?status=<state> returns only tasks whose Status equals <state>, for each TaskState name (Open, InProgress, Done).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "Filter behaviour",
+      "text": "The status match is case-insensitive: GET /tasks?status=open returns the same set as GET /tasks?status=Open.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-003",
+      "group": "Filter behaviour",
+      "text": "GET /tasks with an unrecognised status value (e.g. ?status=Bogus) returns HTTP 400 Bad Request and no task list.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-004",
+      "group": "Compatibility",
+      "text": "GET /tasks with no status parameter returns all tasks, unchanged from the pre-change behaviour.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-005",
+      "group": "Compatibility",
+      "text": "The other CRUD endpoints (GET /tasks/{id}, POST, PUT, DELETE) are behaviourally unchanged; the 5 baseline integration tests still pass and dotnet build / dotnet test stay green (R-003).",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-006",
+      "group": "Governance",
+      "text": "Filtering is implemented at the endpoint/query boundary: Domain/** is unchanged, no domain code references ASP.NET types (R-004), and the TaskState naming is preserved (R-005).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

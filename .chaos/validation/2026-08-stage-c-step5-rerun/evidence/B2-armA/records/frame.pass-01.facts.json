@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-filter-tasks-by-status-b87de4",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T08:36:13Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Inline self-review is clean: scope sane (endpoint + its tests only), rules mapped (R-003/R-004/R-005/R-006), contract testable (6 statements, all HTTP-observable), decisions complete (one approval entry, PROP-DEC-001, answering the architecture's OQ-002). Classifier K1 verdict: zero triggers fired, dimensions all at base (stops 1 = the C-11 floor), confidence HIGH.",
+  "commentary": "Stage-C classification at K1 (two-call pattern, scan then adjudication) fired NO trigger; the adjudication pass declined every materiality raise (M1: the architecture names `GET /tasks` query filtering as the known extension point and asks that new filtering behaviour live at the endpoint/query boundary - this change moves with that posture, not against it; M2: no auth/secrets/persistence material; M3: an added query parameter on an existing route is the K3 route-delta scan's job per pinned rule 12). Dimension vector therefore stays at the universal base, so `openspec` is 0 and OpenSpec is skipped entirely - the contract lives in change.md §Contract. DOCUMENTED DEVIATION: no live human was available in this measurement run; PROP-DEC-001 was recorded and resolved with a maintainer-style rationale and tagged `resolved-in-arm (no live human; Stage-C step-5 mechanized run)`. Answering that entry IS the approval.",
+  "facts": {
+    "title": "Filter GET /tasks by status",
+    "intent": [
+      "GET /tasks returns every task; add an optional ?status= filter over the three TaskState names.",
+      "Case-insensitive match; no parameter keeps returning all tasks; an unrecognised value returns 400.",
+      "Query-shaping only - no auth, no persistence-model change, filter lives at the endpoint boundary."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "invocationPath": null,
+      "artifacts": [],
+      "confidenceImpact": "None. `openspec` dimension = 0 at K1 (zero triggers fired; classifier confidence HIGH), so under Stage-C design §9 / C-10 this change owes no OpenSpec artifacts and the gate is a deliberate SKIP - not a degradation. No openspec/changes/filter-tasks-by-status/ folder was created."
+    }
+  }
+}

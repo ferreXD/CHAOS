@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-03-chaos-apply-task-count-b41d07",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T08:26:48Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement is implemented and covered; build is clean and all 9 tests pass (5 baseline + 4 new). Checkpoint K2 fired nothing; checkpoint K3 fired M3 contract-surface (additive route delta, breaking: false) with newStops 0, so no new stop was owed - the K1 floor approval PROP-DEC-001 remains the only stop. The late-fired obligations (design 5.3 law 5) were discharged before DELIVER completed.",
+  "commentary": "M3 obligations discharged in-phase: openspec 1 -> the delta spec openspec/changes/task-count/specs/task-api/spec.md was authored and `openspec validate task-count --strict` reports \"Change 'task-count' is valid\"; adr 1 (decision-log entry in the ledger, not a blocking ADR) -> satisfied by the pre-existing PROP-DEC-001, whose answer records the decision to add the public GET /tasks/count contract surface at the endpoint boundary; verify 1 -> the contract-dependency safeguard checks are deferred to chaos:verify, which is the enforcement end. Note for measurement: no second ledger entry was created for adr 1 because one would have crossed the M4 decision-density threshold (>= 2 entries) and fired a trigger with no material question behind it; PROP-DEC-001 is the genuine decision-log entry for this contract surface. Mechanized-stop deviation from FRAME still stands: no live human; PROP-DEC-001 is RESOLVED-IN-ARM.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+      "passed": 9,
+      "total": 9,
+      "note": "5 baseline + 4 new (count parity, POST +1, DELETE -1, root health unchanged)."
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_count_matches_the_number_of_tasks_returned_by_get_tasks"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_count_matches_the_number_of_tasks_returned_by_get_tasks"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Post_increases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Delete_decreases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Root_health_endpoint_is_unchanged",
+          "the 5 unmodified baseline tests (Get_tasks_returns_the_seeded_tasks, Post_creates_a_task_and_get_by_id_returns_it, Put_updates_an_existing_task, Delete_removes_a_task, Post_with_blank_title_is_rejected) all pass"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "refs": ["src/TaskTracker.Api/Endpoints/TaskEndpoints.cs:23-26 (group.MapGet(\"/count\", (TaskStore store) => Results.Ok(new { count = store.All().Count })))"],
+        "whyNotTest": "A structural invariant of the diff, not an observable HTTP behaviour: the assertion is that Domain/TaskStore.cs is untouched and that Domain/** references no ASP.NET type. Evidenced by the numstat (src diff is confined to Endpoints/TaskEndpoints.cs, 5 added lines, 0 deleted) rather than by a runtime test."
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test: 9/9 passed, 0 failed; the 5 baseline tests are unmodified." },
+      { "id": "R-004", "status": "pass", "evidence": "The diff touches only Endpoints/TaskEndpoints.cs on the src side; Domain/** is unchanged and references no Microsoft.AspNetCore.* type." },
+      { "id": "R-005", "status": "pass", "evidence": "No enum or naming change; TaskState is neither renamed nor shadowed by TaskStatus anywhere in the diff." },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are untouched (git status shows no modification to either)." }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" },
+      { "path": "openspec/changes/task-count/specs/task-api/spec.md", "change": "added" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "K3 fired no M5. The src/tests numstat covers exactly the two paths named in the approved scope; the delta spec under openspec/changes/task-count/ is an obligation created by the K3 M3 firing (design 5.3 law 5), not unapproved drift."
+    }
+  }
+}

@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
 # Archive each governed arm's classification evidence out of its worktree and into the kit,
 # BEFORE worktree cleanup destroys it (brief section 8.3).
-# Usage: archive-evidence.sh <scratch-dir>
+# Usage: archive-evidence.sh <scratch-dir> [core|extended]
 set -uo pipefail
-SCRATCH="${1:?usage: archive-evidence.sh <scratch-dir>}"
+SCRATCH="${1:?usage: archive-evidence.sh <scratch-dir> [core|extended]}"
+TIER="${2:-core}"
 KIT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$KIT/evidence"
 
-declare -A CHANGE=(
-  [P1-armA]=require-api-key-auth
-  [P2-armA]=soft-delete-tasks
-  [P3-armA]=optimistic-concurrency-updates
-  [V1-armA]=secure-api-underspecified
-)
+declare -A CHANGE
+case "$TIER" in
+  core) CHANGE=(
+    [P1-armA]=require-api-key-auth
+    [P2-armA]=soft-delete-tasks
+    [P3-armA]=optimistic-concurrency-updates
+    [V1-armA]=secure-api-underspecified
+  ) ;;
+  extended) CHANGE=(
+    [B1-armA]=task-count
+    [B2-armA]=filter-tasks-by-status
+    [B3-armA]=enforce-title-max-length
+  ) ;;
+  *) echo "unknown tier '$TIER' (want core|extended)" >&2; exit 2 ;;
+esac
 
 for arm in "${!CHANGE[@]}"; do
   id="${CHANGE[$arm]}"

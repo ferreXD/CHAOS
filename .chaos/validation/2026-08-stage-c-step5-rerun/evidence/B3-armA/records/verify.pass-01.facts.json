@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-03-chaos-verify-enforce-title-max-length-79982d",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T09:20:00Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "READY. Build and tests were re-run independently at this phase (0/0, 10/10) and every one of the six contract statements is covered. The Stage-C obligation audit is clean against the final dimension vector stops 1 / evidence.targeted 0 / evidence.breadth 1 / review 1 / verify 1 / openspec 0 / adr 0: adr 0 means no ADR gates READY; openspec 0 means no delta or full set is owed, and none was created; verify 1 was discharged by the X1-attributed safeguard checks (fan-out, boundary, naming, protected files, scope drift); review 1 was discharged as a focused review folded into this verify pass rather than a standalone one, exactly as level 1 prescribes; the single placed stop (the C-11 floor approval) was surfaced as PROP-DEC-001 and answered, and no checkpoint reported newStops > 0; dimensions were monotone across K1 -> K2 -> K3 -> K4 with no decrease and therefore no human override was needed. The two open findings are advisory observations about the toolkit and the instrumentation, not defects in the delivered change.",
+  "commentary": "K4 ran scan-only per C-12 and fired nothing: the recorded self-review verdict was clean, so no selfReview field was set and X2 did not fire. The ledger holds 1 decision entry plus 1 TRG-001 trigger event; the §2 scan rule correctly excluded the TRG heading, so M4 stayed below its threshold of 2 at K2, K3 and K4 — the trigger event did not inflate the decision count. X1-attributed safeguard checks (surface: none / blast-radius, so the safeguards are breadth-shaped): the two new symbols MaxTitleLength and ValidateTitle are referenced only inside Endpoints/TaskEndpoints.cs and the test file — zero fan-out beyond the touched module; Domain/** contains no Microsoft.AspNetCore reference; the only TaskStatus occurrence in the tree is the pre-existing explanatory comment in Domain/TaskItem.cs saying why the name is avoided; AGENTS.md and root README.md are absent from the diff.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "re-run independently at verify"
+      },
+      "tests": {
+        "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+        "passed": 10,
+        "total": 10,
+        "note": "re-run independently at verify; 5 baseline + 5 new"
+      },
+      "contract": {
+        "ticked": 6,
+        "total": 6,
+        "note": "5 test-evidenced, 1 (C-006) code-evidenced with whyNotTest recorded in the deliver record"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "K3 M5 scan clean: every diff path lies inside the approved scope."
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "independent dotnet test re-run: 10/10, the 5 baseline tests unmodified and green"
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "grep over src/TaskTracker.Api/Domain finds no Microsoft.AspNetCore reference; the bound is enforced in Endpoints/TaskEndpoints.cs only"
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "the only TaskStatus occurrence is the pre-existing doc comment in Domain/TaskItem.cs explaining why the name is avoided; TaskState naming intact"
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "git diff --name-only over AGENTS.md and README.md is empty — no protected-file edit"
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The renderer prints an OpenSpec folder pointer in change.md even though the classified openspec dimension is 0 and no such folder exists",
+        "detail": "change.md's Contract section ends with `OpenSpec: openspec/changes/enforce-title-max-length/ - decisions: see decision-events.md`, emitted unconditionally by tools/chaos-render/render.py. Under Stage-C C-10 this change owes no OpenSpec artifacts (no TRG-* materiality event fired; TRG-001 is mechanical and by the family law cannot move openspec), and none were created, so the pointer names a path that does not exist. The rendered artifact is renderer-owned and was deliberately NOT hand-edited. Toolkit defect in the Stage-B renderer's Stage-C awareness, not a defect in this change.",
+        "recommendation": "Make the pointer line conditional on the frame record's openspec status (suppress it, or state 'OpenSpec: none owed (openspec dimension 0)', when status is NOT_INVOKED with isComplete true). Candidate for the step-6 trim."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "X1 fired only because the change's own governance artifacts were counted in the K3 numstat",
+        "detail": "TRG-001 cites 8 files / 360 LOC against the review1 threshold of 8 files. Six of those eight files are this change's own governance artifacts (change.md, lifecycle.md, decision-events.md, classification-state.json, records/contract.json, records/frame.pass-01.facts.json); over src/ + tests/ alone the diff is 2 files / 108 LOC, which is under both X1 thresholds. The numstat scope followed the chaos-apply skill's literal instruction (git diff against the pre-apply base, which in a normal repo includes the change folder), and it is reported here rather than tidied away. The consequence is a self-referential blast-radius signal: being governed at all can push a two-file change over the X1 file threshold, which is the over-detection direction the design's section 7 warns about.",
+        "recommendation": "Decide explicitly, with this data, whether the K3 numstat should exclude .chaos/changes/<id>/** (the change's own bookkeeping) before X1 thresholds are applied. Step-6 trim input; the alternative reading is to raise the review1 file threshold."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "ASSUMPTION",
+        "confidence": "HIGH",
+        "title": "\"200 characters\" is implemented as UTF-16 code units",
+        "detail": "The bound is string.Length, so a title of 200 astral-plane characters (surrogate pairs) is rejected as 400 code units. The assumption was named in the approval entry rather than taken silently, no posture line guards text-element semantics, and the pinned contract states a flat character budget for an input-validation convenience.",
+        "recommendation": "No action. Revisit only if a requirement for grapheme-accurate limits appears.",
+        "confirms": "PROP-DEC-001"
+      }
+    ]
+  }
+}

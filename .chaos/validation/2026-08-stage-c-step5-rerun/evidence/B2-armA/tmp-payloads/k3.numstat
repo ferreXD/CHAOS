@@ -1,0 +1,2 @@
+43	5	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+65	0	tests/TaskTracker.Tests/TaskEndpointsTests.cs

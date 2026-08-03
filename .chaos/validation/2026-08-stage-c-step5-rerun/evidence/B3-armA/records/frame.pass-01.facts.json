@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T08:48:52Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "HIGH",
+      "text": "\"200 characters\" is read as .NET string.Length (UTF-16 code units), not text elements/runes. Recorded in PROP-DEC-001; no posture line guards text-element semantics."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "Stage-C checkpoint K1 fired zero triggers (scan + adjudication); dimension vector stops 1 / evidence.targeted 0 / evidence.breadth 0 / review 0 / verify 0 / openspec 0 / adr 0, classification confidence HIGH."
+    }
+  ],
+  "verdictRationale": "Inline self-review is clean on all four checks: scope sane (2 subject files, both named by the brief; no Domain, no manifests, no new routes), rules mapped (R-003 baseline green, R-004 endpoint-boundary enforcement, R-005 TaskState untouched, R-006 no protected-file edits), contract testable (all six statements are integration-testable over HTTP except C-006 which is a code-evidenced boundary claim), decisions complete (one entry, the C-11 floor approval, carrying both folded questions). Zero triggers fired at K1, so the collapsed base stands: no OpenSpec artifacts, no ADR, no extra evidence reads.",
+  "commentary": "Documented deviation: no live human is available in this measurement run. PROP-DEC-001 was recorded as a real decision entry and resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; Stage-C step-5 mechanized run). Answering the approves-change entry IS the approval. OpenSpec was skipped deliberately at the classified depth (openspec dimension 0, C-10 zero-base): the contract lives in this change's Contract section and in records/contract.json, and no openspec/changes/enforce-title-max-length/ folder was created.",
+  "facts": {
+    "title": "Enforce a maximum title length of 200 characters",
+    "intent": [
+      "Task titles are unbounded today; add a 200-character upper bound as request-level input validation.",
+      "POST /tasks and PUT /tasks/{id} reject longer titles with HTTP 400 and change nothing; exactly 200 is accepted.",
+      "Request-validation convenience only: no auth, no persistence-model change, no new endpoints or dependencies."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "invocationPath": null,
+      "artifacts": [],
+      "statusCheck": {
+        "isComplete": true,
+        "note": "skipped, openspec dimension 0 — K1 (scan + adjudication) fired zero triggers, so under design C-10/C-13 the change owes no OpenSpec artifacts; the contract lives in change.md Contract and records/contract.json. Nothing is owed and nothing is missing."
+      },
+      "confidenceImpact": "none — this is the zero-trigger base, not a degraded mode; the openspec CLI was never needed and its absence is not a trigger."
+    }
+  }
+}

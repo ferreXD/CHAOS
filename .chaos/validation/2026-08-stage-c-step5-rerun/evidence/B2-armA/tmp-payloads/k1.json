@@ -1,0 +1,9 @@
+{
+  "checkpoint": "K1",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Add an optional status query-parameter filter to GET /tasks so callers can request only tasks in one TaskState (Open, InProgress, Done). Matching is case-insensitive; GET /tasks with no status parameter keeps returning all tasks unchanged; an unrecognised status value returns HTTP 400 Bad Request with no task list. Query-shaping convenience only: no authentication, no persistence-model change, no change to the store's public shape - the filter lives at the endpoint/query boundary.",
+  "scope": "scope: src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs, .chaos/changes/filter-tasks-by-status",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json"
+}

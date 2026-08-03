@@ -1,0 +1,10 @@
+146	0	.chaos/changes/task-count/change.md
+34	0	.chaos/changes/task-count/classification-state.json
+26	0	.chaos/changes/task-count/decision-events.md
+29	0	.chaos/changes/task-count/lifecycle.md
+43	0	.chaos/changes/task-count/records/contract.json
+91	0	.chaos/changes/task-count/records/deliver.pass-01.facts.json
+46	0	.chaos/changes/task-count/records/frame.pass-01.facts.json
+21	0	openspec/changes/task-count/specs/task-api/spec.md
+5	0	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+62	0	tests/TaskTracker.Tests/TaskEndpointsTests.cs

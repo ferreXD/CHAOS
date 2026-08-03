@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-task-count-6fc29c",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T08:22:26Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "The contract is pinned by the request, the scoped evidence scan covered every file the intent names plus the rules index and the architecture posture, and checkpoint K1 fired zero triggers at HIGH confidence — so the change stays at the collapsed universal base with only the C-11 floor approval stop.",
+  "commentary": "Documented deviation: no live human was available in this measurement run. PROP-DEC-001 was recorded as a real decision entry and then resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged \"resolved-in-arm (no live human; Stage-C step-5 mechanized run)\". Answering that entry IS the approval. Inline self-review: scope sane (2 code files) - rules mapped (R-003, R-004, R-005, R-006) - contract testable (6 statements, all integration-testable) - decisions complete (1 entry, approval carried, none OPEN) - decision cross-refs resolve. Verdict PASS.",
+  "facts": {
+    "title": "Active-task count endpoint",
+    "intent": [
+      "Add GET /tasks/count returning HTTP 200 and { \"count\": <integer> } - the total number of tasks in the store.",
+      "Read-only convenience aggregate for the dashboard; count tracks GET /tasks exactly across POST (201) and DELETE (204).",
+      "No authentication, no persistence-model change; GET / and existing /tasks CRUD behaviour are unchanged."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "artifacts": [],
+      "confidenceImpact": "No confidence impact. Skipped by classification, not by tooling absence: checkpoint K1 fired zero triggers (confidence HIGH), so the openspec dimension is 0 and design section 9 / decision C-10 says a zero-trigger change owes no OpenSpec artifacts. The contract lives in change.md section Contract, backed by records/contract.json."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "governance entrypoint, protected-file policy", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "knowledge/confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007 executable constraints", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, API strategy, non-goals", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the /tasks route group the new endpoint joins", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the read API (All()) the count is derived from", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "host composition, store registration, root health endpoint", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline to preserve and extend", "knowledge": "FACT" }
+    ],
+    "framingTraceability": [
+      { "capability": "task-count-endpoint", "statements": ["C-001", "C-002", "C-003", "C-004"], "tasks": "Map GET /tasks/count in TaskEndpoints; add integration tests for shape, parity with GET /tasks, and the create/delete deltas." },
+      { "capability": "regression-safety", "statements": ["C-005", "C-006"], "tasks": "Keep the 5 baseline tests untouched and green; keep the aggregate at the endpoint boundary so TaskStore's public shape is unchanged." }
+    ]
+  }
+}

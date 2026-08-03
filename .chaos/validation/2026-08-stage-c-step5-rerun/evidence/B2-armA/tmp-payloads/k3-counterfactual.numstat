@@ -1,0 +1,8 @@
+80	0	.chaos/changes/filter-tasks-by-status/change.md
+24	0	.chaos/changes/filter-tasks-by-status/classification-state.json
+18	0	.chaos/changes/filter-tasks-by-status/decision-events.md
+29	0	.chaos/changes/filter-tasks-by-status/lifecycle.md
+47	0	.chaos/changes/filter-tasks-by-status/records/contract.json
+33	0	.chaos/changes/filter-tasks-by-status/records/frame.pass-01.facts.json
+43	5	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+65	0	tests/TaskTracker.Tests/TaskEndpointsTests.cs

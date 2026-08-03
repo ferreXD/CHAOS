@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20",
+  "recordedAt": "2026-08-03T08:48:52Z",
+  "groups": ["rejection", "acceptance", "regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "rejection",
+      "text": "POST /tasks with a title longer than 200 characters is rejected with HTTP 400 Bad Request and creates no task.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "rejection",
+      "text": "PUT /tasks/{id} with a title longer than 200 characters is rejected with HTTP 400 Bad Request and leaves the stored task unmodified.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-003",
+      "group": "acceptance",
+      "text": "A title of exactly 200 characters is accepted: POST /tasks returns 201 Created and PUT /tasks/{id} returns 200 OK.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-004",
+      "group": "regression",
+      "text": "The existing blank/whitespace-only title rejection (HTTP 400) is preserved for both POST /tasks and PUT /tasks/{id}.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-005",
+      "group": "regression",
+      "text": "Normal-length titles and the other CRUD endpoints (GET list, GET by id, DELETE) behave exactly as before: the 5 baseline tests stay green and dotnet build reports 0 errors.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-006",
+      "group": "regression",
+      "text": "The 200-character bound is enforced at the HTTP endpoint boundary; Domain/** is unchanged, references no ASP.NET types (R-004), and the TaskState naming is untouched (R-005).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

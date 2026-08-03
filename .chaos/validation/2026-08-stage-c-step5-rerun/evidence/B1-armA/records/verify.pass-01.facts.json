@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:verify",
+  "run": "RUN-2026-08-03-chaos-verify-task-count-b1bc32",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T08:28:31Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "READY. Build and tests were re-run independently and are clean (0/0, 9/9). All 6 contract statements are covered. The obligation audit against the final dimension vector passes on every line: adr 1 (a ledger decision-log entry, not a blocking ADR) is satisfied by PROP-DEC-001, so no ADR gates READY; openspec 1 is satisfied by the delta spec, which `openspec validate task-count --strict` accepts; verify 1 ran the contract-dependency safeguard checks attributed to TRG-001 (route inventory, additive-only delta, response-shape conformance, domain-boundary purity) and all passed; newStops was 0 at K1/K2/K3/K4 and the single placed stop (K1 floor approval) was surfaced and answered as PROP-DEC-001; no dimension decreased across the four checkpoints, so no human override was needed or recorded.",
+  "commentary": "Checkpoint K4 was scan-only (C-12) with no selfReview: fail, because the FRAME inline self-review verdict was clean; X2 did not fire and no independent review pass is owed (review stayed at 0). The mechanized-stop deviation recorded at FRAME still stands: no live human was available, so PROP-DEC-001 is RESOLVED-IN-ARM with a documented maintainer-style rationale.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "Re-run independently at verify."
+      },
+      "tests": {
+        "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+        "passed": 9,
+        "total": 9,
+        "note": "Re-run independently at verify; 5 baseline tests unmodified and green."
+      },
+      "contract": {
+        "ticked": 6,
+        "total": 6,
+        "note": "C-001..C-005 by test; C-006 by code with whyNotTest recorded in the deliver record."
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": true,
+        "note": "openspec dimension 1 (delta only, owed by the K3 M3 firing): openspec/changes/task-count/specs/task-api/spec.md. `openspec validate task-count --strict` -> \"Change 'task-count' is valid\". No proposal/tasks/design are owed at depth 1, so no tasks counter applies."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired. The governed-subject diff is confined to the two approved paths; the delta spec is a trigger-created obligation, not drift."
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "Independent dotnet test re-run: 9 passed, 0 failed." },
+        { "id": "R-004", "status": "pass", "evidence": "grep for Microsoft.AspNetCore in src/TaskTracker.Api/Domain/ returns nothing; Domain/ is untouched by the diff." },
+        { "id": "R-005", "status": "pass", "evidence": "The only TaskStatus occurrences in src/ are the pre-existing doc comment in Domain/TaskItem.cs explaining why TaskState is used; the diff introduces none." },
+        { "id": "R-006", "status": "pass", "evidence": "git status shows AGENTS.md and root README.md unmodified." }
+      ]
+    },
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "M3 contract-surface fired at K3; every obligation it created is discharged",
+        "detail": "TRG-001 (M3, by scan, surface contract-dependency, cite \"route delta: added ['GET /count'] (additive)\", breaking false) raised verify 0->1, openspec 0->1, adr 0->1. openspec 1: delta spec present and strict-valid. adr 1: satisfied by PROP-DEC-001, the ledger entry that records the decision to add this public contract surface at the endpoint boundary - adr 1 is a decision-log entry, not the blocking ADR of adr 2, so it does not gate READY. verify 1: the contract-dependency safeguard checks ran (route inventory shows 6 /tasks routes + the root health route, one added and none removed or renamed; the response body matches { \"count\": <int> } exactly; the delta spec matches the implemented behaviour).",
+        "recommendation": "None. Recorded for the audit trail."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Instrumentation note: the K3 numstat was scoped to the governed subject (src/ + tests/), and scoping it wider would have fired X1 on governance prose alone",
+        "detail": "The K3 numstat/patch were produced with `git add -N src tests` then `git diff --numstat -- src tests` / `git diff -- src tests`, giving 2 files and 67 changed lines. Two reasons: (a) this worktree carries a large pre-existing toolkit overlay under .claude/, .chaos/ and tools/, so an unscoped `git diff` would have swamped the change's own diff with unrelated modifications; (b) X1 blast-radius is a property of the governed subject. Measured counterfactual (numstat only - the classifier was NOT re-run and the classification state was NOT mutated): including .chaos/changes/task-count/** and openspec/changes/task-count/** gives 10 files / 503 lines, which crosses this repo's X1 review1 thresholds (files 8, loc 400). Including the governance trail in the blast-radius input would therefore have fired X1 - raising review, verify and evidence.breadth - purely because the change produced governance artifacts, a self-referential ratchet worth ruling out explicitly in the classifier contract.",
+        "recommendation": "State in tools/chaos-classify/README.md that the K3 numstat is scoped to the governed subject and excludes the change's own governance and spec artifacts."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The renderer emits an unconditional OpenSpec pointer under change.md #Contract even when the frame record says NOT_INVOKED",
+        "detail": "At FRAME the openspec dimension was 0, the frame record recorded status NOT_INVOKED, and the renderer still wrote the line \"OpenSpec: `openspec/changes/task-count/` - decisions: see `decision-events.md`\" pointing at a folder that did not yet exist; the adjacent \"OpenSpec Invocation: NOT_INVOKED\" subsection was the only correction. The pointer became accurate later, when the K3 M3 firing created the delta spec, so the change is not affected - but on a change that stays at openspec 0 the rendered artifact would dangle. Not hand-corrected: change.md is renderer-owned and the fix belongs in tools/chaos-render/render.py.",
+        "recommendation": "Make that pointer conditional on the frame record's openspec.status (or on the folder existing) in tools/chaos-render/render.py."
+      }
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+ "worktree": "C:/cs5/wt/B3-armA",
+ "changeId": "enforce-title-max-length",
+ "base": "d27600f",
+ "unit": "bytes on disk (file-size proxy; bytes/4 ~ tokens, as the Stage-A/B rows used)",
+ "openspec": {
+  "bytes": 0,
+  "files": []
+ },
+ "adr": {
+  "bytes": 0,
+  "files": []
+ },
+ "records": {
+  "bytes": 18354,
+  "files": [
+   [
+    "contract.json",
+    1821
+   ],
+   [
+    "deliver.pass-01.facts.json",
+    5994
+   ],
+   [
+    "frame.pass-01.facts.json",
+    3289
+   ],
+   [
+    "verify.pass-01.facts.json",
+    7250
+   ]
+  ]
+ },
+ "rendered": {
+  "bytes": 15041,
+  "files": {
+   "change.md": 13898,
+   "lifecycle.md": 1143
+  },
+  "note": "renderer output \u2014 costs the agent nothing to author"
+ },
+ "ledger": {
+  "total": 3095,
+  "decisions": 2428,
+  "trgEvents": 448,
+  "header": 219,
+  "decisionCount": 1,
+  "trgCount": 1
+ },
+ "classifier": {
+  "stateBytes": 488,
+  "authoredScratchBytes": 4040,
+  "generatedScratchBytes": 22544,
+  "scratchFiles": [
+   [
+    "K1-raises.json",
+    17
+   ],
+   [
+    "K1.json",
+    926
+   ],
+   [
+    "K2.json",
+    1004
+   ],
+   [
+    "K3-raises.json",
+    17
+   ],
+   [
+    "K3.json",
+    1072
+   ],
+   [
+    "K3.numstat",
+    496
+   ],
+   [
+    "K3.patch",
+    22048
+   ],
+   [
+    "K4.json",
+    1004
+   ]
+  ],
+  "note": "authoredScratch = the payload/raises JSON the agent wrote; generatedScratch = git-diff redirections (free). The adjudication REASONING is not on disk and is NOT captured by this byte proxy \u2014 see the per-arm classifierInvocations/adjudicationPasses counts."
+ },
+ "strayArtifacts": [],
+ "implementation": {
+  "addedBytes": 4380,
+  "files": 2,
+  "addedLines": 104,
+  "deletedLines": 4
+ },
+ "totals": {
+  "authoredGovernanceBytes": 25977,
+  "authoredPlusImplementationBytes": 30357,
+  "renderedBytes": 15041
+ }
+}

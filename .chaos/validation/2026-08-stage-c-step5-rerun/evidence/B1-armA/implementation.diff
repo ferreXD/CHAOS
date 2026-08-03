@@ -1,0 +1,89 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..3dd4a59 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -20,6 +20,11 @@ public static class TaskEndpoints
+         // GET /tasks — returns every task in the store. No filtering (yet).
+         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+ 
++        // GET /tasks/count — read-only aggregate: how many tasks the store currently holds.
++        // Computed at the endpoint boundary from the existing store read API, so TaskStore's
++        // public shape stays unchanged (architecture boundary posture; PROP-DEC-001).
++        group.MapGet("/count", (TaskStore store) => Results.Ok(new { count = store.All().Count }));
++
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+             store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..390c9c6 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,68 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Get_tasks_count_matches_the_number_of_tasks_returned_by_get_tasks()
++    {
++        var client = _factory.CreateClient();
++
++        var response = await client.GetAsync("/tasks/count");
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++
++        var count = await response.Content.ReadFromJsonAsync<CountDto>();
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.NotNull(count);
++        Assert.NotNull(tasks);
++        Assert.Equal(tasks!.Count, count!.Count);
++    }
++
++    [Fact]
++    public async Task Post_increases_the_count_by_exactly_one()
++    {
++        var client = _factory.CreateClient();
++
++        var before = (await client.GetFromJsonAsync<CountDto>("/tasks/count"))!.Count;
++
++        var created = await client.PostAsJsonAsync(
++            "/tasks", new { title = "Counted", status = "Open", priority = "Low" });
++        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
++
++        var after = (await client.GetFromJsonAsync<CountDto>("/tasks/count"))!.Count;
++        Assert.Equal(before + 1, after);
++    }
++
++    [Fact]
++    public async Task Delete_decreases_the_count_by_exactly_one()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Counted then removed", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var before = (await client.GetFromJsonAsync<CountDto>("/tasks/count"))!.Count;
++
++        var delete = await client.DeleteAsync($"/tasks/{created!.Id}");
++        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
++
++        var after = (await client.GetFromJsonAsync<CountDto>("/tasks/count"))!.Count;
++        Assert.Equal(before - 1, after);
++    }
++
++    [Fact]
++    public async Task Root_health_endpoint_is_unchanged()
++    {
++        var client = _factory.CreateClient();
++
++        var response = await client.GetAsync("/");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        Assert.Contains("task-tracker", await response.Content.ReadAsStringAsync());
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++
++    /// <summary>Mirror of the GET /tasks/count response shape.</summary>
++    private record CountDto(int Count);
+ }

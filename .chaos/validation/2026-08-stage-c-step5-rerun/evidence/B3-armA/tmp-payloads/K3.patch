@@ -1,0 +1,433 @@
+diff --git a/.chaos/changes/enforce-title-max-length/change.md b/.chaos/changes/enforce-title-max-length/change.md
+new file mode 100644
+index 0000000..5903ea4
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/change.md
+@@ -0,0 +1,87 @@
++---
++chaosMetadata:
++  schemaVersion: 1
++  artifactType: change
++  artifactScope: change
++  changeId: enforce-title-max-length
++  mode: light
++  escalatedFrom: null
++  sourceCommand: "chaos:propose"
++  lastWrittenAt: "2026-08-03T08:48:52Z"
++  lastWrittenBy: Pablo Ferreira
++  lastAuditedAt: "2026-08-03T08:48:52Z"
++  lastAuditedBy: Pablo Ferreira
++  repositoryContext:
++    provider: github
++    branch: unknown
++    reviewRequest: null
++    contextSource: git
++    confidence: MEDIUM
++  metadata:
++    identitySource: git-config
++    timestampSource: records
++    confidence: MEDIUM
++    bodyHash: "sha256:b533ce9c3aeaeacc0172a683bef51f053d04401422812ceedc5e3be3a7952225"
++  lifecycle:
++    status: Framed
++    phases:
++      frame:   { status: complete, at: "2026-08-03T08:48:52Z", run: "RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20", mode: light, verdict: READY_FOR_REVIEW }
++      review:  { status: pending, at: null, run: null, mode: null, verdict: null }
++      deliver: { status: pending, at: null, run: null, mode: null, verdict: null }
++      verify:  { status: pending, at: null, run: null, mode: null, verdict: null }
++      sync:    { status: pending, at: null, run: null, mode: null, verdict: null }
++      archive: { status: pending, at: null, run: null, mode: null, verdict: null }
++    current:
++      tests: null
++      contract: null
++      decisions: 1
++      traceability: null
++      syncState: null
++      archiveReadiness: null
++---
++
++# enforce-title-max-length — Enforce a maximum title length of 200 characters
++
++## Intent
++
++Task titles are unbounded today; add a 200-character upper bound as request-level input validation.
++POST /tasks and PUT /tasks/{id} reject longer titles with HTTP 400 and change nothing; exactly 200 is accepted.
++Request-validation convenience only: no auth, no persistence-model change, no new endpoints or dependencies.
++
++## Contract
++
++**rejection**
++
++- [ ] POST /tasks with a title longer than 200 characters is rejected with HTTP 400 Bad Request and creates no task.
++- [ ] PUT /tasks/{id} with a title longer than 200 characters is rejected with HTTP 400 Bad Request and leaves the stored task unmodified.
++
++**acceptance**
++
++- [ ] A title of exactly 200 characters is accepted: POST /tasks returns 201 Created and PUT /tasks/{id} returns 200 OK.
++
++**regression**
++
++- [ ] The existing blank/whitespace-only title rejection (HTTP 400) is preserved for both POST /tasks and PUT /tasks/{id}.
++- [ ] Normal-length titles and the other CRUD endpoints (GET list, GET by id, DELETE) behave exactly as before: the 5 baseline tests stay green and dotnet build reports 0 errors.
++- [ ] The 200-character bound is enforced at the HTTP endpoint boundary; Domain/** is unchanged, references no ASP.NET types (R-004), and the TaskState naming is untouched (R-005).
++
++OpenSpec: `openspec/changes/enforce-title-max-length/` · decisions: see `decision-events.md`
++
++### OpenSpec Invocation
++
++Status: **NOT_INVOKED**
++
++`openspec status --change enforce-title-max-length --json` reports `isComplete: true`; skipped, openspec dimension 0 — K1 (scan + adjudication) fired zero triggers, so under design C-10/C-13 the change owes no OpenSpec artifacts; the contract lives in change.md Contract and records/contract.json. Nothing is owed and nothing is missing..
++
++Confidence impact: none — this is the zero-trigger base, not a degraded mode; the openspec CLI was never needed and its absence is not a trigger.
++
++## Framing record
++
++verdict: READY_FOR_REVIEW · confidence: HIGH · evidence_coverage: COMPLETE · assumption_load: LOW
++
++Documented deviation: no live human is available in this measurement run. PROP-DEC-001 was recorded as a real decision entry and resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; Stage-C step-5 mechanized run). Answering the approves-change entry IS the approval. OpenSpec was skipped deliberately at the classified depth (openspec dimension 0, C-10 zero-base): the contract lives in this change's Contract section and in records/contract.json, and no openspec/changes/enforce-title-max-length/ folder was created.
++
++Confidence limiters:
++
++- `[ASSUMPTION · HIGH]` "200 characters" is read as .NET string.Length (UTF-16 code units), not text elements/runes. Recorded in PROP-DEC-001; no posture line guards text-element semantics.
++- `[FACT · HIGH]` Stage-C checkpoint K1 fired zero triggers (scan + adjudication); dimension vector stops 1 / evidence.targeted 0 / evidence.breadth 0 / review 0 / verify 0 / openspec 0 / adr 0, classification confidence HIGH.
+diff --git a/.chaos/changes/enforce-title-max-length/classification-state.json b/.chaos/changes/enforce-title-max-length/classification-state.json
+new file mode 100644
+index 0000000..0238cb6
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/classification-state.json
+@@ -0,0 +1,22 @@
++{
++ "fired": [],
++ "stopsPlaced": [
++  "K1:floor-approval"
++ ],
++ "floors": {
++  "stops": 1,
++  "evidence.targeted": 0,
++  "evidence.breadth": 0,
++  "review": 0,
++  "verify": 0,
++  "openspec": 0,
++  "adr": 0
++ },
++ "mode": null,
++ "x1Level": 0,
++ "checkpointsRun": [
++  "K1",
++  "K1",
++  "K2"
++ ]
++}
+\ No newline at end of file
+diff --git a/.chaos/changes/enforce-title-max-length/decision-events.md b/.chaos/changes/enforce-title-max-length/decision-events.md
+new file mode 100644
+index 0000000..18159c2
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/decision-events.md
+@@ -0,0 +1,18 @@
++# Decision events — enforce-title-max-length
++
++Append-only ledger (`chaos-shared/reference/change-template.md` §2). `TRG-*` headings are
++trigger events, not decision entries, and are excluded from the §2 scan rule.
++
++## PROP-DEC-001 — Approve the framed contract: cap task titles at 200 characters, enforced at the HTTP endpoint boundary?
++
++- status: RESOLVED-IN-ARM (resolved-in-arm — no live human; Stage-C step-5 mechanized run, 2026-08-03)
++- approves-change: true
++- options: A Approve as framed — reject >200-character titles with 400 at POST /tasks and PUT /tasks/{id}, measuring length with .NET `string.Length` (UTF-16 code units), enforced in `Endpoints/TaskEndpoints.cs` next to the existing blank-title guard · B Approve but enforce in the domain/store instead of the endpoint · C Reject / reframe — treat the bound as a persistence-model concern
++- recommendation: A — the architecture posture puts validation at the endpoint boundary and keeps the domain free of HTTP concerns (R-004), and the task pins the contract exactly
++- answer: A
++- why-material: it is the change's single approval gate (C-11 floor stop) and it fixes two things a maintainer owns — the enforcement layer (endpoint vs domain, i.e. the R-004 boundary) and the interpretation of "200 characters" as UTF-16 code units rather than text elements
++- knowledge: FACT · confidence: HIGH
++- sync-action: NONE
++- classification: K1 fired zero triggers (dimension vector all 0, stops 1 = the C-11 floor); no materiality questions were folded in beyond the two named above
++- folded-questions: (1) enforcement layer — endpoint boundary, per `.chaos/architecture.md` boundary posture and R-004; (2) length semantics — `string.Length` (UTF-16 code units) is the .NET-idiomatic reading of "at most 200 characters"; recorded as an ASSUMPTION with the contract pinned by the task brief
++- rationale: Maintainer-style resolution recorded in this measurement arm because no live human is available. Option A is the only reading consistent with (a) the pinned task contract — 400 above 200, 201/200 at exactly 200, blank-title 400 preserved — and (b) the recorded posture that new behaviour belongs at the endpoint/query boundary, not in the store's public shape. B would push HTTP-shaped validation into `Domain/**` and violate R-004; C contradicts the brief's explicit "no persistence-model change". Length semantics: `string.Length` is chosen over grapheme/rune counting because the brief gives a flat character budget for an input-validation convenience and no posture line guards text-element semantics; the assumption is recorded rather than silently taken.
+diff --git a/.chaos/changes/enforce-title-max-length/lifecycle.md b/.chaos/changes/enforce-title-max-length/lifecycle.md
+new file mode 100644
+index 0000000..c3bf7cc
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/lifecycle.md
+@@ -0,0 +1,29 @@
++---
++chaosMetadata:
++  schemaVersion: 1
++  artifactType: lifecycle
++  artifactScope: change
++  changeId: enforce-title-max-length
++  sourceCommand: "chaos:propose"
++  lastWrittenAt: "2026-08-03T08:48:52Z"
++  lastWrittenBy: Pablo Ferreira
++  lastAuditedAt: "2026-08-03T08:48:52Z"
++  lastAuditedBy: Pablo Ferreira
++  metadata:
++    identitySource: git-config
++    timestampSource: records
++    confidence: MEDIUM
++    bodyHash: "sha256:5ee09b52def8aeedb431434b5c6fe07f734095350093bfbc055d265227004f87"
++---
++
++# Lifecycle — enforce-title-max-length
++
++Status: Framed
++Mode: light · Escalated-from: none
++OpenSpec: openspec/changes/enforce-title-max-length · Runs: frame RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20
++Current: tests — · contract — · decisions 1
++
++| Phase | Status | Mode | Verdict | Date | Pointer |
++|---|---|---|---|---|---|
++| Frame | Complete | light | READY_FOR_REVIEW | 2026-08-03 | change.md#contract |
++| Deliver | Pending | — | — | — | change.md#delivery |
+diff --git a/.chaos/changes/enforce-title-max-length/records/contract.json b/.chaos/changes/enforce-title-max-length/records/contract.json
+new file mode 100644
+index 0000000..6a27754
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/records/contract.json
+@@ -0,0 +1,47 @@
++{
++  "schemaVersion": 1,
++  "recordType": "contract",
++  "changeId": "enforce-title-max-length",
++  "sourceCommand": "chaos:propose",
++  "run": "RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20",
++  "recordedAt": "2026-08-03T08:48:52Z",
++  "groups": ["rejection", "acceptance", "regression"],
++  "statements": [
++    {
++      "id": "C-001",
++      "group": "rejection",
++      "text": "POST /tasks with a title longer than 200 characters is rejected with HTTP 400 Bad Request and creates no task.",
++      "source": ["PROP-DEC-001"]
++    },
++    {
++      "id": "C-002",
++      "group": "rejection",
++      "text": "PUT /tasks/{id} with a title longer than 200 characters is rejected with HTTP 400 Bad Request and leaves the stored task unmodified.",
++      "source": ["PROP-DEC-001"]
++    },
++    {
++      "id": "C-003",
++      "group": "acceptance",
++      "text": "A title of exactly 200 characters is accepted: POST /tasks returns 201 Created and PUT /tasks/{id} returns 200 OK.",
++      "source": ["PROP-DEC-001"]
++    },
++    {
++      "id": "C-004",
++      "group": "regression",
++      "text": "The existing blank/whitespace-only title rejection (HTTP 400) is preserved for both POST /tasks and PUT /tasks/{id}.",
++      "source": ["PROP-DEC-001"]
++    },
++    {
++      "id": "C-005",
++      "group": "regression",
++      "text": "Normal-length titles and the other CRUD endpoints (GET list, GET by id, DELETE) behave exactly as before: the 5 baseline tests stay green and dotnet build reports 0 errors.",
++      "source": ["PROP-DEC-001"]
++    },
++    {
++      "id": "C-006",
++      "group": "regression",
++      "text": "The 200-character bound is enforced at the HTTP endpoint boundary; Domain/** is unchanged, references no ASP.NET types (R-004), and the TaskState naming is untouched (R-005).",
++      "source": ["PROP-DEC-001"]
++    }
++  ]
++}
+diff --git a/.chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json b/.chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json
+new file mode 100644
+index 0000000..9e37c8b
+--- /dev/null
++++ b/.chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json
+@@ -0,0 +1,49 @@
++{
++  "schemaVersion": 1,
++  "recordType": "phase-facts",
++  "phase": "frame",
++  "pass": 1,
++  "changeId": "enforce-title-max-length",
++  "sourceCommand": "chaos:propose",
++  "run": "RUN-2026-08-03-chaos-propose-enforce-title-max-length-7ecd20",
++  "mode": "light",
++  "verdict": "READY_FOR_REVIEW",
++  "at": "2026-08-03T08:48:52Z",
++  "assessment": {
++    "confidence": "HIGH",
++    "evidenceCoverage": "COMPLETE",
++    "assumptionLoad": "LOW"
++  },
++  "confidenceLimiters": [
++    {
++      "kind": "ASSUMPTION",
++      "confidence": "HIGH",
++      "text": "\"200 characters\" is read as .NET string.Length (UTF-16 code units), not text elements/runes. Recorded in PROP-DEC-001; no posture line guards text-element semantics."
++    },
++    {
++      "kind": "FACT",
++      "confidence": "HIGH",
++      "text": "Stage-C checkpoint K1 fired zero triggers (scan + adjudication); dimension vector stops 1 / evidence.targeted 0 / evidence.breadth 0 / review 0 / verify 0 / openspec 0 / adr 0, classification confidence HIGH."
++    }
++  ],
++  "verdictRationale": "Inline self-review is clean on all four checks: scope sane (2 subject files, both named by the brief; no Domain, no manifests, no new routes), rules mapped (R-003 baseline green, R-004 endpoint-boundary enforcement, R-005 TaskState untouched, R-006 no protected-file edits), contract testable (all six statements are integration-testable over HTTP except C-006 which is a code-evidenced boundary claim), decisions complete (one entry, the C-11 floor approval, carrying both folded questions). Zero triggers fired at K1, so the collapsed base stands: no OpenSpec artifacts, no ADR, no extra evidence reads.",
++  "commentary": "Documented deviation: no live human is available in this measurement run. PROP-DEC-001 was recorded as a real decision entry and resolved with an explicit maintainer-style rationale, status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; Stage-C step-5 mechanized run). Answering the approves-change entry IS the approval. OpenSpec was skipped deliberately at the classified depth (openspec dimension 0, C-10 zero-base): the contract lives in this change's Contract section and in records/contract.json, and no openspec/changes/enforce-title-max-length/ folder was created.",
++  "facts": {
++    "title": "Enforce a maximum title length of 200 characters",
++    "intent": [
++      "Task titles are unbounded today; add a 200-character upper bound as request-level input validation.",
++      "POST /tasks and PUT /tasks/{id} reject longer titles with HTTP 400 and change nothing; exactly 200 is accepted.",
++      "Request-validation convenience only: no auth, no persistence-model change, no new endpoints or dependencies."
++    ],
++    "openspec": {
++      "status": "NOT_INVOKED",
++      "invocationPath": null,
++      "artifacts": [],
++      "statusCheck": {
++        "isComplete": true,
++        "note": "skipped, openspec dimension 0 — K1 (scan + adjudication) fired zero triggers, so under design C-10/C-13 the change owes no OpenSpec artifacts; the contract lives in change.md Contract and records/contract.json. Nothing is owed and nothing is missing."
++      },
++      "confidenceImpact": "none — this is the zero-trigger base, not a degraded mode; the openspec CLI was never needed and its absence is not a trigger."
++    }
++  }
++}
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..c42bfda 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -13,6 +13,19 @@ namespace TaskTracker.Api.Endpoints;
+ /// </remarks>
+ public static class TaskEndpoints
+ {
++    /// <summary>
++    /// Upper bound on a task title, measured with <see cref="string.Length"/> (UTF-16 code units).
++    /// Request-level input validation only — the domain/store shape is unaffected (R-004).
++    /// </summary>
++    private const int MaxTitleLength = 200;
++
++    private static IResult? ValidateTitle(string? title) =>
++        string.IsNullOrWhiteSpace(title)
++            ? Results.BadRequest(new { error = "Title is required." })
++            : title!.Length > MaxTitleLength
++                ? Results.BadRequest(new { error = $"Title must be at most {MaxTitleLength} characters." })
++                : null;
++
+     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
+     {
+         var group = app.MapGroup("/tasks");
+@@ -27,8 +40,8 @@ public static class TaskEndpoints
+         // POST /tasks
+         group.MapPost("/", (CreateTaskRequest request, TaskStore store) =>
+         {
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             var task = store.Add(request.Title, request.Status, request.Priority);
+             return Results.Created($"/tasks/{task.Id}", task);
+@@ -37,8 +50,8 @@ public static class TaskEndpoints
+         // PUT /tasks/{id}
+         group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store) =>
+         {
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+                 ? Results.Ok(updated)
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..0a6a676 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,93 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing()
++    {
++        var client = _factory.CreateClient();
++        var tooLong = new string('x', MaxTitleLength + 1);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = tooLong, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(tasks!, t => t.Title == tooLong);
++    }
++
++    [Fact]
++    public async Task Post_with_title_of_exactly_the_maximum_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var atLimit = new string('y', MaxTitleLength);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = atLimit, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(atLimit, created!.Title);
++    }
++
++    [Fact]
++    public async Task Put_with_title_longer_than_the_maximum_is_rejected_and_leaves_the_task_unmodified()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Original title", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var tooLong = new string('z', MaxTitleLength + 1);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = tooLong, status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Original title", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++        Assert.Equal("Low", fetched.Priority);
++    }
++
++    [Fact]
++    public async Task Put_with_title_of_exactly_the_maximum_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Before", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var atLimit = new string('w', MaxTitleLength);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = atLimit, status = "Done", priority = "Medium" });
++
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(atLimit, fetched!.Title);
++    }
++
++    [Fact]
++    public async Task Put_with_blank_title_is_rejected()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Keep me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = "   ", status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Keep me", fetched!.Title);
++    }
++
++    /// <summary>Mirrors the API's <c>TaskEndpoints.MaxTitleLength</c> (the pinned contract bound).</summary>
++    private const int MaxTitleLength = 200;
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

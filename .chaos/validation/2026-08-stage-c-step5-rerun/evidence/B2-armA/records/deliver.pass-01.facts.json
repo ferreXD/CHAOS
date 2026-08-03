@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:apply",
+  "run": "RUN-2026-08-03-chaos-apply-filter-tasks-by-status-af9a5d",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T08:40:44Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are covered (five by integration test, one by structural code evidence); dotnet build is 0 warnings / 0 errors and dotnet test is 9/9 (5 baseline + 4 new). No scope drift, no deviations, no new stop.",
+  "commentary": "Stage-C checkpoints K2 (entry, scan-only per C-12) and K3 (DELIVER end, scan + adjudication) both fired NO trigger, so the dimension vector stayed at the universal base for the whole change: stops 1 / evidence.targeted 0 / evidence.breadth 0 / review 0 / verify 0 / openspec 0 / adr 0. K3's deterministic scan declined M3 because the route delta is empty - the change edits the existing `MapGet(\"/\")` handler rather than adding or removing a route registration (path-class-map note: M3 fires on route-marker DELTA, never on bare path-touch); the adjudication pass declined to raise it under pinned rules 9 and 12 (an added query parameter on an existing route is the scan's business, and nothing public was removed or renamed). newStops was 0 at every checkpoint, so the only human stop in this change is the C-11 floor approval (PROP-DEC-001), resolved in-arm because no live human was available in this measurement run. K3 numstat scope: src/ + tests/ only - see the verify-side note; including this change's own governance artifacts would have fired X1 on bookkeeping alone."
+  ,
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test tests/TaskTracker.Tests/TaskTracker.Tests.csproj",
+      "passed": 9,
+      "total": 9,
+      "note": "5 baseline tests unchanged and green + 4 new filter tests."
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_filtered_by_status_returns_only_that_status"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Status_filter_is_case_insensitive"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["TaskEndpointsTests.Get_tasks_with_an_unknown_status_is_rejected"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Get_tasks_without_a_status_still_returns_every_task",
+          "TaskEndpointsTests.Get_tasks_returns_the_seeded_tasks"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "TaskEndpointsTests.Post_creates_a_task_and_get_by_id_returns_it",
+          "TaskEndpointsTests.Put_updates_an_existing_task",
+          "TaskEndpointsTests.Delete_removes_a_task",
+          "TaskEndpointsTests.Post_with_blank_title_is_rejected"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "refs": ["src/TaskTracker.Api/Endpoints/TaskEndpoints.cs"],
+        "whyNotTest": "Boundary and naming compliance is a structural property of the diff, not an HTTP-observable behaviour: the diff touches only Endpoints/** and the test file, Domain/** is byte-identical, no domain type references Microsoft.AspNetCore.*, and the TaskState name is used unchanged."
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 9/9 green; the 5 baseline tests are unmodified and still pass."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "Filtering added at the endpoint/query boundary only; Domain/TaskItem.cs and Domain/TaskStore.cs are unchanged and reference no ASP.NET types."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "The enum stays TaskState; the new helper TryParseState reads TaskState names and never introduces TaskStatus."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md were read only; neither was edited."
+      }
+    ],
+    "files": [
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "change": "modified" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "change": "modified" }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "note": "Diff paths (2 files) are a subset of the K1-approved scope; the classifier's M5 detector agreed at K3."
+    }
+  }
+}

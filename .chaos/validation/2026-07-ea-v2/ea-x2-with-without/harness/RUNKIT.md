@@ -152,6 +152,56 @@ and not where the cost is. Two structural findings: M4 **cannot fire from K1-fol
 blast-radius scope is **undefined** — whether a change's own governance output counts toward X1
 flipped between arms, and every counterfactual fires X1.
 
+## Re-run — Stage-C extended tier, light-eligible band (2026-08-03, model claude-opus-5[1m])
+
+The companion row to the one above: same Stage-C lifecycle, **no preset flag**, run over the three
+**light-eligible** tasks (`task-count`, `filter-tasks-by-status`, `enforce-title-max-length`) —
+the band where C-10's zero-base OpenSpec pays maximally, because a zero-trigger change owes **no
+OpenSpec artifacts, no ADR and no verify phase**. Governed prompt **byte-identical to the core-tier
+workflow**; plain prompt **byte-identical to the Stage-A/Stage-B Cost-B rows**. Harness:
+`../../2026-08-stage-c-step5-rerun/harness/stage-c-extended-arms.workflow.js`; scorecard in that
+kit's `results.md` Part 2. Compare against the **Cost-B** rows, not the frozen-3 rows.
+
+| Pair | task | Stage-C time | plain time | time ratio | Stage-C out-tok | plain out-tok | tok ratio | oracle | triggers |
+|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| B1 | task-count | 620 s | 109 s | 5.69× | 39,021 | 5,767 | 6.77× | 5/5 clean | M3@K3 |
+| B2 | filter-by-status | 536 s | 115 s | 4.66× | 33,935 | 7,384 | 4.60× | 6/6 clean | **none** |
+| B3 | title-max-length | 646 s | 79 s | 8.18× | 43,478 | 6,270 | 6.93× | 5/5 clean | X1@K3 † |
+| **Σ** | | **1,802 s** | **303 s** | **5.95×** | **116,434** | **19,421** | **6.00×** | 16/16 both | |
+
+**Fourth cost hypothesis falsified — and this is the informative one. C costs MORE on the band it
+was designed to make cheap.** Against Stage-B Cost-B (2.93×/3.38×) and Stage-A Cost-B (3.47×/3.65×)
+this row is **5.95×/6.00×**; governed absolute is **+44.5% time / +35.9% tok** over Stage-B Cost-B —
+almost exactly the core tier's +44%/+35% over Stage-B light, so the regression is a property of the
+Stage-C lifecycle, not of the task band.
+
+**C-10 fired perfectly and it did not matter.** B2 and B3 authored **zero OpenSpec artifacts and
+zero ADRs**, and B2 ran **no verify phase at all** (`verify 0` ⇒ not owed, not run) — the first
+governed arms in this program to owe nothing beyond the collapsed base. OpenSpec fell to **1.6% of
+authored governance / 0.24% of governed output**. Yet B2 — zero triggers, every dimension at floor —
+still cost **4.60×**, with authored governance only **11.4%** of its output. **~88% of a
+zero-trigger governed arm's output is not artifacts at all**: it is reading the governance +
+classifier + schema surface, 6 classifier invocations, 2 adjudication passes, and the structured
+lifecycle. On this band the artifact model was never the dominant cost.
+
+**Fidelity 11/12 exact, 0 under-detection, 1 over-detection.** † B3 fired X1 because its K3 numstat
+included **its own governance bookkeeping** (8 files / 360 LOC, of which 6 files are the change's
+`change.md`/`lifecycle.md`/ledger/state/records); re-run with a code-only numstat (2 files / 108
+LOC) it fires **nothing** and lands exactly on the pre-registered vector. Scored as an
+over-detection against the frozen row anyway, cause attributed, **no corpus expectation edited**.
+All six governed arms across both tiers measured this counterfactual and **every one confirms
+governance is self-amplifying** — the artifacts a change produces trip the blast-radius trigger that
+then demands more governance. Second-order effect only visible here: X1 raised `verify` 0→1, which
+is the sole reason B3 ran a verify phase and reached K4 — **the numstat pathspec decides whether the
+last checkpoint executes**, and the design does not specify it.
+
+Attribution: records **65.8%** · classifier 22.3% · decisions 8.8% · OpenSpec 1.6% · TRG 1.4% ·
+ADR 0%. Records → rendered ratio **0.87** (core tier 0.79; Stage-B standard 0.78) — three
+independent measurements, same conclusion. Mechanically clean: 18 classifier invocations 0
+failures, 6 adjudications 0 raises, 8 renders 0 failures, 0 hand-written artifacts, 0 `ESC-*`
+leakage, oracle **16/16 both arms** unregressed. On the light band the governed ratio across four
+stages now reads **3.65× (A) → 3.38× (B) → 6.00× (C)**.
+
 ## Files
 
 | File | Role |

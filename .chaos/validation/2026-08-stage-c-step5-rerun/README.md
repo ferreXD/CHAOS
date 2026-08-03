@@ -218,6 +218,106 @@ stop-the-analysis finding, not a footnote.**
 | `results.md` | scorecard: cost, cost attribution, classification fidelity, findings |
 | `evidence/` | archived `classification-state.json`, `decision-events.md`, records, byte inventories per arm |
 
+---
+
+## 8b. EXTENDED TIER — the light-eligible band (added 2026-08-03, after the core row)
+
+The core tier measured C's **expensive end**: the frozen-3 are posture-crossing by construction,
+so every arm fired M1+M2 and owed a delta spec, an ADR and a verify phase. This tier measures
+C's **cheap end** — the band where C-10's saving is maximal, because a zero-trigger change owes
+**no OpenSpec artifacts at all**, no ADR and no verify phase. It is the direct test of the "start
+small" promise, and it is a **separate dated RUNKIT row** (brief §5).
+
+Tasks: the three light-eligible statements from
+[`ea-x2-stage-a-light/tasks/`](../2026-07-ea-v2/ea-x2-stage-a-light/tasks/) — `task-count`,
+`filter-tasks-by-status`, `enforce-title-max-length`. Held-out oracles:
+`ea-x2-stage-a-light/oracles/{Count,StatusFilter,TitleLength}OracleTests.cs` (5/6/5 = 16 facts).
+
+| Arm | Kind | Task | Staged? |
+|---|---|---|---|
+| `B1-armA` / `B1-armB` | governed (no preset flag) / plain | `task-count` | yes / **no** |
+| `B2-armA` / `B2-armB` | governed / plain | `filter-tasks-by-status` | yes / **no** |
+| `B3-armA` / `B3-armB` | governed / plain | `enforce-title-max-length` | yes / **no** |
+
+**Plain-arm prompt byte-identical to the Stage-A/Stage-B Cost-B runs** (the rows this tier is
+compared against), i.e. the `stage-b-arms.workflow.js` variant — not the frozen `ea-x2` variant
+the core tier used. Comparison rows: **Stage-A Cost-B 3.47× / 3.65×**, **Stage-B Cost-B
+2.93× / 3.38×** (both valve-live, both stayed light, oracle 16/16 both arms).
+
+### 8b.1 PRE-REGISTRATION — frozen 2026-08-03, before any extended-tier arm launched
+
+Sources: corpus rows **SC-04 light-count**, **SC-05 light-statusfilter**, **SC-06 light-titlelen**
+([corpus README §4](../2026-08-stage-c-classifier/README.md)). Same discipline as §3: **never
+edited to match results.** Vector order: `stops · evidence.targeted · evidence.breadth · review ·
+verify · openspec · adr`.
+
+#### B1 — `task-count` (corpus row SC-04) — the additive-M3 seed, NOT zero-trigger
+
+| Checkpoint | Expected newly-fired | Family · surface | Dims after | openspec | new stops |
+|---|---|---|---|---|---|
+| K1 | **none** — adjudication runs and must **DECLINE** | — | `1·0·0·0·0·0·0` | **0** | 0 |
+| K2 | none expected (fold ⇒ 1 decision entry, below M4's threshold) | — | unchanged | 0 | 0 |
+| K3 | **M3** by scan, non-breaking | materiality · **contract-dependency** | `1·0·0·0·1·1·1` | **1** (delta) | **0** (additive ⇒ no stop) |
+| K4 | none (self-review expected clean) | — | unchanged | 1 | 0 |
+
+Anti-expectation (registered): **M1 must NOT fire** — a read-only aggregate at the endpoint
+boundary is inside the boundary posture. This is corpus observation **O-3**, the additive-M3
+policy: any NEW public route owes a delta spec + a ledger ADR entry and nothing else. Under the
+pre-C model this task carried the **full** OpenSpec set on the light path, so delta-only is still
+a strict reduction — but B1 is **not** a zero-trigger change, and I am registering that now so it
+cannot be re-read later as one.
+
+#### B2 — `filter-tasks-by-status` (corpus row SC-05) — the true zero-trigger case
+
+| Checkpoint | Expected newly-fired | Dims after | openspec | new stops |
+|---|---|---|---|---|
+| K1 | **none** | `1·0·0·0·0·0·0` | **0** | 0 |
+| K2 | none | unchanged | 0 | 0 |
+| K3 | **none** | `1·0·0·0·0·0·0` | **0** | 0 |
+| K4 | none | unchanged | 0 | 0 |
+
+Two hard anti-expectations: **M1 must NOT fire** — the posture explicitly names `?status=`
+filtering as the known extension point, so an adjudication raise here is a **hard over-detection
+failure**. **M3 must NOT fire** — the `MapGet("/tasks"` route line is *modified* (a parameter
+added), not added or removed, so the route-marker delta is zero. This is the route-delta rule's
+precision test.
+
+#### B3 — `enforce-title-max-length` (corpus row SC-06) — zero-trigger, with a registered blind spot
+
+| Checkpoint | Expected newly-fired | Dims after | openspec | new stops |
+|---|---|---|---|---|
+| K1 | **none** | `1·0·0·0·0·0·0` | **0** | 0 |
+| K2 | none | unchanged | 0 | 0 |
+| K3 | **none** | `1·0·0·0·0·0·0` | **0** | 0 |
+| K4 | none | unchanged | 0 | 0 |
+
+**Known blind spot, registered as corpus observation O-4 and NOT changed for this run:** tightening
+the title limit is arguably a breaking contract change for existing clients (a previously-accepted
+250-char title now 400s), and neither the route-delta scan nor the pre-registered adjudication
+expectation flags it. Pre-registered NO-FIRE per the measured stay-light calibration. **If an arm
+fires something here, it is scored as an over-detection against the frozen row** — and separately
+reported as evidence that O-4 deserves the creator's attention. Flipping the row requires a dated
+changelog entry, never a silent edit.
+
+### 8b.2 What this tier is actually testing
+
+1. **C-10 at its maximum.** B2 and B3 should produce **zero OpenSpec artifacts** — the first time
+   any measured run of this program authors none. B1 should produce exactly one delta spec.
+2. **"Start small" as a measurable claim.** Expected obligations on B2/B3: one folded approval
+   stop, a contract in `change.md`, records, ledger — no spec, no ADR, no verify phase, no review.
+3. **The cost floor of Stage C.** Whatever B2/B3 cost *is* the price of the governance base plus
+   the classifier, with every trigger-bought obligation removed. Against Stage-B Cost-B
+   (2.93×/3.38×) this isolates what C's classifier overhead adds when it buys nothing.
+
+### 8b.3 Cost prediction (directional; registered so it cannot be retrofitted)
+
+- **Predicted:** B2/B3 land **below** the Stage-B Cost-B row (3.38× tok) — dropping the full
+  OpenSpec set, the ADR and the verify phase should more than pay for ~20 classifier invocations.
+  B1, carrying a delta spec + ADR entry, should land at or slightly above it.
+- **Falsification is informative either way.** If even the zero-trigger band cannot beat 3.38×,
+  then the classifier overhead exceeds the ceremony it removes, and progressive rigor has no cheap
+  end to defend — which would be the fourth failed cost hypothesis in this program.
+
 ## 9. Procedure log
 
 - **2026-08-03** — brief + reading order read in full; kit created; **§3 pre-registration frozen
@@ -240,3 +340,17 @@ stop-the-analysis finding, not a footnote.**
 - **2026-08-03** — [`results.md`](results.md) written; dated row appended to `RUNKIT.md`
   (append-only, existing rows untouched). Worktrees removed, `git worktree prune` run.
   **No C-10 / C-11 / Stage-B decision is made in this kit — that is step 6, with the creator.**
+- **2026-08-03 (extended tier, same day)** — creator asked for the light path. §8b
+  pre-registration frozen **before** the 6 worktrees were staged or any arm launched. Setup and
+  archive scripts generalized to `core|extended` so **both tiers share one staging
+  implementation** (different toolkits would make the two cost rows incomparable). Governed
+  prompt + ARM_SCHEMA lifted **verbatim** from the core-tier workflow and diff-verified identical;
+  plain prompt lifted **verbatim** from `stage-b-arms.workflow.js` (the Cost-B variant), since the
+  comparison rows are Cost-B, not the frozen-3.
+- **2026-08-03** — extended run: workflow `wf_00892957-c5f`, 6 arms sequential, **0 errors**,
+  40 min, 555k subagent tokens. Oracle **16/16 clean both arms**. Evidence archived, classification
+  replayed independently, attribution computed.
+- **2026-08-03** — one **over-detection** found (B3/K3/X1) and diagnosed by re-running that
+  checkpoint against a code-only numstat, which fires nothing and matches the frozen row exactly.
+  Scored as a miss against the row regardless; **corpus untouched**. Second dated RUNKIT row
+  appended. Worktrees removed and pruned.

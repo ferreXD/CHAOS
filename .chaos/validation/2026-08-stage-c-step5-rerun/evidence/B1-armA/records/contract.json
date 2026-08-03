@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "task-count",
+  "sourceCommand": "chaos:propose",
+  "run": "RUN-2026-08-03-chaos-propose-task-count-6fc29c",
+  "recordedAt": "2026-08-03T08:22:26Z",
+  "groups": ["endpoint", "invariants", "regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "endpoint",
+      "text": "GET /tasks/count returns HTTP 200 with a JSON object of the shape { \"count\": <integer> }.",
+      "source": ["PROP-DEC-001"]
+    },
+    {
+      "id": "C-002",
+      "group": "invariants",
+      "text": "count equals the number of items returned by GET /tasks for the same store at the same moment."
+    },
+    {
+      "id": "C-003",
+      "group": "invariants",
+      "text": "Creating a task via POST /tasks (201) increases count by exactly 1."
+    },
+    {
+      "id": "C-004",
+      "group": "invariants",
+      "text": "Deleting a task via DELETE /tasks/{id} (204) decreases count by exactly 1."
+    },
+    {
+      "id": "C-005",
+      "group": "regression",
+      "text": "GET / (health) and all existing /tasks CRUD behaviour are unchanged: the 5 baseline integration tests still pass."
+    },
+    {
+      "id": "C-006",
+      "group": "regression",
+      "text": "The aggregate is computed at the endpoint boundary from the existing TaskStore read API; TaskStore's public shape is unchanged and Domain/** keeps no dependency on the HTTP layer (R-004, R-005).",
+      "source": ["PROP-DEC-001"]
+    }
+  ]
+}

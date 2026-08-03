@@ -1,0 +1,8 @@
+87	0	.chaos/changes/enforce-title-max-length/change.md
+22	0	.chaos/changes/enforce-title-max-length/classification-state.json
+18	0	.chaos/changes/enforce-title-max-length/decision-events.md
+29	0	.chaos/changes/enforce-title-max-length/lifecycle.md
+47	0	.chaos/changes/enforce-title-max-length/records/contract.json
+49	0	.chaos/changes/enforce-title-max-length/records/frame.pass-01.facts.json
+17	4	src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+87	0	tests/TaskTracker.Tests/TaskEndpointsTests.cs

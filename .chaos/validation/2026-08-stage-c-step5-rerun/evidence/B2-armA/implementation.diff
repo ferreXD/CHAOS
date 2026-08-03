@@ -1,0 +1,147 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..d73a1a5 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -7,9 +7,10 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks currently returns EVERY task, unfiltered. Closing that gap — adding optional
+-/// <c>?status=</c> and <c>?priority=</c> filters — is the exercise the CHAOS worked example
+-/// drives end-to-end. See <c>docs/demo/README.md</c>.
++/// GET /tasks supports an optional <c>?status=</c> filter (case-insensitive, over the
++/// <see cref="TaskState"/> names). A <c>?priority=</c> filter is still open. Filtering lives here,
++/// at the endpoint/query boundary — the store's public shape is unchanged (architecture posture,
++/// boundary model). See <c>docs/demo/README.md</c>.
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -17,8 +18,25 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks[?status=Open|InProgress|Done] — all tasks, or only those in one state.
++        // The match is case-insensitive; an unrecognised value is a 400, never a silent full list.
++        group.MapGet("/", (string? status, TaskStore store) =>
++        {
++            IReadOnlyList<TaskItem> tasks = store.All();
++
++            if (!string.IsNullOrWhiteSpace(status))
++            {
++                if (!TryParseState(status, out var state))
++                    return Results.BadRequest(new
++                    {
++                        error = $"Unknown status '{status}'. Expected one of: {string.Join(", ", Enum.GetNames<TaskState>())}."
++                    });
++
++                tasks = tasks.Where(t => t.Status == state).ToList();
++            }
++
++            return Results.Ok(tasks);
++        });
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+@@ -51,4 +69,24 @@ public static class TaskEndpoints
+ 
+         return app;
+     }
++
++    /// <summary>
++    /// Case-insensitive lookup of a <see cref="TaskState"/> by name. Deliberately name-based
++    /// (not <c>Enum.TryParse</c>) so numeric input such as <c>?status=1</c> is rejected too:
++    /// the contract accepts the state NAMES only.
++    /// </summary>
++    private static bool TryParseState(string value, out TaskState state)
++    {
++        foreach (var candidate in Enum.GetValues<TaskState>())
++        {
++            if (string.Equals(candidate.ToString(), value, StringComparison.OrdinalIgnoreCase))
++            {
++                state = candidate;
++                return true;
++            }
++        }
++
++        state = default;
++        return false;
++    }
+ }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..931ed81 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,71 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Get_tasks_filtered_by_status_returns_only_that_status()
++    {
++        var client = _factory.CreateClient();
++
++        foreach (var state in new[] { "Open", "InProgress", "Done" })
++        {
++            var filtered = await client.GetFromJsonAsync<List<TaskDto>>($"/tasks?status={state}");
++
++            Assert.NotNull(filtered);
++            Assert.NotEmpty(filtered!);
++            Assert.All(filtered!, t => Assert.Equal(state, t.Status));
++        }
++
++        // The seeded InProgress task is the only seeded one in that state.
++        var inProgress = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=InProgress");
++        Assert.Contains(inProgress!, t => t.Title == "Review the CHAOS proposal");
++        Assert.DoesNotContain(inProgress!, t => t.Title == "Add query-param filters to GET /tasks");
++    }
++
++    [Fact]
++    public async Task Status_filter_is_case_insensitive()
++    {
++        var client = _factory.CreateClient();
++
++        var lower = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=open");
++        var canonical = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=Open");
++
++        Assert.NotNull(lower);
++        Assert.NotEmpty(lower!);
++        Assert.Equal(
++            canonical!.Select(t => t.Id).OrderBy(id => id),
++            lower!.Select(t => t.Id).OrderBy(id => id));
++    }
++
++    [Fact]
++    public async Task Get_tasks_with_an_unknown_status_is_rejected()
++    {
++        var client = _factory.CreateClient();
++
++        var response = await client.GetAsync("/tasks?status=Bogus");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++
++        // 400 means no task list came back at all.
++        var body = await response.Content.ReadAsStringAsync();
++        Assert.DoesNotContain("\"title\"", body, StringComparison.OrdinalIgnoreCase);
++    }
++
++    [Fact]
++    public async Task Get_tasks_without_a_status_still_returns_every_task()
++    {
++        var client = _factory.CreateClient();
++
++        var all = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        var open = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=Open");
++        var inProgress = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=InProgress");
++        var done = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?status=Done");
++
++        Assert.NotNull(all);
++        Assert.Equal(all!.Count, open!.Count + inProgress!.Count + done!.Count);
++        Assert.Contains(all!, t => t.Title == "Write the project README");
++        Assert.Contains(all!, t => t.Title == "Clean up sample data");
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

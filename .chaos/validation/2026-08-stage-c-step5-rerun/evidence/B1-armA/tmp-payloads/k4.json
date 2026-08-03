@@ -1,0 +1,10 @@
+{
+  "checkpoint": "K4",
+  "mode": null,
+  "declaredTriggers": [],
+  "intent": "Add GET /tasks/count, a read-only aggregate endpoint returning HTTP 200 with the JSON object {\"count\": <integer>} where count is the total number of tasks currently in the store. It is a lightweight convenience for the dashboard: count must always equal the number of items returned by GET /tasks at the same moment, POST /tasks (201) increases it by exactly 1 and DELETE /tasks/{id} (204) decreases it by exactly 1. It introduces no authentication and no persistence-model change; the root health endpoint GET / and all existing /tasks CRUD behaviour are unchanged. The count is computed at the endpoint/query boundary over the existing store read API, so the store's public shape is not changed.",
+  "scope": "scope: src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs, .chaos/changes/task-count/decision-events.md, .chaos/changes/task-count/classification-state.json, .chaos/changes/task-count/records/contract.json, .chaos/changes/task-count/records/frame.pass-01.facts.json, .chaos/changes/task-count/records/deliver.pass-01.facts.json, .chaos/changes/task-count/records/verify.pass-01.facts.json, .chaos/changes/task-count/change.md, .chaos/changes/task-count/lifecycle.md",
+  "postureFiles": [".chaos/architecture.md"],
+  "mapFile": ".chaos/path-class-map.json",
+  "ledgerFile": ".chaos/changes/task-count/decision-events.md"
+}

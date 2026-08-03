@@ -294,3 +294,202 @@ evidence, honestly scored.
 | `evidence/<arm>/{change.md,lifecycle.md,records/,openspec/}` | artifacts as produced |
 | `evidence/<arm>/implementation.diff`, `full-worktree.numstat` | the code delta, and the unscoped numstat for §2.2 |
 | `harness/` | setup script, arms workflow, attribution script, archive script |
+
+---
+
+# Part 2 — EXTENDED TIER: the light-eligible band (C's cheap end)
+
+> Run 2026-08-03, model `claude-opus-5[1m]`, workflow `wf_00892957-c5f` (6 arms, sequential,
+> **0 errors**, 40 min, 555k subagent tokens). Pre-registration: [`README.md`](README.md) §8b.1,
+> frozen before launch. Governed prompt **byte-identical to the core tier** (verified by diff);
+> plain prompt **byte-identical to the Stage-A/Stage-B Cost-B rows**. Base `d27600f`.
+> **All §1 caveats apply unchanged** (output-token proxy, self-reported time, ratios not absolutes).
+
+## Headline
+
+**The fourth cost hypothesis dies, and this one is the most informative.** I predicted B2/B3 would
+land *below* the Stage-B Cost-B row (3.38× tok) because C removes the full OpenSpec set, the ADR
+and the verify phase on zero-trigger changes. They did not: the tier lands at **5.95× time /
+6.00× tokens**, against Stage-B Cost-B's 2.93×/3.38× and Stage-A Cost-B's 3.47×/3.65×.
+
+**C-10 worked exactly as designed and it did not matter.** B2 and B3 authored **zero OpenSpec
+artifacts, zero ADRs, and B2 ran no verify phase at all** — the first governed arms in this
+program to owe nothing beyond the collapsed base. B2 is the cleanest possible case: **zero
+triggers, every dimension at floor, 11.4% of its output in authored governance — and still 4.60×.**
+
+That is the finding: **on the light band the cost is not the artifacts.** Strip every
+trigger-bought obligation and ~88% of the governed arm's output is still there — reading the
+governance and classifier surface, running 6 classifier invocations and 2 adjudication passes, and
+executing a structured lifecycle. C-10's lever is real, correct, and nearly irrelevant to cost.
+
+## 1. Cost — light-eligible trio, governed (no preset flag) vs plain
+
+| Pair | task | Stage-C time | plain time | time ratio | Stage-C out-tok | plain out-tok | tok ratio | oracle (both) | triggers |
+|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| B1 | task-count | 620 s | 109 s | 5.69× | 39,021 | 5,767 | 6.77× | 5/5 clean | M3@K3 |
+| B2 | filter-by-status | 536 s | 115 s | 4.66× | 33,935 | 7,384 | 4.60× | 6/6 clean | **none** |
+| B3 | title-max-length | 646 s | 79 s | 8.18× | 43,478 | 6,270 | 6.93× | 5/5 clean | X1@K3 † |
+| **Σ** | | **1,802 s** | **303 s** | **5.95×** | **116,434** | **19,421** | **6.00×** | **16/16 both** | |
+
+† X1 is an over-detection caused by instrumentation, not by the classifier — see §3. Arm-own
+suites green throughout (governed 9/9/10, plain 8/12/10, 0 failed, builds clean).
+
+| Comparison row | date · model | time × | tok × | governed absolute |
+|---|---|---:|---:|---|
+| Stage-A Cost-B (valve live) | 07-24 · Opus 4.8 | 3.47× | 3.65× | 667 s / 54,309 |
+| Stage-B Cost-B (valve live) | 08-02 · Opus 5 | 2.93× | 3.38× | 1,247 s / 85,642 |
+| **Stage-C extended (this row)** | **08-03 · Opus 5** | **5.95×** | **6.00×** | **1,802 s / 116,434** |
+
+Against Stage-B Cost-B the governed arm is **+44.5% time / +35.9% tokens** — almost exactly the
+core tier's +44% / +35% against Stage-B light. The regression is consistent across both bands, so
+it is a property of the Stage-C lifecycle, not of the materiality tasks.
+
+## 2. Classification fidelity — 11/12 checkpoints exact, one over-detection
+
+| Arm | K | Expected (pre-registered) | Observed | Verdict |
+|---|---|---|---|---|
+| B1 | K1 | none; adjudication must **decline** | none; declined | OK |
+| B1 | K2 | none | none | OK |
+| B1 | K3 | **M3** by scan, `contract-dependency`, non-breaking ⇒ `1·0·0·0·1·1·1`, 0 stops | **identical** | OK |
+| B1 | K4 | none | none | OK |
+| B2 | K1 | none (**M1 must not fire** — posture names `?status=` as the extension point) | none | OK |
+| B2 | K2 | none | none | OK |
+| B2 | K3 | none (**M3 must not fire** — route line modified, not added) | none; `1·0·0·0·0·0·0` | OK |
+| B2 | K4 | n/a — `verify 0`, so no verify phase was owed and none ran | not run | OK (correct) |
+| B3 | K1 | none | none | OK |
+| B3 | K2 | none | none | OK |
+| B3 | K3 | **none** ⇒ `1·0·0·0·0·0·0` | **X1 fired** ⇒ `1·0·1·1·1·0·0` | **OVER-DETECTION** |
+| B3 | K4 | none (would not have run under the frozen row) | none fired | OK |
+
+**Aggregate: 0 under-detections, 1 over-detection (B3/K3/X1), 11/12 exact.** Replayed
+independently from the archived payloads; every verdict reproduced.
+
+Both of B2's hard anti-expectations held — including the route-delta precision test, where the
+`MapGet("/tasks"` line is *modified* rather than added and M3 correctly stayed silent. Corpus
+observation **O-4** also held as registered: B3's validation tightening did **not** fire M3, and
+all three arms recorded their reasoning for declining it rather than hiding the judgement.
+
+## 3. The X1 over-detection is the instrumentation hazard, proven
+
+Registered in advance twice (§3.4, §8b). B3 fed its K3 numstat **8 files / 360 LOC — of which 6
+files are the change's own governance bookkeeping** (`change.md`, `lifecycle.md`,
+`decision-events.md`, `classification-state.json`, and two records). X1 fired on `files >= 8`.
+
+I re-ran B3's K3 against a **code-only** numstat (2 files / 108 LOC), fresh state, everything else
+identical:
+
+```text
+B3 K3, code-only numstat:  newlyFired=NONE   dims=1·0·0·0·0·0·0   conf=HIGH
+```
+
+— **exactly the pre-registered SC-06 vector.** The classifier applied MR-5 correctly to the input
+it was given; the input was wrong by operator choice. I score the miss against the frozen row
+anyway (the run *did* produce a firing the row forbids) and attribute the cause precisely. **No
+corpus expectation is edited.**
+
+**This is now reproduced across all six governed arms of both tiers**, and every one of them
+measured the same counterfactual independently:
+
+| Arm | numstat scope chosen | code-only | with own governance | X1 fires? |
+|---|---|---|---|---|
+| P1 | src+tests | 3 files | ~13 files | would fire |
+| P2 | src+tests+openspec+adr | 6 files | 12 files / 659 LOC | would fire |
+| P3 | src+tests | 5 files | 12 files | would fire |
+| B1 | src+tests | 2 files / 67 LOC | 10 files / 503 LOC | would fire |
+| B2 | src+tests | 2 files / 113 LOC | 8 files / 344 LOC | would fire |
+| **B3** | **src+tests+own `.chaos/`** | 2 files / 108 LOC | **8 files / 360 LOC** | **DID fire** |
+
+**Governance is self-amplifying: the artifacts a change produces trip the blast-radius trigger
+that then demands more governance.** Six arms, six confirmations, one live failure.
+
+B3 also exposes a **second-order effect** the core tier could not see: X1 raised `verify` 0→1,
+which is the *only* reason B3 ran a verify phase and reached K4 at all. Had the numstat excluded
+governance, B3 would have ended at DELIVER with no verify record and X2 would never have had a
+checkpoint to fire at. **The numstat pathspec choice determines whether the final checkpoint
+executes** — it is not a cosmetic instrumentation detail, and the design does not specify it.
+
+## 4. Cost attribution — the zero-trigger floor
+
+| Cost center | bytes | share of authored | ~tok-proxy |
+|---|---:|---:|---:|
+| **JSON records authored** | **45,344** | **65.8%** | 11,336 |
+| classifier state + payloads | 15,389 | 22.3% | 3,847 |
+| ledger — decision entries | 6,071 | 8.8% | 1,517 |
+| **OpenSpec delta specs** | **1,135** | **1.6%** | 283 |
+| ledger — `TRG-*` events | 934 | 1.4% | 233 |
+| ADRs | **0** | 0.0% | 0 |
+| **Authored governance total** | **68,873** | **100%** | **17,218** |
+| *rendered markdown (free)* | *39,341* | — | — |
+| *implementation* | *11,444* | — | — |
+
+Authored governance is **14.8%** of governed output — and for the pure zero-trigger arm B2, just
+**11.4%** (15,461 B against 33,935 output tokens).
+
+**The decisive number: B2 owed nothing beyond the collapsed base — no OpenSpec, no ADR, no verify
+phase, every dimension at floor — and ~88.6% of its output was still not governance artifacts.**
+Whatever Stage C costs on the light band, artifact authoring is not it. The residual is the
+governed *process*: reading the governance + classifier + schema surface, six classifier
+invocations, two adjudication passes, and the structured lifecycle itself.
+
+Records remain the largest authored center (65.8%), and the projection ratio holds:
+**45,344 B of authored JSON → 39,341 B of rendered markdown = 0.87** (core tier 0.79; Stage-B
+standard 0.78). Three independent measurements, same conclusion — the input to the projection is
+never meaningfully cheaper than its output.
+
+**C-10, priced at its maximum:** OpenSpec fell to **1.6% of authored governance / 0.24% of
+governed output**, with two of three arms authoring none at all. The lever is real, it fired
+correctly, and it is worth a rounding error.
+
+## 5. What held mechanically
+
+Classifier: 18 invocations, **0 failures**; 6 adjudication passes, **0 raises** (all correctly
+declined — the over-detection came from the deterministic scan on bad input, not from
+adjudication). `newStops` 0 on every arm; exactly one floor approval stop each. 8 renders,
+0 failures. `handWroteRenderedArtifact` false 3/3. **0** `ESC-*` / `escalatedFrom` / "⚠ escalated"
+leakage. Oracle **16/16 both arms**, unregressed against the Stage-A and Stage-B Cost-B rows.
+
+`verify 0` correctly meant *no verify phase* on B2 — the "start small" promise executing, not
+merely asserted.
+
+## 6. New findings (extended tier)
+
+8. **X1 self-amplification is confirmed, not hypothetical** (§3), with a measured second-order
+   effect: the numstat pathspec decides whether K4 runs at all.
+9. **The renderer is not Stage-C aware at `openspec 0`.** Both B1 and B3 report that `change.md`
+   §Contract emits an unconditional `OpenSpec: openspec/changes/<id>/` pointer even when the frame
+   record says NOT_INVOKED — **naming a folder that does not exist**. Filed by an arm as VFY-001/
+   VFY-003 and deliberately not hand-corrected. This is a direct C-10 defect: the depth the
+   classifier chose is not reflected in the artifact the reader sees.
+10. **`adr 1` has no distinct home.** B1 owed a "decision-log entry in the ledger" and deliberately
+    did **not** write a second ledger entry, because a second `## *-DEC-*` heading would have
+    crossed M4's threshold and fired decision-density with no material question behind it. It
+    folded the obligation into the existing approval decision instead. Defensible, but it means
+    **`adr 1` and M4 are in direct tension** — discharging one mechanically risks firing the other.
+11. **M4 is one entry away on every small change** (B2's own observation): a single extra decision
+    entry would have bought `openspec 1 + review 1 + evidence.targeted 1` mechanically. Combined
+    with core-tier finding 1 (M4 *cannot* fire when questions fold), M4's threshold behaviour is
+    bimodal and driven by ledger formatting rather than by materiality.
+12. **`checkpointsRun` in `classification-state.json` is a call log, not a checkpoint set** — the
+    two-call pattern appends on both the scan and the merge call, so four checkpoints read as six
+    entries. Cosmetic, but it will mislead anyone auditing the trail.
+
+## 7. Read across both tiers
+
+| Band | tier | time × | tok × | triggers | OpenSpec owed |
+|---|---|---:|---:|---|---|
+| Materiality (frozen-3) | core | 4.86× | 5.46× | M1+M2 same surface | delta ×3 |
+| Light-eligible | extended | **5.95×** | **6.00×** | none / M3 / X1† | **none ×2**, delta ×1 |
+
+**Stage C costs *more* on the band it was designed to make cheap.** The core tier at least bought
+something for its 4.86× — a posture-crossing stop, targeted safeguards, an ADR. The extended tier
+paid 6.00× for changes the classifier itself certified as owing nothing.
+
+Across four measured stages, the governed cost ratio on the light band has gone
+**3.65× (A) → 3.38× (B) → 6.00× (C)**. Each stage improved something real — A killed prose, B made
+drift structurally impossible, C made rigor proportional and its fidelity is near-perfect — and
+each cost more than the last. The honest reading is that **the artifact model was never the
+dominant cost on this band**, and three consecutive attempts to attack it have now confirmed that
+from three different angles.
+
+**Still not decided here** (step 6, with the creator): C-10, C-11, Stage-B's fate, the preset floor
+vectors, the X1 scope rule, and M4's threshold behaviour. This kit is the evidence.

@@ -1,0 +1,8 @@
+{
+  "_note": "Extended tier (light-eligible band). Recreate worktrees with `setup-stage-c-worktrees.sh <scratch> extended` and repoint wtA/wtB. changeIds + statements are the frozen Cost-B contracts.",
+  "pairs": [
+    { "changeId": "task-count", "wtA": "C:/cs5/wt/B1-armA", "wtB": "C:/cs5/wt/B1-armB" },
+    { "changeId": "filter-tasks-by-status", "wtA": "C:/cs5/wt/B2-armA", "wtB": "C:/cs5/wt/B2-armB" },
+    { "changeId": "enforce-title-max-length", "wtA": "C:/cs5/wt/B3-armA", "wtB": "C:/cs5/wt/B3-armB" }
+  ]
+}
