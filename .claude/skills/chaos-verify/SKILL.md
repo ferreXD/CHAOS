@@ -6,6 +6,14 @@ Use this skill when the user asks to run or design `chaos:verify`, verify an imp
 
 `chaos:verify` is the post-implementation verification command in CHAOS.
 
+**Stage-D role (design `docs/design/2026-08-03-cost-bar-and-run-collapse.md` §4.1).** On a
+change delivered by `chaos:run`, verification already ran **inside the loop** at the
+vector-owed depth, and the deterministic obligation audit (`tools/chaos-classify/audit.py`)
+gated the close. `chaos:verify` is then the human's **opt-in extra pass** — a fresh,
+independent re-verification on demand. Its semantics below are unchanged; only the invocation
+surface moved. On changes delivered by the phase commands (`chaos:apply` without `chaos:run`),
+it remains the enforcement end exactly as before.
+
 It verifies the implemented result against:
 
 - OpenSpec proposal/design/spec/tasks;

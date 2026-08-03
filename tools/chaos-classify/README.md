@@ -60,6 +60,42 @@ second verdict is authoritative. `--state` is the classifier's working state
 (`classification-state.json` in the change folder — deliberately NOT a Stage-B `records/`
 artifact).
 
+## Continuous mode (Stage D — `chaos:run`)
+
+Design: `docs/design/2026-08-03-cost-bar-and-run-collapse.md` §4.1. Checkpoints are **evidence
+classes, not phases**: K1 = intent exists · K2 = an answered decision exists · K3 = the diff
+exists *and grows* · K4 = the self-review verdict exists. The loop calls the same CLI; what
+changes is cadence — **K3 repeats once per work unit** with the grown (C-15-scoped) diff.
+Firings still dedupe, dimensions stay monotone (P4), re-detections still report as `scanEcho`.
+
+Continuous verdict fields:
+
+- `adjudicationDue` — the loop runs the model adjudication pass **only when this is true**
+  (first K1 call, or a K3 scan whose diff grew new paths). The continuous form of C-12; K2/K4
+  never set it.
+- `newSurfacePaths` (K3 only) — paths this scan saw for the first time (state `seenPaths`
+  accumulates them; the two-call merge replay sees an empty delta).
+- `scanSeq` — call counter (state `scanCount`); the loop cursor for resume capsules.
+- `stopAbsorbedBy` — **pending-stop absorption**: a stop demand fired while an earlier ledger
+  entry is still unanswered. `newStops` stays 0; the caller's duty is to AMEND the pending
+  entry (append the folded question, increment `folds:`) — never to surface a second
+  interruption. MR-3 satisfaction (ANSWERED same-surface coverage) beats absorption.
+  Corpus seed: SC-23.
+
+**The obligation audit** (`audit.py`) is the deterministic close gate: it recomputes the owed
+vector from `classification-state.json` via the same `compute_dimensions` and asserts the owed
+artifacts exist (stops all answered + surfaced, ADR at `adr 2`, OpenSpec at depth, verify
+record at `verify ≥ 1`, frame/deliver records, vector ≥ floors). Exit 0 = the run may close;
+1 = failures, each naming the owed artifact; 2 = audit could not run. It reads `records/`
+**by design** — the never-read-records constraint is about *classification inputs*, and the
+audit is a gate, not a classifier. It never authors anything.
+
+```text
+python tools/chaos-classify/audit.py --state <classification-state.json> \
+    --ledger <decision-events.md> --change-dir .chaos/changes/<id> \
+    [--openspec-dir openspec/changes/<id>] [--adr-dir <dir>]
+```
+
 ## Implementation notes (operationalizations, documented not silent)
 
 - **MR-7 / 410 tombstone:** a route re-registered to return `Results.StatusCode(410)` counts as
@@ -85,3 +121,7 @@ artifact).
   `.chaos/validation/2026-08-stage-c-classifier/results.md`. **Step-3 gate cleared** — wiring
   (step 4: propose first, verify last) is unblocked. The pinned prompt is part of the tested
   surface: changing it re-opens the corpus run.
+- 2026-08-03 — **Stage-D continuous mode**: repeatable K3 scans, `adjudicationDue` /
+  `newSurfacePaths` / `scanSeq`, pending-stop absorption (seed SC-23, corpus 28 → 29), and the
+  obligation audit gate (`audit.py`). 28 classify + 8 audit unit tests; scan-only corpus 9/9
+  PASS over all 29 seeds. Consumed by `.claude/skills/chaos-run/SKILL.md`.
