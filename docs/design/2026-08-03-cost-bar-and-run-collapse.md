@@ -56,8 +56,8 @@ Consequences of the lock:
 > denominated in output tokens. **Their replacements are set** (rebase doc §3.1) and are no longer
 > ratios at all: an **absolute wall-clock envelope per change** — band A ≤5 min, band B ≤15 min,
 > band C ≤30 min — with a secondary price ceiling of $10 / $25 / $50. The table below is the M1 bar
-> of record: **no measured row ever passed it** (rebase doc §1.4), and **band A fails the new
-> primary bar by 2.7× as well**.
+> of record: **no measured row ever passed it** (rebase doc §1.4), and on the independently
+> measured clock **band A fails the new primary bar by 3.0× as well** (rebase doc §6).
 
 A flat target would quietly abandon progressive rigor's core promise — that a change the system
 itself certifies as trivial should cost near-nothing. The bar is therefore banded by **the

@@ -299,7 +299,11 @@ The held-out **oracles** (`AuthOracleTests.cs`, `SoftDeleteOracleTests.cs`,
   2026-08-04 in favour of **M2 = an absolute wall-clock envelope per governed change (primary,
   gates) with a secondary price ceiling** — band A ≤5 min/≤$10, band B ≤15 min/≤$25. **Wall time
   is already in every row above** (the `time ratio` and `s` columns), so the series is readable in
-  M2's primary unit today, with the standing caveat that it is arm-self-reported. See
+  M2's primary unit today — **but the times above are ARM-SELF-REPORTED and under-state by
+  +6…+31%**, worst on the shortest arms. All 12 rows have been re-measured independently from the
+  runtime's own transcript timestamps (`tools/chaos-stopwatch/`); **use those figures, not these,
+  for any M2 claim.** The measured series is in rebase doc §6. Times below are left unedited as
+  the historical record of what each run reported at the time. See
   [`docs/design/2026-08-04-metric-rebase.md`](../../../../../docs/design/2026-08-04-metric-rebase.md),
   which preserves M1's definition, its bars, and this series. **Rows are not comparable across
   metrics — label the metric on every future row**, and keep reporting the output-token columns
