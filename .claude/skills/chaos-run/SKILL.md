@@ -111,7 +111,17 @@ python tools/chaos-scan/scan.py tier --change-dir .chaos/changes/<id> \
 
 `T2` → implement it yourself. `T1` → delegate to a general-purpose subagent at
 `model: 'sonnet'`. `T0` → delegate to `chaos-mechanical-executor` (floor) with the unit's
-contract and stop conditions. **After any T0/T1 unit verify**: full suite green, build clean,
+contract and stop conditions; **T0 is now reachable only by route A** (an acceptance check that
+already fails), since **route B was closed 2026-08-04** after a floor-tier unit shipped a
+contract violation and certified it green off its own self-written tests — see the tier map.
+
+**A delegated unit's report is a claim, not evidence.** Verify it yourself at ceiling before
+accepting it: read the diff, not just the exit codes. In the run that closed route B the
+executor reported `COMPLETE`, 1 attempt, "all 41 passing" — and had violated one of the pinned
+statements that authorized the delegation. Green tests written by the same agent that wrote the
+code prove only self-consistency.
+
+**After any T0/T1 unit verify**: full suite green, build clean,
 diff inside the declared files, and the next rescan attributes no new firing. On failure run
 `scan.py tier --escalate T0|T1` (climbs one rung, spends one of the budget of 2) and redo the
 unit at the returned tier. Classifier, adjudication, stops, ledger answers, judgement prose,

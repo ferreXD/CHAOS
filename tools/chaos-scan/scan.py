@@ -409,23 +409,31 @@ def compute_tier(change_dir, unit_paths, covers=None, acceptance_exit=None, map_
         t1["t0Blocked"] = ("acceptance check passes already (exit 0) — nothing for T0 to turn "
                            "green")
         return t1
-    # Route B — the unit maps onto pinned contract statements (no pre-existing validator).
+    # Route B — CLOSED 2026-08-04 (creator), on the rule L1-D11 pre-registered: a correctness
+    # failure on a cheap tier closes that route rather than being tuned.
+    #
+    # Route B banded a unit T0 when it mapped 1:1 onto pinned contract statements, accepting that
+    # there was NO pre-existing validator and post-conditions were the only check. Its first and
+    # only real test — T1 of the product-conditions run — failed: the floor tier implemented the
+    # `?priority=` guard with `Enum.TryParse`, which accepts comma-separated lists, so
+    # `?priority=Low,High` returned 200 where pinned statement C-003 requires 400. It reported
+    # COMPLETE, 1 attempt, 41/41 green, and it was wrong. The unit violated one of the very
+    # statements that authorized it to run at floor.
+    #
+    # The cause is structural, not a weakness of the floor model: "suite green" counted tests the
+    # EXECUTOR ITSELF WROTE, so it authored both the implementation and the evidence that the
+    # implementation was right, and one misreading of the spec produced both. A self-written
+    # validator is not a validator, and a stronger model lowers the probability without closing
+    # the hole. Route A is deliberately untouched — its acceptance check pre-exists the unit and
+    # cannot be authored by the executor, which is exactly the property Route B lacked.
     if covers:
-        by_id = {s["id"]: s for s in contract.get("statements", [])}
-        missing = [c for c in covers if c not in by_id]
-        if missing:
-            t1["t0Blocked"] = "unknown contract statement(s): %s" % ", ".join(missing)
-            return t1
-        unpinned = [c for c in covers
-                    if not any(rx.search(by_id[c].get("text") or "") for rx in PINNED_RES)]
-        if unpinned:
-            t1["t0Blocked"] = ("statement(s) carry no pinned assertion: %s"
-                               % ", ".join(unpinned))
-            return t1
-        return verdict("T0", "route-B",
-                       "maps 1:1 onto pinned statement(s) %s; NO pre-existing validator — "
-                       "post-conditions are the only check" % ", ".join(covers), route="B")
-    t1["t0Blocked"] = "no acceptance check and no --covers: nothing establishes 'well specified'"
+        t1["t0Blocked"] = ("route B is closed (2026-08-04): pinned statements alone do not make "
+                           "a unit floor-safe, because the executor would author both the "
+                           "implementation and the tests that check it. Use an acceptance check "
+                           "that already fails (route A) to reach T0.")
+        return t1
+    t1["t0Blocked"] = ("no acceptance check: only route A can reach T0, and it needs an "
+                       "executable check that currently fails")
     return t1
 
 
