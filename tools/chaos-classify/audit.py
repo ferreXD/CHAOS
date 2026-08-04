@@ -95,6 +95,21 @@ def run_audit(state_path, ledger_path, change_dir, openspec_dir=None, adr_dirs=N
               ("found %s" % os.path.basename(recs[-1])) if recs
               else "verify %d owed but no records/verify.pass-*.facts.json" % dims["verify"])
 
+    # -- short-circuit (option 2): a run whose frame writes were deferred cannot close
+    #    until they were materialized — the tool wrote the marker, the tool asserts it.
+    sc_path = os.path.join(change_dir, "short-circuit.json")
+    if os.path.isfile(sc_path):
+        sc = json.loads(_read(sc_path))
+        contract = os.path.join(change_dir, "records", "contract.json")
+        ok = sc.get("status") == "materialized" and os.path.isfile(contract)
+        check("shortCircuit.materialized", ok,
+              "deferred frame artifacts materialized (scanSeq %s)"
+              % sc.get("materializedAtScanSeq") if ok else
+              "short-circuit marker is %r and contract.json %s — deferred frame artifacts "
+              "are owed before close (loop materialize)"
+              % (sc.get("status"),
+                 "present" if os.path.isfile(contract) else "missing"))
+
     # -- base records: a close always has a frame and a deliver record
     for phase in ("frame", "deliver"):
         recs = _has_files(os.path.join(change_dir, "records", "%s.pass-*.facts.json" % phase))

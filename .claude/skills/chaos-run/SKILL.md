@@ -179,6 +179,17 @@ merges the raises (fails closed on any cite-less raise), writes `records/contrac
 emits the frame record and fills your judgement into it (fails closed on anything empty; it
 can never touch a derived fact), renders `--write`, and prints the **S1 presentation**.
 
+**Zero-trigger short-circuit (tool-decided; creator-approved S1 authoring amendment,
+2026-08-04).** When the post-merge frame is strictly zero-trigger — nothing fired, every
+dimension at its floor, no preset, path-class map present — `frame-commit` **defers the
+artifact writes to close** and presents the contract **inline** in the S1 text instead. You
+never request this and cannot: the tool decides from the verdict (a fired verdict can never
+short-circuit; `--no-short-circuit` is the only knob, and it opts *out*). Your input file
+is validated fail-closed exactly as on the normal path — deferral moves the writes, never
+the validation, and **S1 still stops unconditionally** with its decision, ledger entry and
+capsule owed as always. The deferred content lives in `<change-dir>/short-circuit.json`;
+the obligation audit will not let a still-deferred run close.
+
 **S1 — the frame approval stop (always; the run's one unconditional stop, C-11).** Surface
 exactly one runtime decision with `approves-change: true`, folding every K1-fired question
 into its presentation with `folds: <n>` declared on the ledger entry. The decision, the
@@ -197,7 +208,11 @@ Repeat until the contract is delivered:
    only, never the change's own bookkeeping) and persists it under `scan/`. Digest says
    `adjudication: DUE` (new surface paths) → judge the packet, merge raises. Late-fired
    artifact obligations (openspec delta/full, ADR) are authored **at the firing**, before
-   that surface is implemented further — never at close.
+   that surface is implemented further — never at close. **On a short-circuited run this
+   includes the deferred frame artifacts**: any firing means the zero-trigger premise is
+   gone, so run `python tools/chaos-loop/loop.py materialize --change-dir <dir> --run
+   <runId>` at the firing, then author what the firing itself owes. `loop close` refuses a
+   fired-while-still-deferred run.
 3. **Stops.**
    - `newStops > 0` → **S2**: surface **one** runtime decision carrying every question folded
      at this scan (`folds: <n>` on the entry), write the resume capsule, STOP (`mustStop`).
@@ -232,6 +247,11 @@ This runs, in order, **failing closed at each step**:
 - **The final rescan (K3).** If it fires anything, demands or absorbs a stop, or finds new
   surface, close **aborts** — that is new evidence: re-enter the work loop (§2) and run
   `loop close` again when it is delivered.
+- **Short-circuit resolution.** A run still carrying deferred frame artifacts either
+  **materializes them here automatically** (zero-trigger held end to end — the deferred
+  writes reappear inside the close) or, if anything fired while deferred, close **aborts**:
+  they were owed at the firing — materialize now and record the timing deviation with a
+  `RUN-DEC-*` ref in the deliver judgement.
 - **K4** with your verdict. `fail` ⇒ X2 fires, raising `review → 2` and `verify → 1`
   mechanically (C-3), and close aborts: route to the independent review pass — never a stop.
 - **The verify record, when the vector's `verify` ≥ 1** — emitted with the independent

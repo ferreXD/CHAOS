@@ -166,6 +166,11 @@ class LoopFixture(unittest.TestCase):
                                       "--raises", raises])
             self.assertEqual(code, 0)
 
+    def _assert_no_record(self, td, prefix):
+        records = os.path.join(self._change(td), "records")
+        names = os.listdir(records) if os.path.isdir(records) else []
+        self.assertFalse(any(n.startswith(prefix) for n in names))
+
     def _logs(self, td):
         return (self._write(td, "build.log", BUILD_LOG),
                 self._write(td, "test.log", TEST_LOG))
@@ -317,6 +322,11 @@ class LoopFixture(unittest.TestCase):
             files = []
             for root, _dirs, names in os.walk(base):
                 for n in names:
+                    # the short-circuit marker is working state of the composite path
+                    # itself (like scan-inputs.json, but path-specific) — excluded from
+                    # the governance-artifact comparison, asserted separately below
+                    if n == "short-circuit.json":
+                        continue
                     files.append(os.path.relpath(os.path.join(root, n), base)
                                  .replace("\\", "/"))
             walk[label] = sorted(files)
@@ -343,6 +353,11 @@ class TestParity(LoopFixture):
         self._freeze_and_rerender(td_a)
         self._freeze_and_rerender(td_b)
         self._assert_tree_parity(td_a, td_b)
+        # the composite arm short-circuited (zero-trigger): deferral must have
+        # materialized by close and STILL produced the identical tree above
+        marker = json.loads(open(os.path.join(self._change(td_b), "short-circuit.json"),
+                                 encoding="utf-8").read())
+        self.assertEqual(marker["status"], "materialized")
 
 
 class TestFrame(LoopFixture):
@@ -422,8 +437,7 @@ class TestClose(LoopFixture):
         self.assertEqual(code, 3, out)
         self.assertIn("ABORT", out)
         self.assertIn("re-enter the work loop", out)
-        records = os.path.join(self._change(td), "records")
-        self.assertFalse(any(n.startswith("deliver.") for n in os.listdir(records)))
+        self._assert_no_record(td, "deliver.")
         # the k4 scan never ran: last verdict is the aborting K3 (seq 3)
         seq, _ = L._latest_verdict(self._change(td))
         self.assertEqual(seq, 3)
@@ -440,8 +454,7 @@ class TestClose(LoopFixture):
                                              "classification-state.json"),
                                 encoding="utf-8").read())
         self.assertIn("X2", {f["trigger"] for f in state["fired"]})
-        records = os.path.join(self._change(td), "records")
-        self.assertFalse(any(n.startswith("deliver.") for n in os.listdir(records)))
+        self._assert_no_record(td, "deliver.")
 
     def test_close_commit_requires_every_coverage_row(self):
         td = self._framed()
@@ -471,6 +484,156 @@ class TestClose(LoopFixture):
         code, out = self._close_composite(td)
         self.assertEqual(code, 1, out)
         self.assertIn("stops.all-answered", out)
+
+
+class TestShortCircuit(LoopFixture):
+    """Option 2 — zero-trigger short-circuit. Eligibility is tool-decided; deferral
+    moves the frame WRITES, never the validation, the stop, or the artifact set."""
+
+    def test_defers_then_close_materializes(self):
+        td = self._mk_repo()
+        code, out = self._frame_composite(td, raises=[])
+        self.assertEqual(code, 0, out)
+        self.assertIn("short-circuit", out)
+        self.assertIn("Contract (inline", out)
+        marker = json.loads(open(os.path.join(self._change(td), "short-circuit.json"),
+                                 encoding="utf-8").read())
+        self.assertEqual(marker["status"], "deferred")
+        self.assertEqual(marker["decidedBy"], "tool")
+        self.assertFalse(os.path.isfile(
+            os.path.join(self._change(td), "records", "contract.json")))
+        self._assert_no_record(td, "frame.")
+
+        self._write(td, os.path.join(self._change(td), "decision-events.md"), LEDGER)
+        self._work_edit(td)
+        self._work_rescan(td)
+        code, out = self._close_composite(td)
+        self.assertEqual(code, 0, out)
+        marker = json.loads(open(os.path.join(self._change(td), "short-circuit.json"),
+                                 encoding="utf-8").read())
+        self.assertEqual(marker["status"], "materialized")
+        self.assertTrue(os.path.isfile(
+            os.path.join(self._change(td), "records", "contract.json")))
+        result = A.run_audit(
+            os.path.join(self._change(td), "classification-state.json"),
+            os.path.join(self._change(td), "decision-events.md"), self._change(td))
+        self.assertTrue(result["pass"], result)
+        self.assertIn("shortCircuit.materialized",
+                      [c["id"] for c in result["assertions"]])
+
+    def test_ineligible_on_fired_verdict(self):
+        """A fired verdict can never short-circuit — the tool decides, and it decides no."""
+        td = self._mk_repo()
+        code, out = _quiet(L.main, [
+            "frame", "--change-dir", CHANGE_REL, "--run", "RUN-1",
+            "--intent", INTENT, "--scope", SCOPE, "--subject", "src",
+            "--declared", "sensitive-surface:auth", "--map", MAP_REL, "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("provisionally eligible", out)
+        p = self._write(td, "in.json", json.dumps(
+            {"raises": [], "contract": CONTRACT_IN, "record": FRAME_J}))
+        code, out = _quiet(L.main, ["frame-commit", "--change-dir", CHANGE_REL,
+                                    "--run", "RUN-1", "--input", p,
+                                    "--title", "T", "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.isfile(
+            os.path.join(self._change(td), "short-circuit.json")))
+        self.assertTrue(os.path.isfile(
+            os.path.join(self._change(td), "records", "contract.json")))
+
+    def test_ineligible_under_preset(self):
+        """Preset floors mean the caller asked for rigor — never short-circuit it."""
+        td = self._mk_repo()
+        code, out = _quiet(L.main, [
+            "frame", "--change-dir", CHANGE_REL, "--run", "RUN-1",
+            "--intent", INTENT, "--scope", SCOPE, "--subject", "src",
+            "--mode", "strict", "--map", MAP_REL, "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("provisionally eligible", out)
+        # strict floors openspec to 2, so the frame record owes an openspec claim
+        record = dict(FRAME_J, openspec={
+            "status": "INVOKED",
+            "invocationPath": "openspec/changes/demo — full set authored before S1",
+            "confidenceImpact": "None."})
+        p = self._write(td, "in.json", json.dumps(
+            {"raises": [], "contract": CONTRACT_IN, "record": record}))
+        code, out = _quiet(L.main, ["frame-commit", "--change-dir", CHANGE_REL,
+                                    "--run", "RUN-1", "--input", p,
+                                    "--title", "T", "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.isfile(
+            os.path.join(self._change(td), "short-circuit.json")))
+
+    def test_no_short_circuit_flag_opts_out(self):
+        td = self._mk_repo()
+        code, out = _quiet(L.main, [
+            "frame", "--change-dir", CHANGE_REL, "--run", "RUN-1",
+            "--intent", INTENT, "--scope", SCOPE, "--subject", "src",
+            "--map", MAP_REL, "--root", td])
+        self.assertEqual(code, 0, out)
+        p = self._write(td, "in.json", json.dumps(
+            {"raises": [], "contract": CONTRACT_IN, "record": FRAME_J}))
+        code, out = _quiet(L.main, ["frame-commit", "--change-dir", CHANGE_REL,
+                                    "--run", "RUN-1", "--input", p, "--title", "T",
+                                    "--no-short-circuit", "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.isfile(
+            os.path.join(self._change(td), "short-circuit.json")))
+        self.assertTrue(os.path.isfile(
+            os.path.join(self._change(td), "records", "contract.json")))
+
+    def test_fired_while_deferred_aborts_close_and_materialize_recovers(self):
+        """The timing rule, fail closed: artifacts were owed at the firing. Close refuses
+        to proceed on a fired-while-deferred run; materialize recovers."""
+        td = self._mk_repo()
+        code, out = self._frame_composite(td, raises=[])
+        self.assertEqual(code, 0, out)
+        # a decision whose title reads on the auth surface, so MR-3 satisfies the M2 stop
+        ledger = LEDGER.replace("Approve the frame", "Approve the frame and the auth surface")
+        self._write(td, os.path.join(self._change(td), "decision-events.md"), ledger)
+        self._work_edit(td, "src/App/Config/Keys.cs", "class Keys {}\n")  # fires M2 (auth)
+        self._work_rescan(td)  # the firing happens HERE — materialize was owed here
+        code, out = self._close_composite(td)
+        self.assertEqual(code, 3, out)
+        self.assertIn("materialize", out)
+        self.assertIn("AT THE FIRING", out)
+        self._assert_no_record(td, "deliver.")
+
+        code, out = _quiet(L.main, ["materialize", "--change-dir", CHANGE_REL,
+                                    "--run", "RUN-1", "--root", td])
+        self.assertEqual(code, 0, out)
+        marker = json.loads(open(os.path.join(self._change(td), "short-circuit.json"),
+                                 encoding="utf-8").read())
+        self.assertEqual(marker["status"], "materialized")
+        build_log, test_log = self._logs(td)
+        code, out = _quiet(L.main, [
+            "close", "--change-dir", CHANGE_REL, "--run", "RUN-1",
+            "--self-review", "clean",
+            "--build-log", build_log, "--test-log", test_log, "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertIn("Verify record emitted", out)  # M2 raised verify to 1
+
+    def test_audit_blocks_a_still_deferred_close(self):
+        """close-commit's audit gate: a hand-reverted (or skipped) materialization can
+        never close."""
+        td = self._mk_repo()
+        code, out = self._frame_composite(td, raises=[])
+        self.assertEqual(code, 0, out)
+        self._write(td, os.path.join(self._change(td), "decision-events.md"), LEDGER)
+        self._work_edit(td)
+        self._work_rescan(td)
+        code, out = self._close_composite(td)
+        self.assertEqual(code, 0, out)
+        marker_path = os.path.join(self._change(td), "short-circuit.json")
+        marker = json.loads(open(marker_path, encoding="utf-8").read())
+        marker["status"] = "deferred"
+        L._dump_record(marker_path, marker)
+        result = A.run_audit(
+            os.path.join(self._change(td), "classification-state.json"),
+            os.path.join(self._change(td), "decision-events.md"), self._change(td))
+        self.assertFalse(result["pass"])
+        failing = [c["id"] for c in result["assertions"] if not c["pass"]]
+        self.assertIn("shortCircuit.materialized", failing)
 
 
 if __name__ == "__main__":

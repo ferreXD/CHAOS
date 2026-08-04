@@ -35,6 +35,21 @@ field is missing or empty. What stays agent work outside any input file: the run
 decision + ledger RUN-DEC-* entry, the resume capsule, OpenSpec/ADR artifacts owed at
 a firing, and the implementation itself.
 
+ZERO-TRIGGER SHORT-CIRCUIT (wall-clock option 2; creator sign-off on the S1 authoring
+amendment given 2026-08-04, in-session). When — and only when — the TOOL decides the
+post-merge frame is zero-trigger (nothing fired, every dimension at its floor, no preset,
+path-class map present), `frame-commit` defers the artifact WRITES (contract.json, frame
+record, renders) to the close and presents the contract inline at S1 instead. Nothing
+about the stop changes: S1 still fires unconditionally (C-11) and still owes its runtime
+decision, ledger entry and capsule. The deferred content is validated fail-closed at
+frame-commit exactly as on the normal path and persisted verbatim in
+`<change-dir>/short-circuit.json` (working state, like scan-inputs.json). If any trigger
+fires later, the artifacts are owed AT THE FIRING: `loop materialize` authors them then;
+`loop close` aborts fail-closed on a fired-while-still-deferred run, and the obligation
+audit asserts a short-circuited change is materialized before it can close. Eligibility is
+never agent-requested — there is no opt-in surface, only a conservative `--no-short-circuit`
+opt-out.
+
 Exit codes: 0 ok · 1 close-commit audit gate failed · 2 misuse/broken inputs ·
 3 close aborted back to the work loop (fail closed on new evidence).
 """
@@ -123,9 +138,7 @@ def _load_state_dims(change_dir):
     return state, compute_dimensions(state)
 
 
-def _fill_envelope(rec, judgement, where):
-    """Move agent-authored envelope judgement into a facts record. Fails closed on
-    anything empty; never touches derived fields."""
+def _validate_envelope_judgement(judgement, where):
     _require((judgement.get("verdict") or "").strip(),
              "%s: judgement 'verdict' is missing/empty" % where)
     assessment = judgement.get("assessment") or {}
@@ -134,6 +147,13 @@ def _fill_envelope(rec, judgement, where):
                  "%s: assessment.%s is missing/empty" % (where, k))
     _require((judgement.get("verdictRationale") or "").strip(),
              "%s: verdictRationale is missing/empty" % where)
+
+
+def _fill_envelope(rec, judgement, where):
+    """Move agent-authored envelope judgement into a facts record. Fails closed on
+    anything empty; never touches derived fields."""
+    _validate_envelope_judgement(judgement, where)
+    assessment = judgement.get("assessment") or {}
     rec["verdict"] = judgement["verdict"]
     rec["assessment"] = {k: assessment[k]
                          for k in ("confidence", "evidenceCoverage", "assumptionLoad")}
@@ -204,6 +224,11 @@ def cmd_frame(args):
         owed.append("adr 2 — an ADR file is owed; author it before S1")
     if owed:
         lines += ["## Owed before S1"] + ["- %s" % o for o in owed] + [""]
+    if ("- fired: none" in verdict and args.mode is None and not args.no_map):
+        lines += ["## Short-circuit: provisionally eligible (tool-decided at frame-commit)",
+                  "If your raises leave this frame zero-trigger, frame-commit defers the "
+                  "artifact writes to close and presents the contract inline at S1. The "
+                  "stop itself is unchanged. `--no-short-circuit` opts out.", ""]
     lines += [
         "## Next: ONE deliberation, then frame-commit",
         "Author a single input file (JSON) and run:",
@@ -245,7 +270,7 @@ def _merge_raises(change_dir, raises, run_id):
                                    adjudication={"raises": raises}, run_id=run_id)
 
 
-def _write_contract(change_dir, contract_in, run_id, source_command):
+def _validate_contract(contract_in):
     statements = (contract_in or {}).get("statements") or []
     _require(statements, "contract.statements is empty — the contract is the frame's core "
                          "judgement; there is nothing to commit without it")
@@ -256,6 +281,11 @@ def _write_contract(change_dir, contract_in, run_id, source_command):
         _require(sid not in seen, "duplicate contract statement id %s" % sid)
         seen.add(sid)
         _require((s.get("text") or "").strip(), "contract statement %s has empty text" % sid)
+    return statements
+
+
+def _write_contract(change_dir, contract_in, run_id, source_command):
+    statements = _validate_contract(contract_in)
     contract = {
         "schemaVersion": 1,
         "recordType": "contract",
@@ -271,6 +301,78 @@ def _write_contract(change_dir, contract_in, run_id, source_command):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     _dump_record(path, contract)
     return path
+
+
+def _author_frame_artifacts(change_dir, run, source_command, mode, title,
+                            contract_in, judgement, root):
+    """The frame's artifact WRITES: contract.json + frame record (judgement filled from
+    agent-authored content) + render. Shared verbatim by the normal frame-commit path and
+    by materialization of a short-circuited frame — that is what keeps the two paths'
+    artifacts identical."""
+    _write_contract(change_dir, contract_in, run, source_command)
+
+    emit = ["frame", "--change-dir", change_dir, "--run", run,
+            "--source-command", source_command]
+    if mode:
+        emit += ["--mode", mode]
+    if title:
+        emit += ["--title", title]
+    code, out, err = _call(record_mod.main, emit)
+    _require(code == 0, "record frame failed (exit %d): %s" % (code, err.strip()))
+    rec_path = json.loads(out)["written"]
+
+    rec = _load_json(rec_path)
+    _fill_envelope(rec, judgement, "frame record")
+    facts_in = dict(judgement.get("facts") or {})
+    facts_openspec = facts_in.pop("openspec", None)   # always popped: openspec is filled
+    openspec_in = judgement.get("openspec") or facts_openspec  # field-wise, never merged
+    if openspec_in:
+        derived = rec["facts"]["openspec"]
+        _require(derived.get("depth", 0) >= 1,
+                 "openspec judgement supplied but the classified depth is 0 — the derived "
+                 "NOT_INVOKED facts are the record; nothing to fill")
+        for k in ("status", "invocationPath", "confidenceImpact"):
+            if (openspec_in.get(k) or "").strip():
+                derived[k] = openspec_in[k]
+    for k, v in facts_in.items():
+        _require(not rec["facts"].get(k),
+                 "facts.%s is derived and non-empty — the input file must not overwrite "
+                 "derived facts" % k)
+        rec["facts"][k] = v
+    _dump_record(rec_path, rec)
+
+    change_id = os.path.basename(os.path.abspath(change_dir))
+    code, out, err = _call(render_mod.main, [change_id, "--root", root, "--write"])
+    _require(code == 0, "render --write failed (exit %d): %s"
+             % (code, (err or out).strip()))
+    return rec_path
+
+
+# --- zero-trigger short-circuit (option 2) -------------------------------------------------
+
+
+def _marker_path(change_dir):
+    return os.path.join(change_dir, "short-circuit.json")
+
+
+def _load_marker(change_dir):
+    p = _marker_path(change_dir)
+    return _load_json(p) if os.path.isfile(p) else None
+
+
+def _short_circuit_eligible(change_dir):
+    """TOOL-decided, never agent-requested. Eligible only when the post-merge frame is
+    zero-trigger in the strict sense: nothing fired, every dimension sitting exactly on
+    its floor, no preset floors, and a path-class map present (a --no-map run can never
+    short-circuit: M2 was structurally blind, so 'fired: none' is not evidence of an
+    immaterial change — the D4/D5 lesson)."""
+    inputs = scan_mod.load_inputs(change_dir)
+    state, dims = _load_state_dims(change_dir)
+    floors = state.get("floors", {})
+    return (inputs.get("mode") is None
+            and not inputs.get("noMap")
+            and not state.get("fired")
+            and all(dims[k] == floors.get(k, 0) for k in DIM_KEYS))
 
 
 def cmd_frame_commit(args):
@@ -291,44 +393,55 @@ def cmd_frame_commit(args):
 
     inputs = scan_mod.load_inputs(args.change_dir)
     mode = args.mode or inputs.get("mode")
-
-    _write_contract(args.change_dir, inp.get("contract"), args.run, args.source_command)
-
-    emit = ["frame", "--change-dir", args.change_dir, "--run", args.run,
-            "--source-command", args.source_command]
-    if mode:
-        emit += ["--mode", mode]
-    if args.title:
-        emit += ["--title", args.title]
-    code, out, err = _call(record_mod.main, emit)
-    _require(code == 0, "record frame failed (exit %d): %s" % (code, err.strip()))
-    rec_path = json.loads(out)["written"]
-
-    rec = _load_json(rec_path)
     judgement = inp.get("record") or {}
-    _fill_envelope(rec, judgement, "frame record")
-    facts_in = dict(judgement.get("facts") or {})
-    facts_openspec = facts_in.pop("openspec", None)   # always popped: openspec is filled
-    openspec_in = judgement.get("openspec") or facts_openspec  # field-wise, never merged
-    if openspec_in:
-        derived = rec["facts"]["openspec"]
-        _require(derived.get("depth", 0) >= 1,
-                 "openspec judgement supplied but the classified depth is 0 — the derived "
-                 "NOT_INVOKED facts are the record; nothing to fill")
-        for k in ("status", "invocationPath", "confidenceImpact"):
-            if (openspec_in.get(k) or "").strip():
-                derived[k] = openspec_in[k]
-    for k, v in facts_in.items():
-        _require(not rec["facts"].get(k),
-                 "facts.%s is derived and non-empty — the input file must not overwrite "
-                 "derived facts" % k)
-        rec["facts"][k] = v
-    _dump_record(rec_path, rec)
 
-    change_id = os.path.basename(os.path.abspath(args.change_dir))
-    code, out, err = _call(render_mod.main, [change_id, "--root", args.root, "--write"])
-    _require(code == 0, "render --write failed (exit %d): %s"
-             % (code, (err or out).strip()))
+    # Fail closed NOW on both paths: deferral moves the writes, never the validation.
+    _validate_contract(inp.get("contract"))
+    _validate_envelope_judgement(judgement, "frame record")
+    facts_in = judgement.get("facts") or {}
+    _require("intent" not in facts_in,
+             "facts.intent is derived (verbatim from scan-inputs) — the input file must "
+             "not overwrite derived facts")
+    _require(not (args.title and "title" in facts_in),
+             "facts.title conflicts with --title — the argument is the derived source")
+
+    if _short_circuit_eligible(args.change_dir) and not args.no_short_circuit:
+        marker = {"status": "deferred", "decidedBy": "tool",
+                  "run": args.run, "mode": mode, "title": args.title,
+                  "sourceCommand": args.source_command,
+                  "contract": inp["contract"], "record": judgement}
+        _write_marker = _marker_path(args.change_dir)
+        _dump_record(_write_marker, marker)
+        seq, verdict = _latest_verdict(args.change_dir)
+        statements = inp["contract"]["statements"]
+        lines = ["# S1 — frame approval stop (short-circuit: artifact writes deferred)", "",
+                 "The TOOL decided this frame is zero-trigger (nothing fired, vector at "
+                 "floors, no preset): contract.json, the frame record and the renders are "
+                 "deferred to close (%s). The stop itself is UNCHANGED — present the "
+                 "contract inline below, surface the decision, write the ledger entry and "
+                 "the capsule, STOP." % os.path.basename(_write_marker), "",
+                 "## Verdict of record (scan/verdict-%d.md)" % seq, "", verdict.rstrip(), "",
+                 "## Contract (inline — present verbatim in the decision text)"]
+        lines += ["- %s: %s" % (s["id"], s["text"]) for s in statements]
+        lines += ["",
+                  "## Present to the human now",
+                  "- intent (verbatim): %s" % inputs.get("intent", ""),
+                  "- the verdict + the inline contract above",
+                  "- surface exactly ONE runtime decision with approves-change: true "
+                  "(`folds: <n>` on the ledger entry)",
+                  "- write the RUN-DEC-* ledger entry and the resume capsule AT stop "
+                  "creation, then STOP (mustStop)",
+                  "",
+                  "If ANY trigger fires at a later scan: run "
+                  "`python tools/chaos-loop/loop.py materialize --change-dir %s --run %s` "
+                  "AT THE FIRING, before that surface is implemented further. Otherwise "
+                  "`loop close` materializes automatically." % (args.change_dir, args.run)]
+        print("\n".join(lines))
+        return 0
+
+    rec_path = _author_frame_artifacts(args.change_dir, args.run, args.source_command,
+                                       mode, args.title, inp.get("contract"), judgement,
+                                       args.root)
 
     seq, verdict = _latest_verdict(args.change_dir)
     _, dims = _load_state_dims(args.change_dir)
@@ -356,6 +469,36 @@ def cmd_frame_commit(args):
              "- write the RUN-DEC-* ledger entry and the resume capsule AT stop creation",
              "- then STOP (mustStop). Never proceed on an unanswered recommendation."]
     print("\n".join(lines))
+    return 0
+
+
+def _materialize(change_dir, run, root):
+    """Author the deferred frame artifacts from the marker — the same writer the normal
+    path uses, so the artifact bytes cannot differ. Facts derive from live state (L4):
+    if a trigger fired before materialization, the record shows the then-current vector
+    and the TRG ledger carries the timeline."""
+    marker = _load_marker(change_dir)
+    _require(marker, "no short-circuit.json in %s — nothing to materialize" % change_dir)
+    _require(marker.get("status") == "deferred",
+             "short-circuit marker is %r — already materialized" % marker.get("status"))
+    rec_path = _author_frame_artifacts(
+        change_dir, run or marker.get("run"), marker.get("sourceCommand", "chaos:run"),
+        marker.get("mode"), marker.get("title"),
+        marker.get("contract"), marker.get("record") or {}, root)
+    state, _dims = _load_state_dims(change_dir)
+    marker["status"] = "materialized"
+    marker["materializedAt"] = _now()
+    marker["materializedAtScanSeq"] = state.get("scanCount", 0)
+    _dump_record(_marker_path(change_dir), marker)
+    return rec_path
+
+
+def cmd_materialize(args):
+    rec_path = _materialize(args.change_dir, args.run, args.root)
+    print("materialized deferred frame artifacts: records/contract.json · %s · rendered.\n"
+          "If a trigger firing prompted this, author the artifacts IT owes (openspec/ADR) "
+          "now as well, before implementing that surface further."
+          % os.path.basename(rec_path))
     return 0
 
 
@@ -409,9 +552,24 @@ def cmd_close(args):
         + (["--run", args.run] if args.run else []),
         "the self-review checkpoint (K4)")
 
-    _state, dims = _load_state_dims(args.change_dir)
+    state, dims = _load_state_dims(args.change_dir)
     inputs = scan_mod.load_inputs(args.change_dir)
     mode = args.mode or inputs.get("mode")
+
+    materialized_here = False
+    marker = _load_marker(args.change_dir)
+    if marker and marker.get("status") == "deferred":
+        if state.get("fired"):
+            raise LoopAbort(
+                "a trigger fired while the frame artifacts were still deferred "
+                "(short-circuit) — they were owed AT THE FIRING, before that surface was "
+                "implemented further. Run `loop materialize --change-dir %s --run %s` NOW, "
+                "author whatever the firing itself owes (openspec/ADR), record the timing "
+                "deviation with a RUN-DEC-* ref in the deliver judgement, then run "
+                "`loop close` again." % (args.change_dir, args.run))
+        # zero-trigger happy path: the deferred writes reappear here, inside the close
+        _materialize(args.change_dir, args.run, args.root)
+        materialized_here = True
 
     verify_path = None
     if dims["verify"] >= 1:
@@ -459,6 +617,10 @@ def cmd_close(args):
              "demanded" % k3_seq,
              "## Self-review (K4, scan/verdict-%d.md): clean" % k4_seq,
              "## Dimensions: " + " · ".join("%s %d" % (k, dims[k]) for k in DIM_KEYS), ""]
+    if materialized_here:
+        lines += ["## Short-circuit: deferred frame artifacts materialized now "
+                  "(contract.json + frame record + render) — zero-trigger held end to end",
+                  ""]
     if verify_path:
         checks = verify_rec["facts"]["checks"]
         lines += ["## Verify record emitted (%s) — independent re-run (L4-D4)"
@@ -685,11 +847,20 @@ def main(argv=None):
     fr.add_argument("--digest", default=digest_mod.DEFAULT_DIGEST)
 
     fc = sub.add_parser("frame-commit",
-                        help="merge + contract + frame record + render -> S1 presentation")
+                        help="merge + contract + frame record + render -> S1 presentation "
+                             "(zero-trigger frames defer the writes to close)")
     common(fc)
     fc.add_argument("--input", required=True, help="the single deliberation file (JSON)")
     fc.add_argument("--title", default=None, help="change title for the frame record")
     fc.add_argument("--mode", default=None, help="override; defaults to the k1 preset")
+    fc.add_argument("--no-short-circuit", action="store_true",
+                    help="author the frame artifacts before S1 even on a zero-trigger "
+                         "frame (conservative opt-out; there is no opt-in)")
+
+    mz = sub.add_parser("materialize",
+                        help="author the deferred frame artifacts of a short-circuited "
+                             "run NOW (owed at any trigger firing)")
+    common(mz)
 
     cl = sub.add_parser("close",
                         help="final rescan + k4 + verify/deliver records -> one close packet")
@@ -717,6 +888,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     try:
         return {"frame": cmd_frame, "frame-commit": cmd_frame_commit,
+                "materialize": cmd_materialize,
                 "close": cmd_close, "close-commit": cmd_close_commit}[args.cmd](args)
     except LoopAbort as e:
         print("chaos-loop ABORT: %s" % e)
