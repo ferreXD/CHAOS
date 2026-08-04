@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-task-count",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T08:41:29Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 fired zero triggers across both calls (deterministic scan + my adjudication pass, scanSeq 2); the vector sits at stops 1 with every other dimension 0."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The additive route this change introduces is expected to fire M3 at the first K3 diff scan; the K1 adjudication deliberately did not pre-empt it (adjudication contract rule 12)."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this run; the approval stop is resolved in-arm with a documented maintainer-style rationale (see commentary)."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope and the six contract statements are complete and testable against the existing green baseline (5 integration tests). Nothing in the K1 inputs is ambiguous, and the intent explicitly disclaims the two posture non-goals it could otherwise brush against (auth, persistence-model change), so no posture line is crossed.",
+  "commentary": "Documented deviation: no live human is available in this measurement run. Each stop is still recorded as a RUN-DEC entry in decision-events.md and resolved immediately with an explicit maintainer-style rationale, with status RESOLVED-IN-ARM and tagged 'resolved-in-arm (no live human; lever-run mechanized run)'. Answering the approves-change decision IS the approval for this run. OpenSpec is at classified depth 0, so the contract of record is change.md §Contract — a classified outcome, not degraded mode. The governance digest verified clean (digest.py --check exit 0), so the digest was read in place of its fourteen source references.",
+  "facts": {
+    "title": "Active-task count endpoint",
+    "intent": [
+      "Add a lightweight aggregate endpoint that reports how many tasks exist. This is a read-only convenience for the dashboard; it introduces no authentication and no persistence-model change. Contract: add GET /tasks/count returning HTTP 200 with a JSON object { \"count\": <integer> } where count is the total number of tasks currently in the store; count must always equal the number of items returned by GET /tasks (same store, same moment); creating a task (POST /tasks, 201) increases count by exactly 1 and deleting a task (DELETE /tasks/{id}, 204) decreases count by exactly 1; the root health endpoint GET / and all existing /tasks CRUD behaviour are unchanged. Constraints: keep dotnet build and dotnet test green (the existing 5 tests must still pass); do not change unrelated behaviour of the CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the classification owes no OpenSpec artifact; the contract of record is change.md §Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint: pre-edit behaviour, protected files, governed subject", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "posture: boundary model, non-goals, testing posture", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "executable constraints R-001..R-007", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "confidence/knowledge doctrine", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the new route joins", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the in-memory store All() counts against", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "composition root; GET / health endpoint that must stay unchanged", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "Additive, read-only route over an existing in-memory store; no auth, no persistence-model change, no existing endpoint behaviour touched, and the whole diff stays inside two files under the governed subject.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "`GET /tasks/count` could be swallowed by the existing `GET /tasks/{id}` route.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing by-id route carries the `:guid` constraint, so `count` cannot match it; an integration test asserting 200 + a `count` body proves the routing."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Counting from a source other than `store.All()` could drift from `GET /tasks` (C-002).",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The endpoint derives the count from the same `store.All()` call `GET /tasks` returns; a test asserts equality of the two responses at the same moment."
+        },
+        {
+          "id": "RK-3",
+          "summary": "Adding a count member to the domain store would push HTTP-shaped concerns into `Domain/**` (R-004, boundary posture).",
+          "likelihood": "Low",
+          "impact": "Low",
+          "mitigation": "Implementation stays at the endpoint boundary; `Domain/**` is not in the declared scope."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-count aggregate route (no OpenSpec artifact owed at depth 0)",
+        "statements": ["C-001", "C-002", "C-003", "C-004"],
+        "tasks": "1 work unit: add the `/count` route in TaskEndpoints.cs plus integration tests covering the endpoint shape and the three invariants."
+      },
+      {
+        "capability": "non-regression and boundary discipline",
+        "statements": ["C-005", "C-006"],
+        "tasks": "Keep the 5 baseline tests untouched and green; confine the diff to src/TaskTracker.Api and tests/TaskTracker.Tests."
+      }
+    ]
+  }
+}

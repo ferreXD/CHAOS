@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-optimistic-concurrency-updates-p3arma",
+  "mode": null,
+  "verdict": "READY",
+  "at": "2026-08-04T08:30:57Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed (raised by the M1/M2 data-store firings) and was run inside the loop, attributed to the surface that actually fired. The independent re-run reproduces build 0 errors / 0 warnings and 15/15 tests, and OpenSpec strict validation passes. The three data-store safeguards that matter here - the version invariant, the atomicity of the compare-and-set, and the no-partial-write property of the 409 path - are each evidenced by a targeted test or by direct inspection of the write path. Nothing is deferred and no debt is carried, so READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: verify 1 buys the safeguards for the surface that fired, not a general sweep. The fired surfaces are data-store (TRG-001 M2, TRG-002 M1) and process (TRG-003 M4); auth and deploy-ops safeguards are recorded below as an explicit n/a positive claim rather than a silent omission.\n\nThe one safeguard that could NOT be bought with a test is the true concurrency property - that two genuinely simultaneous writers cannot both win. A wall-clock race test would be flaky and would prove nothing on a pass, so it is verified by inspection instead (VFY-002) and stated as an INFERENCE, not a FACT.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 15,
+        "total": 15,
+        "note": "independent re-run by chaos-record (L4-D4); 5 pre-existing baseline tests untouched + 10 added for this change"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "`openspec validate optimistic-concurrency-updates --strict` exit 0. isComplete:false is EXPECTED at classified depth 1: the CLI measures the full artifact set (proposal/design/tasks), which a depth-1 delta does not owe."
+      },
+      "contract": {
+        "ticked": 13,
+        "total": 13,
+        "note": "C-001..C-013 each covered; 11 by test, 2 by code inspection (C-005 binding-shape, C-013 boundary) - see the deliver record's coverage rows and their whyNotTest."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 8 scan(s) — derived from classification-state.json; the diff paths are exactly the 5 paths declared in the K1 scope line."
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 15/15, 0 failed, independent re-run; the 5 baseline tests were not edited (git status shows tests/TaskTracker.Tests/TaskEndpointsTests.cs unmodified) and the baseline PUT test still omits expectedVersion, which is the backward-compatibility oracle." },
+        { "id": "R-004", "status": "pass", "evidence": "grep for Microsoft.AspNetCore / IResult / Results. / HttpContext over src/TaskTracker.Api/Domain/** returns no code hits (only a pre-existing doc comment naming System.Threading.Tasks.TaskStatus). TaskStore.Update returns the transport-agnostic TaskUpdateResult; TaskEndpoints maps it to 200/404/409." },
+        { "id": "R-005", "status": "pass", "evidence": "TaskState is unchanged and still the only work-item status enum; no TaskStatus type was introduced (the sole occurrence is the pre-existing comment explaining the avoidance)." },
+        { "id": "R-006", "status": "pass", "evidence": "git status shows AGENTS.md and root README.md unmodified; no patch was proposed against either." },
+        { "id": "R-001", "status": "pass", "evidence": "The one material choice (store-side vs endpoint-side placement, crossing the boundary posture) was surfaced as RUN-DEC-001 with four folded questions rather than decided silently. DEVIATION: resolved in-arm with a documented rationale, since no live human is available in this measurement run." },
+        { "id": "R-002", "status": "pass", "evidence": "Every finding below carries knowledge + confidence; the verdict carries confidence, evidenceCoverage and assumptionLoad." }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Task Version Field — new and seeded tasks start at version 1, serialized as `version`",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskItem.cs — `int Version` on the record; src/TaskTracker.Api/Domain/TaskStore.cs — AddAt creates with Version: 1, which is the single construction path for both seeded and created tasks",
+        "test": "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Post_returns_a_task_at_version_1, ::Seeded_tasks_start_at_version_1, ::Task_json_exposes_the_version_field_by_that_name",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Task Version Field — every successful PUT increments version by exactly 1",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs — the only successful exit from Update is the TryUpdate swap of `existing with { … Version = existing.Version + 1 }`, so the increment cannot be bypassed by any caller",
+        "test": "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Successive_updates_keep_incrementing_the_version (1→2→3), ::Put_with_matching_expected_version_succeeds_and_increments, ::Put_without_expected_version_updates_unconditionally_and_increments",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Optimistic Concurrency On Task Update — stale expectedVersion is rejected with 409 and the task is left unchanged",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs — the version comparison returns VersionConflict BEFORE any `with` expression is evaluated or any dictionary write is attempted; src/TaskTracker.Api/Endpoints/TaskEndpoints.cs maps VersionConflict to Results.Conflict",
+        "test": "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_with_stale_expected_version_is_rejected_with_409, ::Rejected_update_leaves_the_task_completely_unchanged (asserts title, status, priority, createdAt and version all unchanged after the 409)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Optimistic Concurrency On Task Update — omitted expectedVersion updates unconditionally (backward compatible)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Contracts/TaskRequests.cs — `int? ExpectedVersion = null`; the store's guard is `expectedVersion is int expected`, so null skips the check entirely",
+        "test": "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_without_expected_version_updates_unconditionally_and_increments, plus the untouched baseline tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Concurrency Control Does Not Alter Other Endpoints",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — GET/POST/DELETE handlers are byte-identical to baseline; the PUT title guard still precedes the store call",
+        "test": "the 5 untouched baseline tests in tests/TaskTracker.Tests/TaskEndpointsTests.cs, plus ::Put_for_an_unknown_id_returns_404_even_with_an_expected_version and ::Blank_title_is_still_rejected_with_400_even_with_a_matching_expected_version",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Data-store safeguard: the 409 path performs no write at all",
+        "detail": "Attributed to TRG-001 (M2 sensitive-surface, data-store) and TRG-002 (M1 posture-crossing, data-store). The persistence-semantics check verify 1 buys on this surface is whether a rejected update can partially mutate state. It cannot: in TaskStore.Update the `expectedVersion is int expected && expected != existing.Version` guard returns TaskUpdateResult.VersionConflict before the `with` expression is evaluated and before TryUpdate is reached, so there is exactly one write site on the method and it is unreachable on the conflict path. Confirmed behaviourally by ::Rejected_update_leaves_the_task_completely_unchanged, which asserts title, status, priority, createdAt AND version are all identical after the 409."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "Data-store safeguard: the compare-and-set is atomic against the shared singleton — verified by inspection, not by a race test",
+        "detail": "Attributed to TRG-002 (M1 posture-crossing, data-store) — this is the property the posture crossing was accepted in order to obtain, so verify owes it a check. The store is a process-wide singleton over a ConcurrentDictionary, so the version check and the write must not be separable. They are not: the swap uses TryUpdate(id, updated, existing), which succeeds only if the stored value is still the exact snapshot the version was compared against, and a lost swap re-enters the loop to re-read and re-evaluate rather than overwriting. The soundness argument depends on `existing` being distinguishable after any intervening write, which holds because every successful update increments Version, so no intervening successful write can leave a structurally equal snapshot. Recorded as INFERENCE/MEDIUM rather than FACT/HIGH deliberately: a wall-clock two-writer race test would be flaky and a passing run would not prove absence of the race, so no such test was written. This is the residual assumption of the change."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Data-store safeguard: no migration surface exists, and the shape change is additive",
+        "detail": "Attributed to TRG-001 (M2 sensitive-surface, data-store). The migration half of the persistence check is n/a as a positive claim, not a silent skip: the store is in-memory and process-lifetime (.chaos/architecture.md records durability across restarts as an explicit NON-GOAL), so there is no persisted representation to migrate and no seed data on disk. The serialized shape change is purely additive — `version` is added, nothing is removed or renamed — which is why the baseline test DTO, which does not name the field, continues to deserialize and pass untouched."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Process safeguard: every folded question on the decision-density firing is answered",
+        "detail": "Attributed to TRG-003 (M4 decision-density, process — 4 material questions across 1 entry). All four questions folded into RUN-DEC-001 are addressed by its recorded answer (option A): the classification vector is approved, the store-side placement is chosen and paid for by the ADR, the change to the singleton store's write semantics is accepted, and the contract widening to expose `version` on every task-returning endpoint is accepted with a stated reason (a client that cannot read `version` cannot use `expectedVersion`). No question folded at the stop was left dangling."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, deploy-ops and integration safeguards were not run and are not owed",
+        "detail": "No trigger fired on the auth, deploy-ops or integration surfaces, so those safeguards are N/A — asserted rather than skipped silently. The diff touches no credential, key or secret material, no configuration key, no CI/deploy file and no external integration; .chaos/architecture.md records that the API is open by design and that authentication is a NON-GOAL, so the change neither adds nor weakens an enforcement point."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Posture debt is recorded, not silently absorbed",
+        "detail": "Attributed to TRG-002 (M1 posture-crossing). The change ships against a live inconsistency: .chaos/architecture.md §'Module / boundary model' still says new behaviour does not belong in the store's public shape, while the code now puts a write-atomicity invariant there. That is authorized by RUN-DEC-001 and the ADR, and routed as sync-action CREATE_ADR — but the architecture document itself is NOT amended by this change (amending repository posture is out of the declared scope). The amendment is carried as an explicit follow-up in the ADR's Consequences section; until chaos:sync lands it, the ADR is the authorization of record."
+      }
+    ]
+  }
+}

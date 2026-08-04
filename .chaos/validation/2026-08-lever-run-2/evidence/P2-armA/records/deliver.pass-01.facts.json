@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-soft-delete-tasks-01",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T08:07:41Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "APPLIED, not PARTIALLY_APPLIED: all twelve contract statements are delivered, and ten of the twelve carry direct HTTP-level test evidence rather than inspection. The two that do not (C-009, C-010) are non-regression and rule-compliance claims about surface the diff deliberately does not touch, and both carry whyNotTest plus a named mechanical check, so weak evidence stays visible instead of being dressed up as a test. Build is 0 warnings / 0 errors and the suite is 14/14 with the five baseline tests unmodified; the diff is exactly the four declared files (NO_DRIFT, M5 never fired across 10 scans); and each of the three deviations from the literal framing is decision-backed by RUN-DEC-001.",
+  "commentary": "Two things are worth flagging to a reviewer rather than leaving implicit.\n\nFirst, a correction. The frame record's ASSUMPTION that a malformed ?includeDeleted value would fall back to the default active-only view is FALSE: probing the running app showed true/false/absent => 200, and banana / 1 / an empty value => 400 Bad Request from minimal-API bool? binding. No code change was made, because 400 is exactly the convention this repository already recorded for unrecognized query-param values (docs/decision-log/2026-07-19-task-filter-validation.md, carried into openspec/specs/task-api/spec.md), so the repository answers the question and no S3 discordance stop was owed. The completed frame pass is left as written per the never-rewrite rule; the correction is carried here and as VFY-003.\n\nSecond, the shape of the evidence for C-003. Retention is asserted POSITIVELY through ?includeDeleted=true rather than inferred from the id route's 404. That matters: the pre-existing baseline test Delete_removes_a_task asserts 204-then-404, which a regression that hard-deleted the row would still satisfy. Only a positive retention assertion distinguishes soft-delete from hard-delete, which is why RK-1 was framed as the change's top risk and why C-003 does not lean on the baseline.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 14,
+      "total": 14,
+      "note": "5 baseline tests unchanged and still green + 9 added in SoftDeleteTests.cs for the soft-delete contract"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Active_task_serializes_deleted_at_as_null",
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Get_tasks_with_include_deleted_returns_soft_deleted_tasks"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Delete_soft_deletes_the_task_and_retains_it"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Delete_soft_deletes_the_task_and_retains_it",
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Get_tasks_with_include_deleted_returns_soft_deleted_tasks"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Delete_unknown_id_returns_404"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Get_tasks_hides_soft_deleted_tasks_by_default"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Get_tasks_with_include_deleted_returns_soft_deleted_tasks"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Get_by_id_returns_404_for_a_soft_deleted_task",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_removes_a_task (baseline, unmodified: still asserts 204 then 404 on the id route)"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Seeded_tasks_are_active_after_startup"
+        ]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs - untouched in the diff; all 5 baseline cases (POST create, PUT update, GET by id, blank-title 400, DELETE) pass unmodified within the 14/14 run",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - the POST, PUT and blank-title branches are unchanged in the diff; only the GET list line, the DELETE line and doc comments moved",
+          "src/TaskTracker.Api/Program.cs and src/TaskTracker.Api/Contracts/TaskRequests.cs - absent from the diff entirely"
+        ],
+        "whyNotTest": "This is a non-regression claim about surface the change deliberately does not touch. The existing baseline suite already asserts that behaviour and passes unmodified, so the honest evidence is the untouched diff plus the green baseline; adding new tests for it would assert the test suite rather than the behaviour. The one intended exception is PUT against a soft-deleted task, which is NOT unrelated behaviour - it could not exist before this change - and is separately contracted as C-012 with its own test."
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "R-004: grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore / IResult / HttpContext / Results. returns no match; includeDeleted is bound in TaskEndpoints.cs and passed to the store as a plain bool, and SoftDelete stamps DateTimeOffset.UtcNow (BCL, not ASP.NET)",
+          "R-005: the only TaskStatus occurrences under src/ and tests/ are the two pre-existing doc-comment lines in TaskItem.cs explaining why the enum is NOT named that; the enum is still TaskState",
+          "scope: git status --porcelain over src and tests lists exactly 4 paths, all declared at K1; the same command over AGENTS.md and root README.md is empty (R-006)"
+        ],
+        "whyNotTest": "A static/structural property of the diff, not a runtime behaviour: no HTTP request can observe 'Domain does not reference ASP.NET' or 'the change stayed in scope'. The checkable form is a grep plus a git-status assertion, both re-run at verify and recorded there as the R-004 / R-005 / R-006 pass rows."
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Repeat_delete_returns_404_and_keeps_the_original_timestamp"
+        ]
+      },
+      {
+        "statement": "C-012",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/SoftDeleteTests.cs::Put_on_a_soft_deleted_task_returns_404"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet build 0 warnings / 0 errors and dotnet test 14/14, 0 failed. The 5 baseline tests in TaskEndpointsTests.cs are unmodified in the diff and all still pass, so the green baseline was preserved rather than rewritten to fit the change."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore / IResult / HttpContext / Results. returns nothing. The domain gained TaskItem.DeletedAt and the TaskStore SoftDelete/All(bool)/Get/Update changes using only BCL types (DateTimeOffset?, bool); the includeDeleted query parameter is bound in the endpoint layer and crosses the boundary as a plain bool. The dependency direction endpoints -> domain is unchanged."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "the enum is still TaskState; the only TaskStatus occurrences under src/ and tests/ are the two pre-existing doc-comment lines in TaskItem.cs explaining the deliberate avoidance of System.Threading.Tasks.TaskStatus. DeletedAt is a new nullable field, not a new work-item state, so nothing was renamed."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "git status --porcelain AGENTS.md README.md is empty: neither protected file was edited, previewed or otherwise touched by this run."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/SoftDeleteTests.cs",
+        "change": "added"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "TaskStore.Remove(Guid) -> bool was REPLACED by SoftDelete(Guid) -> TaskItem? rather than kept alongside it, so the store no longer exposes any hard-delete path at all. This narrows the store's public surface further than the literal contract required (which only said DELETE must stop removing). Chosen because leaving Remove in place would leave a reachable way to defeat retention; the DELETE endpoint was its only caller.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "All(), Get() and Update() hide soft-deleted tasks inside the store rather than the predicate being applied at the endpoint layer, which is what the architecture's boundary paragraph nominally prefers. This IS the M1 posture crossing, authorized explicitly and recorded in .chaos/changes/soft-delete-tasks/adr/2026-08-04-soft-delete-lives-in-the-store-shape.md.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "Mechanized human stop: no live human was available in this measurement run, so RUN-DEC-001 was recorded as a full ledger entry and then resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM). Answering the approves-change decision constitutes the approval for this run. Disclosed in the frame record's commentary; it changes WHO answered, not what fired, what stopped, or what was owed.",
+        "decision": "RUN-DEC-001"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 10 scans. The C-15-scoped diff (git diff -- src tests) is exactly 4 paths, every one declared in the K1 scope line: TaskItem.cs, TaskStore.cs and TaskEndpoints.cs (modified) plus SoftDeleteTests.cs (declared as planned NEW). tests/TaskTracker.Tests/TaskEndpointsTests.cs was predicted in scope but proved unnecessary to touch, which narrows the delivered diff rather than widening it."
+    }
+  }
+}

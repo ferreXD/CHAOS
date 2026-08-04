@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-require-api-key-auth-p1arma",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T07:31:14Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 fired three materiality triggers — M2 sensitive-surface (by scan, surface auth), M1 posture-crossing and M3 contract-surface (both by adjudication, scanSeq 2). Vector: stops 1 · evidence.targeted 1 · evidence.breadth 0 · review 0 · verify 1 · openspec 2 · adr 2. Classifier confidence MEDIUM after the merge."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run. RUN-DEC-001 is resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM) rather than answered in the Decision Center. This is a recorded deviation from R-001, not a silent inference."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The M3 firing is adjudicated, not scanned: the route SET is unchanged (the same five routes under the same group), so the K3 route-delta scan is structurally blind to the new mandatory request precondition. Later K3 scans are therefore not expected to re-fire M3 on their own."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope and the ten contract statements are complete and testable against a green five-test baseline, and the mechanism is fully pinned by the incoming contract (header name, configuration key, default value, status code, ordering, public carve-out). The one genuinely material question — that the change crosses an explicit recorded non-goal — is not resolved by inference: it is surfaced as the single S1 stop and recorded in the accompanying ADR. Nothing else in the K1 inputs is ambiguous.",
+  "commentary": "Documented deviation, stated here as the run's frame commentary: this is a mechanized lever-run measurement with NO live human available. Every stop is still surfaced as a real ledger entry at the moment it is reached, in order, and is then resolved in-arm with an explicit maintainer-style rationale, tagged 'resolved-in-arm (no live human; lever-run mechanized run)' with status RESOLVED-IN-ARM. Answering the approves-change decision (RUN-DEC-001) IS the approval for this run. R-001 normally routes these through the interaction runtime and the Decision Center; that routing is what is deviated from, and only that.\n\nOn the classification: the M1 raise is deliberate and worth naming. The architecture's auth section carries an [UNKNOWN] marker, but that marker attaches to 'for future intent' — the Non-goals bullet 'Authentication / authorization / multi-tenant concerns' is unhedged, and the same section states plainly that 'Any auth is out of scope and would be strict, decision-bearing work.' Under adjudication rule 3, an [UNKNOWN] area is not crossable; under rule 13, an intent that commits to a mechanism is. This intent commits to a mechanism and hits an unhedged non-goal, so M1 fires and the crossing is recorded in an ADR rather than absorbed.\n\nThe OpenSpec CLI (1.6.0) was present and driven as the first-class path — this is not degraded mode.",
+  "facts": {
+    "title": "Require API-key authentication on the task endpoints",
+    "intent": [
+      "Require API-key authentication on the task endpoints. The Task Tracker API is currently open (no authentication). Add API-key authentication to the /tasks endpoints. Every request to any /tasks route (GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, DELETE /tasks/{id}) must present a valid API key in the X-Api-Key request header. The valid API key is the string value of configuration key ApiKey, defaulting to test-secret-key when that configuration value is not set. A request to a /tasks route with a missing or incorrect X-Api-Key header must be rejected with HTTP 401 Unauthorized, and must not read or mutate any task (the auth check happens before existence/validation checks). The root health endpoint GET / must stay public (no key required). Update the existing visible test suite as needed so it supplies the key and stays green. Constraints: keep dotnet build and dotnet test green; do not change unrelated behaviour of the CRUD endpoints; work only inside src/TaskTracker.Api and tests/TaskTracker.Tests."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 2,
+      "invocationPath": "openspec CLI 1.6.0 driven directly (a first-class path per the OpenSpec gate, not a fallback): `openspec new change require-api-key-auth` -> `openspec status --change require-api-key-auth --json` -> `openspec instructions <proposal|specs|design|tasks> --change require-api-key-auth --json` for each artifact, writing to the paths status returned -> `openspec validate require-api-key-auth --strict`. Artifacts authored at depth 2 (the full set): openspec/changes/require-api-key-auth/{proposal.md, design.md, tasks.md, specs/task-api-auth/spec.md, specs/task-api/spec.md}. Validation result: PASSED (`Change 'require-api-key-auth' is valid`, exit 0). Authored at the K1 firing, before the S1 stop.",
+      "confidenceImpact": "None — the owed depth was authored in full and validated strict by the real CLI before the frame stop."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files (R-006), minimum pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "human ownership (§1), posture-change discipline (§6), confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007 — the executable constraints this change is measured against", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "the crossed posture: auth section + Non-goals; boundary model that keeps enforcement in the HTTP layer", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "composition root; maps the public GET / health endpoint that must stay open", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the /tasks route group the filter attaches to — the enforcement point", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/appsettings.json", "role": "configuration surface where ApiKey would be supplied", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the green five-test baseline that must keep passing once it supplies the key", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "HIGH",
+      "classRationale": "Security enforcement on an already-public contract, crossing a recorded architectural non-goal. Three materiality triggers fired at intent (M1 posture-crossing, M2 sensitive-surface, M3 contract-surface). The blast radius is small in lines but total in effect: every existing /tasks caller breaks, and a defect in the enforcement point is either a silent hole (auth not applied) or a full outage (health probe locked out).",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "The filter is attached too broadly and locks out the public GET / health endpoint.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "Attach to the /tasks MapGroup only, never to the app; pinned by contract statement C-008 and a dedicated test asserting GET / returns 200 with no header."
+        },
+        {
+          "id": "RK-2",
+          "summary": "The check runs after routing binds the id or after payload validation, leaking 404/400 to unauthenticated callers and touching the store.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "An endpoint filter short-circuits before the endpoint delegate (design D2); pinned by C-006/C-007 and tests asserting 401-not-404 and 401-not-400, plus a non-mutation test."
+        },
+        {
+          "id": "RK-3",
+          "summary": "The committed default key `test-secret-key` is carried into a real deployment that never sets ApiKey.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "Out of this change's control by contract (the default is pinned). Recorded as accepted risk AR-1 in the ADR with the deployment obligation stated; the ADR's sync action amends the architecture posture so the obligation is visible."
+        },
+        {
+          "id": "RK-4",
+          "summary": "Enforcement is opt-in per group, so a future route mapped outside /tasks would ship unprotected.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "Group-level attachment means new routes in the group inherit protection; recorded as accepted risk AR-5 and pinned by the spec scenario 'Every task route is protected'."
+        },
+        {
+          "id": "RK-5",
+          "summary": "Updating the five existing CRUD tests to send the header masks a real regression in CRUD behaviour.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing assertions are left untouched — only client construction changes (design D6); C-009 pins unchanged status codes and payload shapes for authenticated callers."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-api-auth (openspec/changes/require-api-key-auth/specs/task-api-auth/spec.md — ADDED: API-Key Authentication On Task Endpoints, Configured API Key With Default, Authentication Precedes Task Access, Public Health Endpoint)",
+        "statements": ["C-001", "C-002", "C-003", "C-004", "C-005", "C-006", "C-007", "C-008"],
+        "tasks": "tasks.md groups 1 and 2: author the failing auth tests first, then the ApiKeyEndpointFilter and its attachment to the /tasks group."
+      },
+      {
+        "capability": "task-api (openspec/changes/require-api-key-auth/specs/task-api/spec.md — MODIFIED: List Tasks now presupposes an authenticated caller)",
+        "statements": ["C-009"],
+        "tasks": "tasks.md 1.2: the five existing CRUD tests supply the key through a shared authenticated-client helper; their assertions are unchanged."
+      },
+      {
+        "capability": "repository rules R-003 / R-004 / R-005 (.chaos/rules/index.md — no OpenSpec capability; asserted by the delivery gate)",
+        "statements": ["C-010"],
+        "tasks": "tasks.md group 3: dotnet build clean, dotnet test green, domain free of ASP.NET types, TaskState naming untouched."
+      }
+    ]
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-optimistic-concurrency-updates-p3arma",
+  "recordedAt": "2026-08-04T08:22:49Z",
+  "groups": ["Task shape", "Update semantics", "Non-regression", "Boundary"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Task shape",
+      "text": "Every task the API serializes carries an integer version field, named `version` in JSON."
+    },
+    {
+      "id": "C-002",
+      "group": "Task shape",
+      "text": "`POST /tasks` returns HTTP 201 with a task whose `version` is 1."
+    },
+    {
+      "id": "C-003",
+      "group": "Task shape",
+      "text": "Tasks seeded at store construction start at `version` 1."
+    },
+    {
+      "id": "C-004",
+      "group": "Update semantics",
+      "text": "Every successful `PUT /tasks/{id}` increments that task's `version` by exactly 1 (1 -> 2 -> 3 ...)."
+    },
+    {
+      "id": "C-005",
+      "group": "Update semantics",
+      "text": "`UpdateTaskRequest` accepts an OPTIONAL integer field `expectedVersion`; a request body that omits it is still valid and still binds."
+    },
+    {
+      "id": "C-006",
+      "group": "Update semantics",
+      "text": "When `expectedVersion` is provided and does NOT equal the task's current `version`, `PUT /tasks/{id}` is rejected with HTTP 409 Conflict."
+    },
+    {
+      "id": "C-007",
+      "group": "Update semantics",
+      "text": "A 409-rejected update leaves the task entirely unchanged: no field is updated and `version` is not bumped."
+    },
+    {
+      "id": "C-008",
+      "group": "Update semantics",
+      "text": "When `expectedVersion` is provided and MATCHES the current `version`, the update succeeds with HTTP 200 and `version` increments."
+    },
+    {
+      "id": "C-009",
+      "group": "Update semantics",
+      "text": "When `expectedVersion` is omitted (null), the update proceeds unconditionally (backward-compatible last-writer-wins) with HTTP 200 and `version` increments."
+    },
+    {
+      "id": "C-010",
+      "group": "Non-regression",
+      "text": "`PUT /tasks/{id}` for an id that does not exist still returns HTTP 404 Not Found, whatever `expectedVersion` carries."
+    },
+    {
+      "id": "C-011",
+      "group": "Non-regression",
+      "text": "Blank-title validation is unchanged: `POST /tasks` and `PUT /tasks/{id}` with a blank title still return HTTP 400 Bad Request."
+    },
+    {
+      "id": "C-012",
+      "group": "Non-regression",
+      "text": "`GET /tasks`, `GET /tasks/{id}` and `DELETE /tasks/{id}` keep their existing behaviour apart from the added `version` field; the pre-existing 5-test baseline stays green and `dotnet build` stays clean (R-003)."
+    },
+    {
+      "id": "C-013",
+      "group": "Boundary",
+      "text": "`src/TaskTracker.Api/Domain/**` references no `Microsoft.AspNetCore.*` or endpoint type (R-004), and the `TaskState` naming is preserved (R-005)."
+    }
+  ]
+}

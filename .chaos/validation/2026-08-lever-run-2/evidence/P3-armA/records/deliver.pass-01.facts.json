@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-optimistic-concurrency-updates-p3arma",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T08:32:46Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All 13 contract statements are delivered and enumerated below: 11 carry test evidence, 2 carry code evidence with a stated whyNotTest. Build is clean (0 errors, 0 warnings) and the suite is 15/15 with the 5 pre-existing baseline tests untouched and passing, which is the backward-compatibility oracle the task named. The diff is exactly the 5 paths declared at K1, so scope drift is NO_DRIFT and M5 never fired. APPLIED rather than PARTIALLY_APPLIED: nothing in the contract was deferred.",
+  "commentary": "Two implementation choices are worth stating plainly because they are the ones a reviewer would question.\n\nFirst, TaskStore.Update changed its return type from `TaskItem?` to `TaskUpdateResult`. That is a breaking change to an internal API, but a necessary one: with a nullable return the endpoint cannot distinguish 'no such task' (404) from 'version conflict' (409), which the contract requires it to do. TaskStore has exactly one caller in the subject and it was updated in the same unit.\n\nSecond, the retry loop in Update is deliberate, not defensive boilerplate. Losing the TryUpdate swap means another writer committed between our read and our write; re-reading is what makes the version check and the increment atomic with respect to each other. Without it, a lost swap would either silently drop an increment or need to be reported as a conflict to a caller that never asked for one (expectedVersion null), both of which break the contract.\n\nThe 409 response body (error, expectedVersion, actualVersion) is beyond the letter of the contract, which pins only the status code. It follows the shape the existing 400 handler already uses and lets a client re-read and retry without a second GET.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 15,
+      "total": 15
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Task_json_exposes_the_version_field_by_that_name"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Post_returns_a_task_at_version_1"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Seeded_tasks_start_at_version_1"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Successive_updates_keep_incrementing_the_version",
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_with_matching_expected_version_succeeds_and_increments"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Contracts/TaskRequests.cs — UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority, int? ExpectedVersion = null)"
+        ],
+        "whyNotTest": "This statement is about the request record's binding shape, not an observable behaviour, so it has no direct assertion of its own. It is however transitively proven: ::Put_without_expected_version_updates_unconditionally_and_increments and the untouched baseline ::Put_updates_an_existing_task both send bodies with no expectedVersion field and get 200, which is only possible if the field is genuinely optional. A test asserting the type signature would assert the compiler, not the API."
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_with_stale_expected_version_is_rejected_with_409"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Rejected_update_leaves_the_task_completely_unchanged"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_with_matching_expected_version_succeeds_and_increments"
+        ]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_without_expected_version_updates_unconditionally_and_increments",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task (pre-existing, untouched)"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Put_for_an_unknown_id_returns_404_even_with_an_expected_version"
+        ]
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskConcurrencyTests.cs::Blank_title_is_still_rejected_with_400_even_with_a_matching_expected_version",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected (pre-existing, untouched)"
+        ]
+      },
+      {
+        "statement": "C-012",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs — all 5 baseline tests, unmodified and passing (Get_tasks_returns_the_seeded_tasks, Post_creates_a_task_and_get_by_id_returns_it, Put_updates_an_existing_task, Delete_removes_a_task, Post_with_blank_title_is_rejected)",
+          "dotnet build — 0 errors, 0 warnings"
+        ]
+      },
+      {
+        "statement": "C-013",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Domain/TaskStore.cs — only `using System.Collections.Concurrent`; TaskUpdateResult/TaskUpdateOutcome are plain domain types",
+          "src/TaskTracker.Api/Domain/TaskItem.cs — no usings; TaskState unchanged",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — the switch over TaskUpdateOutcome is where HTTP status codes are chosen"
+        ],
+        "whyNotTest": "R-004 and R-005 are static structural constraints on which types the domain may reference and how an enum is named; a runtime integration test cannot observe them. Verified instead by inspection of the whole Domain diff plus a grep for Microsoft.AspNetCore / IResult / Results. / HttpContext / TaskStatus over src/TaskTracker.Api/Domain/**, which returns no code hits — the sole TaskStatus occurrence is the pre-existing doc comment explaining why the name is avoided. The repository has no architecture-fitness test harness that could encode this; adding one is out of this change's declared scope."
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 15/15, 0 failed. The 5 pre-existing tests were not edited (git status reports tests/TaskTracker.Tests/TaskEndpointsTests.cs unmodified) and still pass; ::Put_updates_an_existing_task in particular sends a PUT body with no expectedVersion, which is exactly the backward-compatibility case the task constrained."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "The domain gained no HTTP dependency: TaskStore returns TaskUpdateResult (a domain record struct) and TaskEndpoints maps Updated/NotFound/VersionConflict onto 200/404/409. Grep over src/TaskTracker.Api/Domain/** for Microsoft.AspNetCore, IResult, Results. and HttpContext returns no code hits. This is the rule most at risk from RUN-DEC-001's store-side placement, so it was checked directly rather than assumed."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "TaskState is untouched and remains the only work-item status enum. The two new domain type names (TaskUpdateOutcome, TaskUpdateResult) were checked against System.Threading.Tasks for the same collision class that motivated the rule; neither name exists there, so no global-usings ambiguity is introduced."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "git status shows AGENTS.md and root README.md unmodified. No patch was proposed against either file and no silent write occurred."
+      },
+      {
+        "id": "R-001",
+        "status": "pass",
+        "evidence": "The material choice this change turned on — store-side compare-and-set versus endpoint-side check-then-write, which crosses a recorded architecture posture — was surfaced as RUN-DEC-001 with 4 folded questions and settled by an ADR, not decided silently mid-implementation. DEVIATION, disclosed: no live human was available in this measurement run, so the decision was recorded AND resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM). The runtime/Decision Center path was not used because nothing would have answered it."
+      },
+      {
+        "id": "R-002",
+        "status": "pass",
+        "evidence": "Every finding in the verify record carries a knowledge type and confidence; every verdict in the frame, deliver and verify records carries confidence, evidenceCoverage and assumptionLoad. The one genuinely inferential claim — that the compare-and-set is race-free — is labelled INFERENCE/MEDIUM in VFY-002 rather than presented as a tested fact."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskConcurrencyTests.cs",
+        "change": "added"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "The compare-and-set was placed inside TaskStore.Update rather than at the endpoint, changing the store's public shape against the boundary posture in .chaos/architecture.md; TaskStore.Update's signature and return type changed accordingly (TaskItem? -> TaskUpdateResult, plus an optional expectedVersion parameter).",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "The `version` field is exposed on every task-returning endpoint (GET list, GET by id, POST, PUT), not only on the write responses, because a client that cannot read the current version cannot supply expectedVersion.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "Each stop was recorded and resolved in the same step with a documented maintainer-style rationale (status RESOLVED-IN-ARM) instead of being answered by a human in the Decision Center: no live human is available in this measurement run.",
+        "decision": "RUN-DEC-001"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 8 scan(s) — derived from classification-state.json; the 5 changed paths are exactly the paths declared in the K1 scope line, including the planned NEW test file."
+    }
+  }
+}

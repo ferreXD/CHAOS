@@ -1,0 +1,375 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..156b014 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -1,5 +1,6 @@
+ using TaskTracker.Api.Contracts;
+ using TaskTracker.Api.Domain;
++using TaskTracker.Api.Security;
+ 
+ namespace TaskTracker.Api.Endpoints;
+ 
+@@ -17,6 +18,11 @@ public static class TaskEndpoints
+     {
+         var group = app.MapGroup("/tasks");
+ 
++        // Every route in this group requires a valid X-Api-Key header (change:
++        // require-api-key-auth). Attached to the GROUP, not the app, so GET / stays public and any
++        // route added here later inherits the protection instead of shipping open by accident.
++        group.AddEndpointFilter<ApiKeyEndpointFilter>();
++
+         // GET /tasks — returns every task in the store. No filtering (yet).
+         group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
+ 
+diff --git a/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+new file mode 100644
+index 0000000..d0637a1
+--- /dev/null
++++ b/src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs
+@@ -0,0 +1,55 @@
++namespace TaskTracker.Api.Security;
++
++/// <summary>
++/// Endpoint filter that requires a valid API key on every route it is attached to.
++/// </summary>
++/// <remarks>
++/// Attached to the <c>/tasks</c> route group (see <c>Endpoints/TaskEndpoints.cs</c>), never to the
++/// application, so the public <c>GET /</c> health endpoint stays reachable without a key.
++/// <para>
++/// An endpoint filter runs after routing but <em>before</em> the endpoint delegate, which is what
++/// makes the rejection happen ahead of any existence or payload-validation check: an
++/// unauthenticated request for an unknown id gets 401 rather than 404, and an unauthenticated
++/// POST with a blank title gets 401 rather than 400. Nothing reaches the task store.
++/// </para>
++/// <para>
++/// Change of record: <c>require-api-key-auth</c>; posture crossing recorded in
++/// <c>.chaos/changes/require-api-key-auth/adr/2026-08-04-api-key-authentication.md</c>. This is a
++/// single shared demo credential — no identity, no rotation, no expiry.
++/// </para>
++/// </remarks>
++public sealed class ApiKeyEndpointFilter : IEndpointFilter
++{
++    /// <summary>The request header carrying the key.</summary>
++    public const string HeaderName = "X-Api-Key";
++
++    /// <summary>The configuration key holding the valid API key.</summary>
++    public const string ConfigurationKey = "ApiKey";
++
++    /// <summary>The key used when <see cref="ConfigurationKey"/> supplies no value.</summary>
++    public const string DefaultApiKey = "test-secret-key";
++
++    private readonly string _expectedKey;
++
++    public ApiKeyEndpointFilter(IConfiguration configuration)
++    {
++        var configured = configuration[ConfigurationKey];
++
++        // An unset OR blank configuration value falls back to the default. Treating a blank value
++        // as "the valid key" would let a caller authenticate with an empty header.
++        _expectedKey = string.IsNullOrEmpty(configured) ? DefaultApiKey : configured;
++    }
++
++    public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
++    {
++        var presented = context.HttpContext.Request.Headers[HeaderName];
++
++        // Exactly one header value, matching ordinally (an API key is an opaque token). A missing
++        // header, a repeated header, or a mismatch is a bare 401 with no body — an anonymous
++        // caller learns nothing beyond "rejected".
++        if (presented.Count != 1 || !string.Equals(presented[0], _expectedKey, StringComparison.Ordinal))
++            return ValueTask.FromResult<object?>(Results.Unauthorized());
++
++        return next(context);
++    }
++}
+diff --git a/tests/TaskTracker.Tests/ApiKeyAuthTests.cs b/tests/TaskTracker.Tests/ApiKeyAuthTests.cs
+new file mode 100644
+index 0000000..5ee5e56
+--- /dev/null
++++ b/tests/TaskTracker.Tests/ApiKeyAuthTests.cs
+@@ -0,0 +1,213 @@
++using System.Net;
++using System.Net.Http.Json;
++using Microsoft.AspNetCore.Hosting;
++using Microsoft.AspNetCore.Mvc.Testing;
++using Microsoft.Extensions.Configuration;
++using Xunit;
++
++namespace TaskTracker.Tests;
++
++/// <summary>
++/// Integration tests for API-key authentication on the <c>/tasks</c> endpoints.
++/// Pins the contract of change <c>require-api-key-auth</c>: every task route demands a valid
++/// <c>X-Api-Key</c> header, the key comes from configuration key <c>ApiKey</c> (default
++/// <c>test-secret-key</c>), rejection is a bare 401 that happens before any existence or
++/// validation check, and <c>GET /</c> stays public.
++/// </summary>
++public class ApiKeyAuthTests : IClassFixture<WebApplicationFactory<Program>>
++{
++    private const string HeaderName = "X-Api-Key";
++    private const string DefaultKey = "test-secret-key";
++
++    private readonly WebApplicationFactory<Program> _factory;
++
++    public ApiKeyAuthTests(WebApplicationFactory<Program> factory) => _factory = factory;
++
++    /// <summary>A client that presents the given API key on every request.</summary>
++    private HttpClient KeyedClient(string key)
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Add(HeaderName, key);
++        return client;
++    }
++
++    /// <summary>A client that presents no API key at all.</summary>
++    private HttpClient AnonymousClient() => _factory.CreateClient();
++
++    private async Task<TaskDto> CreateTaskAsync(string title)
++    {
++        var response = await KeyedClient(DefaultKey).PostAsJsonAsync(
++            "/tasks", new { title, status = "Open", priority = "Low" });
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++        return (await response.Content.ReadFromJsonAsync<TaskDto>())!;
++    }
++
++    // ---- C-001 / C-002: every task route rejects a missing key ------------------------------
++
++    [Fact]
++    public async Task Get_tasks_without_a_key_is_unauthorized()
++    {
++        var response = await AnonymousClient().GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Get_task_by_id_without_a_key_is_unauthorized()
++    {
++        var created = await CreateTaskAsync("Guarded by id");
++
++        var response = await AnonymousClient().GetAsync($"/tasks/{created.Id}");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Post_task_without_a_key_is_unauthorized()
++    {
++        var response = await AnonymousClient().PostAsJsonAsync(
++            "/tasks", new { title = "Should never exist", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Put_task_without_a_key_is_unauthorized()
++    {
++        var created = await CreateTaskAsync("Guarded against update");
++
++        var response = await AnonymousClient().PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Hijacked", status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Delete_task_without_a_key_is_unauthorized()
++    {
++        var created = await CreateTaskAsync("Guarded against deletion");
++
++        var response = await AnonymousClient().DeleteAsync($"/tasks/{created.Id}");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    // ---- C-003: a wrong key is rejected; C-001: the right key is accepted -------------------
++
++    [Fact]
++    public async Task An_incorrect_key_is_unauthorized()
++    {
++        var response = await KeyedClient("wrong-key").GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task An_empty_key_header_is_unauthorized()
++    {
++        var response = await KeyedClient(string.Empty).GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task The_valid_key_is_accepted_on_every_task_route()
++    {
++        var client = KeyedClient(DefaultKey);
++        var created = await CreateTaskAsync("Reachable with the key");
++
++        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/tasks")).StatusCode);
++        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/tasks/{created.Id}")).StatusCode);
++        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Renamed", status = "Done", priority = "Low" })).StatusCode);
++        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/tasks/{created.Id}")).StatusCode);
++    }
++
++    // ---- C-004 / C-005: the key comes from configuration, with a default --------------------
++
++    [Fact]
++    public async Task The_default_key_applies_when_ApiKey_is_not_configured()
++    {
++        // The un-reconfigured factory has no ApiKey value; the documented default must apply.
++        var response = await KeyedClient(DefaultKey).GetAsync("/tasks");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task A_configured_ApiKey_replaces_the_default()
++    {
++        using var configured = _factory.WithWebHostBuilder(builder =>
++            builder.ConfigureAppConfiguration((_, config) =>
++                config.AddInMemoryCollection(new Dictionary<string, string?>
++                {
++                    ["ApiKey"] = "configured-key"
++                })));
++
++        var withConfiguredKey = configured.CreateClient();
++        withConfiguredKey.DefaultRequestHeaders.Add(HeaderName, "configured-key");
++        Assert.Equal(HttpStatusCode.OK, (await withConfiguredKey.GetAsync("/tasks")).StatusCode);
++
++        var withDefaultKey = configured.CreateClient();
++        withDefaultKey.DefaultRequestHeaders.Add(HeaderName, DefaultKey);
++        Assert.Equal(HttpStatusCode.Unauthorized, (await withDefaultKey.GetAsync("/tasks")).StatusCode);
++    }
++
++    // ---- C-006 / C-007: auth runs before existence and validation, and mutates nothing ------
++
++    [Fact]
++    public async Task An_unknown_id_without_a_key_is_401_not_404()
++    {
++        var response = await AnonymousClient().GetAsync($"/tasks/{Guid.NewGuid()}");
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task A_blank_title_post_without_a_key_is_401_not_400()
++    {
++        var response = await AnonymousClient().PostAsJsonAsync(
++            "/tasks", new { title = "", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task An_unauthenticated_delete_leaves_the_task_in_place()
++    {
++        var created = await CreateTaskAsync("Survives an anonymous delete");
++
++        var delete = await AnonymousClient().DeleteAsync($"/tasks/{created.Id}");
++        Assert.Equal(HttpStatusCode.Unauthorized, delete.StatusCode);
++
++        var stillThere = await KeyedClient(DefaultKey).GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Survives an anonymous delete", stillThere!.Title);
++    }
++
++    [Fact]
++    public async Task An_unauthenticated_update_does_not_change_the_task()
++    {
++        var created = await CreateTaskAsync("Original title");
++
++        var update = await AnonymousClient().PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Overwritten", status = "Done", priority = "High" });
++        Assert.Equal(HttpStatusCode.Unauthorized, update.StatusCode);
++
++        var fetched = await KeyedClient(DefaultKey).GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Original title", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++    }
++
++    // ---- C-008: the health endpoint stays public --------------------------------------------
++
++    [Fact]
++    public async Task The_root_health_endpoint_stays_public()
++    {
++        var response = await AnonymousClient().GetAsync("/");
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++    }
++
++    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
++    private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++}
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..8e7c885 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -10,16 +10,30 @@ namespace TaskTracker.Tests;
+ /// and exercise the CRUD endpoints over HTTP. These lock in the current (pre-filtering) behavior
+ /// and give the CHAOS apply/verify steps a green baseline to build on.
+ /// </summary>
++/// <remarks>
++/// Since change <c>require-api-key-auth</c> the <c>/tasks</c> routes require a valid
++/// <c>X-Api-Key</c> header, so these tests go through <see cref="CreateAuthenticatedClient"/>.
++/// Only client construction changed — every assertion below is the pre-auth baseline, which is
++/// what keeps this suite a regression check on CRUD behaviour rather than on authentication.
++/// </remarks>
+ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+ {
+     private readonly WebApplicationFactory<Program> _factory;
+ 
+     public TaskEndpointsTests(WebApplicationFactory<Program> factory) => _factory = factory;
+ 
++    /// <summary>A client carrying the default API key, which every /tasks route now requires.</summary>
++    private HttpClient CreateAuthenticatedClient()
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Add("X-Api-Key", "test-secret-key");
++        return client;
++    }
++
+     [Fact]
+     public async Task Get_tasks_returns_the_seeded_tasks()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
+ 
+@@ -31,7 +45,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Post_creates_a_task_and_get_by_id_returns_it()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "Write tests", status = "Open", priority = "High" });
+@@ -50,7 +64,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Put_updates_an_existing_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Draft", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -67,7 +81,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Delete_removes_a_task()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+         var created = await (await client.PostAsJsonAsync(
+             "/tasks", new { title = "Temporary", status = "Open", priority = "Low" }))
+             .Content.ReadFromJsonAsync<TaskDto>();
+@@ -82,7 +96,7 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+     [Fact]
+     public async Task Post_with_blank_title_is_rejected()
+     {
+-        var client = _factory.CreateClient();
++        var client = CreateAuthenticatedClient();
+ 
+         var response = await client.PostAsJsonAsync(
+             "/tasks", new { title = "", status = "Open", priority = "Low" });

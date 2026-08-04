@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-task-count",
+  "mode": null,
+  "verdict": "READY",
+  "at": "2026-08-04T08:47:11Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by TRG-001 (M3, surface contract-dependency) and was run inside the loop, attributed to that surface: the route delta is confirmed additive, the new contract is exercised by five integration tests, and build + tests were re-run independently by the emitter (10/10, 0 errors, 0 warnings). Nothing is deferred and no debt is carried, so READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: verify 1 buys the safeguards for the surface that actually fired — contract checks — not a full verification sweep. The safeguards that are NOT owed (credential/enforcement for auth, persistence/migration for data-store) are recorded below as an explicit n/a positive claim rather than a silent omission. The openspec run is a real CLI invocation (openspec 1.6.0 is installed in this worktree), so the delta spec is machine-validated, not merely hand-authored.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 10,
+        "total": 10,
+        "note": "independent re-run by chaos-record (L4-D4); 5 baseline + 5 new"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "ran: openspec validate task-count --strict → 'Change task-count is valid'; openspec status --change task-count --json → isComplete false, applyRequires ['tasks']. isComplete:false is EXPECTED at classified depth 1: the CLI measures the full artifact set (proposal/design/tasks), which this change does not owe — not degraded mode."
+      },
+      "contract": {
+        "ticked": 6,
+        "total": 6,
+        "note": "C-001..C-006, each covered — four by the new integration tests, C-005 by the untouched baseline suite, C-006 by the diff itself"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 6 scan(s) — derived from classification-state.json; the subject diff is exactly the two declared scope paths"
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 10/10, 0 failed; the 5 baseline tests are untouched and still pass" },
+        { "id": "R-004", "status": "pass", "evidence": "Domain/** is not in the diff and contains no Microsoft.AspNetCore reference; the count is computed at the endpoint from store.All()" },
+        { "id": "R-005", "status": "pass", "evidence": "no TaskStatus identifier introduced; the enum stays TaskState (only the pre-existing explanatory comment names the collision it avoids)" },
+        { "id": "R-006", "status": "pass", "evidence": "git status shows no modification to AGENTS.md or root README.md" },
+        { "id": "R-001", "status": "pass", "evidence": "the one material decision is recorded as RUN-DEC-001 in decision-events.md with approves-change: true; no material question was answered silently" },
+        { "id": "R-002", "status": "pass", "evidence": "every record carries verdict + assessment (confidence/evidenceCoverage/assumptionLoad); findings carry knowledge + confidence" }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "GET /tasks/count returns 200 with { count: <integer> }",
+        "capability": "task-api (delta: Requirement 'Task Count')",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — group.MapGet(\"/count\", ...) returning Results.Ok(new { count = store.All().Count })",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Get_count_returns_200_with_the_number_of_tasks",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "count equals the number of items returned by GET /tasks at the same moment",
+        "capability": "task-api (delta: Requirement 'Task Count')",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — the count is derived from the same store.All() snapshot GET /tasks serializes",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Count_equals_the_number_of_items_returned_by_get_tasks",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "POST /tasks (201) increases count by exactly 1; DELETE /tasks/{id} (204) decreases it by exactly 1",
+        "capability": "task-api (delta: Requirement 'Task Count')",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — no store mutation added; the count reads through to the existing Add/Remove paths",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Creating_a_task_increases_count_by_exactly_one and ::Deleting_a_task_decreases_count_by_exactly_one",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "GET / and existing /tasks CRUD behaviour are unchanged",
+        "capability": "task-api (delta scenario: 'Existing endpoints are unaffected')",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — the diff is four added lines; no existing registration edited; Program.cs untouched",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs (5 baseline tests, unmodified) plus ::Root_health_endpoint_is_unchanged",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the route delta is purely additive",
+        "detail": "Attributed to TRG-001 (M3 contract-surface, breaking false). The subject diff registers exactly one new route and edits no existing registration; nothing is removed, renamed, or tombstoned, and the numstat shows 4 added / 0 deleted lines in the endpoint file."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: /tasks/count cannot be shadowed by the by-id route",
+        "detail": "Attributed to TRG-001. The pre-existing GET /tasks/{id:guid} carries a guid route constraint, so the literal 'count' segment cannot bind to it; the 200 + JSON body assertion in Get_count_returns_200_with_the_number_of_tasks proves the routing at runtime. This closes framing risk RK-1."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth and data-store safeguards were not run, and are not owed",
+        "detail": "Only the contract-dependency surface fired (TRG-001), so credential/enforcement and persistence/migration safeguards are N/A — asserted, not silently skipped: the diff touches no Domain/**, no configuration key, and no secret material, and the store's public shape is unchanged."
+      }
+    ]
+  }
+}

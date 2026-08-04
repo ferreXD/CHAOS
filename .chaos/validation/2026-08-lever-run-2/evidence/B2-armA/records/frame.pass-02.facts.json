@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 2,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T09:04:40Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "Re-frame pass: the K2 scan after RUN-DEC-001 fired M4 decision-density (TRG-001, cite 'ledger scan rule: 2 material question(s) across 1 entry >= threshold 2'), raising the vector to stops 1 · evidence.targeted 1 · evidence.breadth 0 · review 1 · verify 0 · openspec 1 · adr 0. Pass 1 framed against openspec 0; this pass records the owed depth-1 artifact actually authored."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The contract statements C-001..C-007 are unchanged from pass 1 and remain the approved contract; this re-frame changes the classification record and the OpenSpec proof, not the behaviour being delivered."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "Evidence found after pass 1 strengthens it: docs/decision-log/2026-07-19-task-filter-validation.md (status Accepted) already mandates 400-on-unrecognized, case-insensitive parsing and an Enum.IsDefined guard against numeric-out-of-range input, and records 'Requires ADR: No' — independently confirming adr 0. .chaos/architecture.md's OQ-002 is stale, not open. Recorded in full on RUN-DEC-002."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run: every decision is recorded and then resolved with a documented maintainer-style rationale, status RESOLVED-IN-ARM. This is a recorded deviation from R-001's Decision-Center path, not a silent bypass."
+    }
+  ],
+  "verdictRationale": "Framing is still ready, and now at the classified depth the run actually owes. The intent, scope and contract are unchanged and testable against the green baseline; what changed is the governance obligation — M4 raised openspec to 1 — and that obligation has been discharged before any implementation touched the surface it governs, as the creator rule requires. The one discordance encountered while authoring it (the main spec requires priority filtering and AND-combination that this contract does not cover) was surfaced and answered as RUN-DEC-002 rather than absorbed.",
+  "commentary": "Two things are worth recording plainly for whoever reads this next. First, the re-frame is not a change of mind about the work: it exists because obligations in this system are authored when they fire, and this one fired at K2 — after pass 1 was complete and approved. Pass 1 is left intact as the record of what was approved at S1; this pass records what the classification then demanded. Second, an honest cost observation. M4 fired because RUN-DEC-001 folded two material questions, and the second of those — whether settling the architecture's OQ-002 at HTTP 400 was acceptable — turned out to be a question the repository had already answered in an accepted decision log outside the read set I was scoped to. Asking it cost an OpenSpec delta. The direction of the answer was right and the delta is a genuinely useful artifact, but the cheaper path existed: read `openspec/specs/<capability>/spec.md` and `docs/decision-log/` before deciding a question is open. Same mechanization deviation as pass 1: no live human, decisions resolved in-arm with documented rationale and tagged 'resolved-in-arm (no live human; lever-run mechanized run)'.",
+  "facts": {
+    "title": "Filter GET /tasks by status",
+    "intent": [
+      "GET /tasks currently returns every task. Add an optional query-parameter filter on task status. This is a query-shaping convenience: no authentication, no persistence-model change. GET /tasks?status=<state> returns only tasks whose status equals <state>, where <state> is one of the TaskState names: Open, InProgress, Done. The match is case-insensitive: ?status=open behaves identically to ?status=Open. GET /tasks with no status parameter returns all tasks (unchanged behaviour). An unrecognised status value (e.g. ?status=Bogus) returns HTTP 400 Bad Request and returns no task list. Existing seeded data: of the four seeded tasks, exactly two are Open, one is InProgress, and one is Done. A filtered response must contain only tasks of the requested status. Constraints: keep dotnet build and dotnet test green (the existing 5 tests must still pass; the unfiltered GET /tasks test must keep working); do not change unrelated behaviour of the other CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "invocationPath": "openspec CLI 1.6.0, driven directly per the OpenSpec gate: `openspec new change filter-tasks-by-status` (created openspec/changes/filter-tasks-by-status/) -> `openspec status --change filter-tasks-by-status --json` (read the returned artifactPaths; specs outputPath specs/**/*.md) -> `openspec instructions specs --change filter-tasks-by-status --json` (followed the MODIFIED workflow: copy the entire existing requirement block, then edit) -> authored openspec/changes/filter-tasks-by-status/specs/task-api/spec.md as a MODIFIED delta against the existing `task-api` 'List Tasks' requirement -> `openspec validate filter-tasks-by-status --strict` => 'Change filter-tasks-by-status is valid', exit 0. Depth 1 owes the delta spec only, so proposal.md / design.md / tasks.md were deliberately not authored; `openspec status` accordingly reports isComplete: false with applyRequires: [tasks], which is the expected reading at depth 1 and not degraded mode.",
+      "confidenceImpact": "None. The gate was invoked through a first-class path and strict validation passed. The delta deliberately leaves the requirement's normative text intact rather than narrowing it, and records in its header note that `priority` filtering and AND-combination remain unimplemented after this change (RUN-DEC-002 option A), so the outstanding gap stays visible instead of being papered over."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "agent entrypoint: pre-edit behaviour, protected files, rule pointers", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "behavioural principles + confidence doctrine applied to every verdict here", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-003 green baseline, R-004 domain-to-HTTP boundary, R-005 TaskState naming, R-006 protected files", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, API strategy (names ?status= filtering as the known extension point), non-goals; its OQ-002 is stale — see the decision log below", "knowledge": "FACT" },
+      { "path": "openspec/specs/task-api/spec.md", "role": "the existing main-spec requirement this delta modifies; already requires status+priority+AND filtering and 400-on-unrecognized", "knowledge": "FACT" },
+      { "path": "docs/decision-log/2026-07-19-task-filter-validation.md", "role": "accepted decision mandating 400 on unrecognized filter values, case-insensitive parsing, and an Enum.IsDefined guard against numeric-out-of-range input; records 'Requires ADR: No'", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the filter joins; GET /tasks today returns store.All() unfiltered", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "role": "the TaskState enum (Open/InProgress/Done) — the filter's value domain", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "in-memory store and its four seeded tasks (two Open, one InProgress, one Done)", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "JsonStringEnumConverter registration — enums travel as names on the wire", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the green 5-test integration baseline this change must preserve and extend", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "An additive, read-only query parameter on one existing GET route. No auth surface, no persistence-model change, no change to the store's public shape, and the unfiltered path is contractually unchanged. Blast radius is two files inside the declared subject.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "Binding the query parameter directly as a TaskState enum would let ASP.NET's own parameter binding decide the unrecognised-value behaviour, which does not guarantee the contracted 400 with no task list.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "Bind status as a nullable string and parse it explicitly, returning Results.BadRequest on failure. Covered by the C-004 test."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Enum.TryParse accepts numeric strings (e.g. ?status=99), which would widen the contracted value domain beyond the three TaskState names and bypass validation.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "Guard the parse with Enum.IsDefined so numeric-out-of-range input is rejected with 400. This is not merely a prudent mitigation: it is mandated by the accepted decision log at docs/decision-log/2026-07-19-task-filter-validation.md, and is now an explicit scenario in the delta spec."
+        },
+        {
+          "id": "RK-3",
+          "summary": "The integration tests share one WebApplicationFactory fixture, so tasks created by sibling tests persist in the singleton store; a filter test asserting exact counts against the four seeded tasks would be order-dependent and flaky.",
+          "likelihood": "High",
+          "impact": "Low",
+          "mitigation": "Assert the contracted invariant (every returned task carries the requested status, and the known seeded task of that status is present) rather than an exact list length — which is precisely what C-005 states."
+        },
+        {
+          "id": "RK-4",
+          "summary": "The delivered code satisfies only the status half of the main spec's 'List Tasks' requirement; priority filtering and AND-combination stay unimplemented, so the spec remains ahead of the code after this change.",
+          "likelihood": "High",
+          "impact": "Low",
+          "mitigation": "Accepted knowingly under RUN-DEC-002 option A and recorded in writing in the delta spec's header note, so the gap is discoverable rather than silent."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-api — status filtering on GET /tasks (delta spec at depth 1: openspec/changes/filter-tasks-by-status/specs/task-api/spec.md, MODIFIED 'List Tasks')",
+        "statements": ["C-001", "C-002", "C-003", "C-004", "C-005", "C-006", "C-007"],
+        "tasks": "1 work unit: add the explicit status parse + filter at the endpoint, with integration tests covering the filtered, case-insensitive, unfiltered, rejected-name and rejected-numeric paths."
+      }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-soft-delete-tasks-01",
+  "recordedAt": "2026-08-04T00:00:00Z",
+  "groups": [
+    "Model",
+    "Deletion",
+    "Listing",
+    "Retrieval",
+    "Migration",
+    "Non-regression"
+  ],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Model",
+      "text": "The task model carries a nullable deletion timestamp serialized in JSON as `deletedAt`: an ISO-8601 string once the task is soft-deleted, and `null` while the task is active."
+    },
+    {
+      "id": "C-002",
+      "group": "Deletion",
+      "text": "`DELETE /tasks/{id}` on an existing task soft-deletes it — it sets `deletedAt` to the current time and returns HTTP 204 No Content."
+    },
+    {
+      "id": "C-003",
+      "group": "Deletion",
+      "text": "`DELETE /tasks/{id}` does not permanently remove the task: after deletion the task is still present in the store and still returned by `GET /tasks?includeDeleted=true`."
+    },
+    {
+      "id": "C-004",
+      "group": "Deletion",
+      "text": "`DELETE /tasks/{id}` for an id that is not in the store returns HTTP 404 Not Found."
+    },
+    {
+      "id": "C-005",
+      "group": "Listing",
+      "text": "`GET /tasks` returns only active tasks by default: a soft-deleted task does not appear in the response."
+    },
+    {
+      "id": "C-006",
+      "group": "Listing",
+      "text": "`GET /tasks?includeDeleted=true` returns all tasks, including soft-deleted ones, whose `deletedAt` is non-null."
+    },
+    {
+      "id": "C-007",
+      "group": "Retrieval",
+      "text": "`GET /tasks/{id}` returns HTTP 404 Not Found for a soft-deleted task."
+    },
+    {
+      "id": "C-008",
+      "group": "Migration",
+      "text": "The four seeded tasks remain active after startup: each is returned by `GET /tasks` with `deletedAt` of `null`."
+    },
+    {
+      "id": "C-009",
+      "group": "Non-regression",
+      "text": "The other CRUD endpoints (`POST /tasks`, `PUT /tasks/{id}`, `GET /tasks/{id}` for active tasks, blank-title rejection) keep their existing behaviour; the 5 baseline tests still pass and `dotnet build` stays clean."
+    },
+    {
+      "id": "C-010",
+      "group": "Non-regression",
+      "text": "`Domain/**` gains no dependency on the HTTP layer (R-004) and the `TaskState` naming is unchanged (R-005); the change stays inside `src/TaskTracker.Api` and `tests/TaskTracker.Tests`."
+    },
+    {
+      "id": "C-011",
+      "group": "Deletion",
+      "text": "`DELETE /tasks/{id}` for a task that is already soft-deleted returns HTTP 404 Not Found and leaves the original `deletedAt` untouched — a soft-deleted task is treated as absent by every id-addressed endpoint.",
+      "addedBy": "RUN-DEC-001"
+    },
+    {
+      "id": "C-012",
+      "group": "Retrieval",
+      "text": "`PUT /tasks/{id}` for a soft-deleted task returns HTTP 404 Not Found, consistently with `GET /tasks/{id}` and `DELETE /tasks/{id}`.",
+      "addedBy": "RUN-DEC-001"
+    }
+  ]
+}

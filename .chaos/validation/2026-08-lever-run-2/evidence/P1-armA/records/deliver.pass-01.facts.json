@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-require-api-key-auth-p1arma",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T07:42:19Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All ten contract statements are delivered and covered — nine by executing tests, one (C-010) by build/test output plus mechanical rule inspection. Build is clean (0 errors, 0 warnings), the suite is 20/20 green, and the delivered diff is a strict subset of the scope approved at K1: four files, all inside src/TaskTracker.Api and tests/TaskTracker.Tests, with M5 never firing across nine scans. The single deviation is the mechanized human stop, backed by RUN-DEC-001 and declared before any work began.",
+  "commentary": "Two delivery choices are worth stating rather than leaving to be inferred from the diff.\n\nFirst, the enforcement point. The filter is attached to the /tasks route group, never to the application, which is what makes 'GET / stays public' (C-008) a structural property instead of a path-matching rule someone must maintain. It also means a route added to that group later inherits protection by default — the failure mode that accepted risk AR-5 names is a route mapped OUTSIDE the group, which is visible in review rather than silent.\n\nSecond, the shape of the test change. The five pre-existing CRUD tests keep every assertion they had; only client construction moved behind a helper. That was deliberate: if updating the baseline suite had also touched its assertions, the suite would have stopped being an independent regression check on CRUD behaviour at exactly the moment this change most needed one (RK-5 in the frame record). The new auth behaviour is pinned by fifteen separate tests in a separate file, written and confirmed FAILING (12 red) before the filter existed, so their green state is evidence about the implementation rather than about the tests.\n\nOne implementation detail departs from the letter of the contract in the safe direction: a configured ApiKey that is present but EMPTY falls back to the default rather than being honoured. Honouring it would let any caller authenticate with an empty header. The contract says 'defaulting when that configuration value is not set'; an empty string is treated as not set. Named here because it is a judgement call, not a transcription of the contract.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 20,
+      "total": 20,
+      "note": "5 pre-existing CRUD tests (assertions unchanged, now key-bearing) + 15 new auth tests; the new tests were confirmed failing 12/20 against the open API before the filter was written"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::The_valid_key_is_accepted_on_every_task_route",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Get_tasks_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Get_task_by_id_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Post_task_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Put_task_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Delete_task_without_a_key_is_unauthorized"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Get_tasks_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Get_task_by_id_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Post_task_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Put_task_without_a_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Delete_task_without_a_key_is_unauthorized"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_incorrect_key_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_empty_key_header_is_unauthorized",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::A_configured_ApiKey_replaces_the_default (asserts the now-stale default key is refused)"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::A_configured_ApiKey_replaces_the_default — boots the host with ApiKey=configured-key in in-memory configuration and asserts that key is accepted"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::The_default_key_applies_when_ApiKey_is_not_configured — the un-reconfigured factory supplies no ApiKey, and test-secret-key is accepted",
+          "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs::DefaultApiKey"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_unknown_id_without_a_key_is_401_not_404",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::A_blank_title_post_without_a_key_is_401_not_400"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_unauthenticated_delete_leaves_the_task_in_place",
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_unauthenticated_update_does_not_change_the_task"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::The_root_health_endpoint_stays_public",
+          "src/TaskTracker.Api/Program.cs:20 — GET / is mapped outside the filtered group and the file is untouched by this change"
+        ]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs — all 5 pre-existing CRUD tests pass with assertions unchanged; only client construction moved behind CreateAuthenticatedClient()"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "dotnet build: 0 errors, 0 warnings; dotnet test: 20/20 passed, 0 failed (R-003)",
+          "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore|IEndpoint|HttpContext|Results. → no match; Domain/** absent from the diff (R-004)",
+          "grep for TaskStatus over src/ and tests/ → only the pre-existing explanatory comment in Domain/TaskItem.cs; no work-item enum renamed (R-005)"
+        ],
+        "whyNotTest": "This statement is about the repository's rule posture, not about API behaviour, so it has no runtime assertion to make. Its three parts are evidenced by tool output instead: build/test exit state for R-003, and mechanical greps over the delivered tree for R-004 and R-005. A test could only re-assert what the compiler and the greps already prove, and would not detect a Domain-layer ASP.NET reference introduced later."
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 20/20, 0 failed, on both the delivery log and the verify emitter's independent re-run; the 5 baseline CRUD assertions are unchanged, so the green state is a real regression signal" },
+      { "id": "R-004", "status": "pass", "evidence": "Domain/** is untouched by the diff and contains no ASP.NET reference (grep for Microsoft.AspNetCore|IEndpoint|HttpContext|Results. returns nothing); enforcement lives in src/TaskTracker.Api/Security/, inside the HTTP layer, and depends on IConfiguration only" },
+      { "id": "R-005", "status": "pass", "evidence": "no enum was renamed; grep for TaskStatus over src/ and tests/ matches only the pre-existing comment in Domain/TaskItem.cs explaining why TaskState is the chosen name" },
+      { "id": "R-006", "status": "pass", "evidence": "git status shows AGENTS.md and root README.md unmodified; no protected file was edited at any point in the run" },
+      { "id": "R-002", "status": "pass", "evidence": "every verdict in this run carries confidence/evidenceCoverage/assumptionLoad, every verify finding carries knowledge + confidence, and RUN-DEC-001 carries knowledge: FACT · confidence: HIGH" }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs",
+        "change": "added"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/ApiKeyAuthTests.cs",
+        "change": "added"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "R-001 routing deviation: the S1 stop was NOT answered by a live human through the interaction runtime / Decision Center. No human is available in this mechanized measurement run, so RUN-DEC-001 was surfaced as a real ledger entry at the moment it was reached and resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM, tagged 'resolved-in-arm (no live human; lever-run mechanized run)'). The decision itself was recorded, presented with options and a recommendation, and answered explicitly — only the human routing is deviated from.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "Declared scope shrank: Program.cs and appsettings.json were predicted at K1 but proved unnecessary — the filter attaches at the /tasks group (so the composition root needs no change) and the default key lives as a code constant (so no configuration file commits the credential). Delivering fewer files than approved is a subset of the approved boundary, not drift; M5 never fired.",
+        "decision": "RUN-DEC-001"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 9 scan(s) — derived from classification-state.json. The four delivered paths are a strict subset of the scope approved at K1, all within src/TaskTracker.Api and tests/TaskTracker.Tests."
+    }
+  }
+}

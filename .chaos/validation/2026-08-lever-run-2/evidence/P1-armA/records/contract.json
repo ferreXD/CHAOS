@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-require-api-key-auth-p1arma",
+  "recordedAt": "2026-08-04T09:30:00Z",
+  "groups": ["Enforcement", "Key resolution", "Ordering", "Public surface", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Enforcement",
+      "text": "Every request to a `/tasks` route — `GET /tasks`, `GET /tasks/{id}`, `POST /tasks`, `PUT /tasks/{id}`, `DELETE /tasks/{id}` — must present a valid API key in the `X-Api-Key` request header."
+    },
+    {
+      "id": "C-002",
+      "group": "Enforcement",
+      "text": "A request to a `/tasks` route with a **missing** `X-Api-Key` header is rejected with HTTP 401 Unauthorized."
+    },
+    {
+      "id": "C-003",
+      "group": "Enforcement",
+      "text": "A request to a `/tasks` route with an **incorrect** `X-Api-Key` header value is rejected with HTTP 401 Unauthorized."
+    },
+    {
+      "id": "C-004",
+      "group": "Key resolution",
+      "text": "The valid API key is the string value of configuration key `ApiKey`."
+    },
+    {
+      "id": "C-005",
+      "group": "Key resolution",
+      "text": "When the `ApiKey` configuration value is not set, the valid API key defaults to the literal string `test-secret-key`."
+    },
+    {
+      "id": "C-006",
+      "group": "Ordering",
+      "text": "The API-key check runs before existence and payload-validation checks: an unauthenticated request for an unknown task id returns 401 (not 404), and an unauthenticated `POST /tasks` with a blank title returns 401 (not 400)."
+    },
+    {
+      "id": "C-007",
+      "group": "Ordering",
+      "text": "A rejected request reads no task and mutates no task: after an unauthenticated `DELETE /tasks/{id}` the task is still retrievable with a valid key."
+    },
+    {
+      "id": "C-008",
+      "group": "Public surface",
+      "text": "The root health endpoint `GET /` stays public and returns 200 with no `X-Api-Key` header."
+    },
+    {
+      "id": "C-009",
+      "group": "Non-regression",
+      "text": "CRUD behaviour for authenticated callers is unchanged: the five pre-existing integration tests still pass once they supply the key, with the same status codes and payload shapes."
+    },
+    {
+      "id": "C-010",
+      "group": "Non-regression",
+      "text": "`dotnet build` and `dotnet test` stay green (R-003), `Domain/**` references no ASP.NET type (R-004), and the `TaskState` naming is unchanged (R-005)."
+    }
+  ]
+}

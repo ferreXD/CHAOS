@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-optimistic-concurrency-updates-p3arma",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T08:23:12Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run: every stop is recorded and resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM), not answered in the Decision Center. Governance confidence in the ANSWERS is therefore agent-authored, not human-authored."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 fired M2 (scan, data-store) and M1 (adjudication, data-store). Vector: stops 1 - evidence.targeted 1 - evidence.breadth 0 - review 0 - verify 1 - openspec 1 - adr 2. The OpenSpec delta and the ADR were authored at the firing, before this stop."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The intent adds `version` to every serialized task and `expectedVersion` to the update request. The K1 adjudication deliberately did NOT pre-empt M3 on those additive contract changes (adjudication rule 12) - the K3 route/contract-delta scan owns them once the diff exists."
+    }
+  ],
+  "verdictRationale": "The intent is fully specified: every branch of the concurrency contract (stale / matching / omitted expectedVersion) names its status code and its side effect, so all 13 contract statements are testable against the existing green 5-test baseline. The one genuinely material question - whether the compare-and-set belongs in the store or at the endpoint - is not answered by the repository, so it is folded into the frame approval stop and settled by ADR 2026-08-04-optimistic-concurrency-in-the-task-store rather than assumed.",
+  "commentary": "DOCUMENTED DEVIATION (measurement arm): no live human is available in this run. Every stop that the loop surfaces is recorded as a RUN-DEC-* ledger entry AND resolved in the same step with an explicit, documented maintainer-style rationale, with `status: RESOLVED-IN-ARM` and the tag `resolved-in-arm (no live human; lever-run mechanized run)`. Answering the `approves-change` decision IS the approval for this run. The interaction runtime (Decision Center / chaos_create_decision) was therefore not used to create the stops, since nothing would ever answer them; the ledger is the decision surface of record here. No other departure from the chaos:run loop.\n\nPosture note: the M1 firing is real, not a scanner artifact. `.chaos/architecture.md` guards the store's public shape with a hedged line ('unless a decision says otherwise'), and this change moves against it deliberately - see the ADR. R-004 (domain must not depend on the HTTP layer) is NOT crossed and is not up for negotiation: the store returns an outcome, the endpoint owns the status codes.",
+  "facts": {
+    "title": "Optimistic concurrency on task updates",
+    "intent": [
+      "Task 3 - Optimistic concurrency on task updates. PUT /tasks/{id} currently overwrites a task unconditionally, so a client working from a stale copy can silently clobber someone else's update (lost-update race). Add optimistic concurrency control. Contract: Add an integer version to the task, serialized as version. New and seeded tasks start at version 1. Every successful PUT /tasks/{id} increments the task's version by 1 (1 -> 2 -> 3). UpdateTaskRequest gains an optional integer field expectedVersion: when provided and it does not equal the task's current version, the update must be rejected with HTTP 409 Conflict and the task must be left unchanged (no field updated, version not bumped); when provided and matching, the update succeeds (200) and the version increments; when omitted (null), the update proceeds unconditionally (backward-compatible last-writer-wins) and the version increments. POST /tasks returns a task with version = 1. Constraints: keep dotnet build and dotnet test green - the existing PUT test omits expectedVersion and must keep working; do not change unrelated behaviour of the other CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "invocationPath": "openspec CLI 1.6.0 (first-class path, not a fallback): `openspec new change optimistic-concurrency-updates` -> `openspec status --change optimistic-concurrency-updates --json` -> `openspec instructions specs --change optimistic-concurrency-updates` -> authored the delta spec at the path status returned, `openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md` (3 ADDED requirements, 11 scenarios) -> `openspec validate optimistic-concurrency-updates --strict` = PASSED (exit 0). Depth 1 is delta-spec-only, so proposal.md / design.md / tasks.md were deliberately NOT authored; `openspec status` accordingly reports isComplete: false with applyRequires ['tasks'], which is the expected reading at depth 1, not degraded mode.",
+      "confidenceImpact": "None. Depth 1 is the classified obligation and it was met through the CLI with a strict validation pass."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files, minimum pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "human-ownership + confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007; R-003 green baseline, R-004 domain/HTTP boundary, R-005 TaskState naming, R-006 protected files", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model + data-access posture + non-goals; the posture M1 crosses", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "role": "the task record that gains Version", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the ConcurrentDictionary store whose Update gains the compare-and-set", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs", "role": "UpdateTaskRequest, which gains optional expectedVersion", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the PUT handler that must map conflict onto 409", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the green 5-test baseline; its PUT test omits expectedVersion and must keep passing", "knowledge": "FACT" },
+      { "path": "openspec/specs/task-api/spec.md", "role": "the existing capability spec the delta targets", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "MEDIUM",
+      "classRationale": "Not additive-only: it changes the semantics of an existing write endpoint and the shape of the domain record every endpoint serializes. The store is a process-wide singleton shared by all requests, so a non-atomic implementation would silently fail to close the very race the change targets. Bounded by an in-memory demo store with no persistence, no auth and a green integration baseline.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "A check-then-write implementation (read version at the endpoint, compare, then call Update) is itself racy against the shared singleton store and would not actually prevent the lost update.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "RUN-DEC-001 places the compare-and-set inside TaskStore.Update as a single atomic operation against the ConcurrentDictionary; recorded in the ADR."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Making expectedVersion non-optional (or non-nullable) would break the existing PUT test, which omits the field - a direct R-003 violation.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "C-005/C-009 pin the optional/null branch; the untouched baseline PUT test is the regression oracle and must stay green."
+        },
+        {
+          "id": "RK-3",
+          "summary": "A rejected (409) update could still mutate the task or bump the version if the conflict check is not the first thing the write path does.",
+          "likelihood": "Low",
+          "impact": "High",
+          "mitigation": "C-007 is a first-class contract statement with its own targeted test asserting the task is byte-for-byte unchanged after a 409."
+        },
+        {
+          "id": "RK-4",
+          "summary": "Adding Version to TaskItem changes the JSON of every task-returning endpoint, which could regress clients or the test DTOs.",
+          "likelihood": "Low",
+          "impact": "Low",
+          "mitigation": "Additive field; the baseline test DTO is positional-record-bound to the fields it names and ignores extras. C-012 keeps the other endpoints under contract."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-api :: Task Version Field (delta spec, ADDED)",
+        "statements": ["C-001", "C-002", "C-003", "C-004"],
+        "tasks": "Work unit 1: add Version to TaskItem, seed/create at 1, increment on successful update."
+      },
+      {
+        "capability": "task-api :: Optimistic Concurrency On Task Update (delta spec, ADDED)",
+        "statements": ["C-005", "C-006", "C-007", "C-008", "C-009"],
+        "tasks": "Work unit 1: optional expectedVersion on UpdateTaskRequest, store-side compare-and-set, endpoint maps conflict to 409. Work unit 2: the targeted tests for all three branches."
+      },
+      {
+        "capability": "task-api :: Concurrency Control Does Not Alter Other Endpoints (delta spec, ADDED)",
+        "statements": ["C-010", "C-011", "C-012", "C-013"],
+        "tasks": "Work unit 2: non-regression assertions; the untouched 5-test baseline is the primary oracle."
+      }
+    ]
+  }
+}

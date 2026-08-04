@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-require-api-key-auth-p1arma",
+  "mode": null,
+  "verdict": "READY_WITH_DEBT",
+  "at": "2026-08-04T07:39:32Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed and was run inside the loop, attributed to the surfaces that actually fired: auth (TRG-001 M2, TRG-002 M1) and contract-dependency (TRG-003 M3). Build and tests were re-run independently by the emitter (0 errors / 0 warnings, 20/20) and OpenSpec validated strict. Enforcement was checked structurally, not just behaviourally: every one of the five task routes is inside the filtered group and the only route outside it is the health endpoint the contract requires to stay public. All ten contract statements are covered, sixteen of them by executing tests. READY_WITH_DEBT rather than READY for one honest reason — the change ships enforcement that `.chaos/architecture.md` still contradicts in writing, and that posture amendment is a sync action this run cannot perform (VFY-005), alongside the deployment obligation AR-1 carries.",
+  "commentary": "Attribution discipline: verify 1 buys safeguards for the surfaces that fired, and the ones NOT owed are recorded as an explicit positive claim rather than a silent omission (VFY-006). The check worth naming is VFY-001: behavioural tests alone would prove the five routes we thought to test are guarded, not that no route escapes the guard. Attaching the filter to the group and then enumerating every Map* call in the project turns 'all task routes are protected' from a claim about the tests into a claim about the code — which is what makes RK-4/AR-5 (a future route shipping unprotected) a bounded rather than an open risk.\n\nThe debt is deliberate and small, but it is real: until `chaos:sync` promotes the ADR and amends the auth posture, the workspace holds a governed contradiction — the architecture says the API is open, the code says otherwise. Recording that as READY_WITH_DEBT keeps it visible instead of letting a clean READY imply the posture text was updated.",
+  "facts": {
+    "archiveReadiness": "READY_WITH_DEBT",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 20,
+        "total": 20,
+        "note": "independent re-run by chaos-record (L4-D4); 5 pre-existing CRUD tests (now key-bearing) + 15 new auth tests"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": true,
+        "note": "ran: openspec validate require-api-key-auth --strict — full set authored at classified depth 2 (proposal, design, tasks, 1 ADDED + 1 MODIFIED delta spec); CLI 1.6.0 present and driven directly"
+      },
+      "contract": {
+        "ticked": 10,
+        "total": 10,
+        "note": "C-001..C-010; C-001..C-009 carry executing-test evidence, C-010 carries build/test + mechanical rule inspection"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 9 scan(s) — derived from classification-state.json. The delivered diff is a strict SUBSET of declared scope: Program.cs and appsettings.json were predicted but proved unnecessary (group-level attachment, code-side default), which is a shrink, not a spill."
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 20/20, 0 failed, on the emitter's independent re-run; the 5 baseline CRUD assertions are byte-identical — only client construction changed" },
+        { "id": "R-004", "status": "pass", "evidence": "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore/IEndpoint/HttpContext/Results. returns no match; the filter lives in Security/ inside the HTTP layer and Domain/** is untouched by the diff" },
+        { "id": "R-005", "status": "pass", "evidence": "grep for TaskStatus over src/ and tests/ matches only the pre-existing explanatory comment in Domain/TaskItem.cs stating why TaskState is used; no work-item enum was renamed" },
+        { "id": "R-006", "status": "pass", "evidence": "git status shows AGENTS.md and root README.md unmodified; no protected file was edited, previewed or otherwise" },
+        { "id": "R-002", "status": "pass", "evidence": "every finding below and every verdict in this run carries knowledge type + confidence; the frame, verify and deliver records carry confidence/evidenceCoverage/assumptionLoad" }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "API-Key Authentication On Task Endpoints — every /tasks route demands a valid X-Api-Key; missing or incorrect is 401",
+        "capability": "task-api-auth",
+        "implementation": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs (InvokeAsync: exactly-one-value header, ordinal compare, Results.Unauthorized()) attached at src/TaskTracker.Api/Endpoints/TaskEndpoints.cs:23 via group.AddEndpointFilter<ApiKeyEndpointFilter>()",
+        "test": "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::Get_tasks_without_a_key_is_unauthorized, ::Get_task_by_id_without_a_key_is_unauthorized, ::Post_task_without_a_key_is_unauthorized, ::Put_task_without_a_key_is_unauthorized, ::Delete_task_without_a_key_is_unauthorized, ::An_incorrect_key_is_unauthorized, ::An_empty_key_header_is_unauthorized, ::The_valid_key_is_accepted_on_every_task_route",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Configured API Key With Default — the key is configuration key ApiKey, defaulting to test-secret-key when unset",
+        "capability": "task-api-auth",
+        "implementation": "src/TaskTracker.Api/Security/ApiKeyEndpointFilter.cs constructor: configuration[\"ApiKey\"], falling back to the DefaultApiKey constant when null OR empty",
+        "test": "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::The_default_key_applies_when_ApiKey_is_not_configured, ::A_configured_ApiKey_replaces_the_default (the latter asserts both halves: the configured key is accepted AND the default is then refused)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Authentication Precedes Task Access — 401 before existence/validation; no read, no mutation",
+        "capability": "task-api-auth",
+        "implementation": "endpoint-filter placement: the filter runs after routing but before the endpoint delegate, so neither the id lookup nor the Title validation inside the delegates is reached",
+        "test": "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::An_unknown_id_without_a_key_is_401_not_404, ::A_blank_title_post_without_a_key_is_401_not_400, ::An_unauthenticated_delete_leaves_the_task_in_place, ::An_unauthenticated_update_does_not_change_the_task",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Public Health Endpoint — GET / stays public",
+        "capability": "task-api-auth",
+        "implementation": "the filter is attached to the /tasks MapGroup only; src/TaskTracker.Api/Program.cs:20 maps GET / outside that group and is unmodified by this change",
+        "test": "tests/TaskTracker.Tests/ApiKeyAuthTests.cs::The_root_health_endpoint_stays_public",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks (MODIFIED) — the CRUD contract is now reachable only by an authenticated caller, with CRUD semantics otherwise unchanged",
+        "capability": "task-api",
+        "implementation": "no change to any endpoint delegate; TaskEndpoints.cs gains only the using directive and the single AddEndpointFilter line",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs — all 5 pre-existing CRUD tests, assertions unchanged, now key-bearing",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Query-param filtering scenarios of the MODIFIED List Tasks requirement (status/priority filters, 400 on unrecognized value)",
+        "capability": "task-api",
+        "implementation": "not implemented in this worktree — GET /tasks returns every task unfiltered. PRE-EXISTING gap, not introduced here: openspec/specs/task-api/spec.md already described filtering before this change, and this change neither implements nor regresses it. Carried verbatim into the delta only because a MODIFIED requirement must restate its full content.",
+        "test": "none — out of this change's scope; no filtering test existed in the baseline either",
+        "status": "MISSING",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Enforcement completeness: no task route escapes the filter",
+        "detail": "Auth-surface safeguard attributed to TRG-001 (M2 sensitive-surface) and TRG-002 (M1 posture-crossing). Enumerated every Map* registration in src/TaskTracker.Api: five of them (MapGet '/', MapGet '/{id:guid}', MapPost '/', MapPut '/{id:guid}', MapDelete '/{id:guid}') are registered on the filtered group; the only registration outside it is Program.cs:20 GET '/', which contract statement C-008 requires to stay public. Structural, not merely behavioural — it holds for routes nobody wrote a test for."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Credential material is confined to the pinned default and test code",
+        "detail": "Auth-surface safeguard attributed to TRG-001 (M2 sensitive-surface). The literal test-secret-key appears in exactly three code locations: the DefaultApiKey constant in ApiKeyEndpointFilter.cs (the contract-pinned default), and the two test files that must present it. No appsettings*.json, no .env, no launchSettings, no csproj was modified — verified by git status over the config and project files. Carries accepted risk AR-1: a deployment that never sets ApiKey silently accepts a well-known key; that obligation is recorded in the ADR, not resolved here."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Enforcement precedence holds: 401 outranks 404 and 400, and rejected requests mutate nothing",
+        "detail": "Auth-surface safeguard attributed to TRG-001 (M2 sensitive-surface). Four dedicated tests pin the ordering the contract demands (C-006/C-007): an unknown id without a key returns 401 not 404 (so anonymous callers cannot probe id existence), a blank-title POST without a key returns 401 not 400, and unauthenticated DELETE/PUT leave the task retrievable and unchanged when re-read with a valid key. This is the property an endpoint filter gives structurally, and the tests confirm the wiring actually delivers it."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: no route delta, but a breaking precondition on five existing routes",
+        "detail": "Contract-dependency safeguard attributed to TRG-003 (M3 contract-surface, breaking:false under adjudication rule 7). The route set is unchanged — nothing added, removed, renamed or tombstoned — which is exactly why the deterministic route-delta scan could not see this change and why M3 was raised by adjudication instead. For external callers the change IS breaking: every currently-valid /tasks request returns 401 until it carries the header. Declared **BREAKING** in the OpenSpec proposal; the only in-repository callers are the integration tests, updated in this same change. No new package dependency (csproj files untouched)."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The architecture posture still contradicts the shipped behaviour until chaos:sync runs",
+        "detail": "Posture safeguard attributed to TRG-002 (M1 posture-crossing). The crossing is properly recorded and approved — ADR .chaos/changes/require-api-key-auth/adr/2026-08-04-api-key-authentication.md, approved by RUN-DEC-001 — but .chaos/architecture.md still reads 'None. The API is open.' and still lists 'Authentication / authorization / multi-tenant concerns' under Non-goals. Amending that text is the ADR's declared sync action (CREATE_ADR + posture amendment) and belongs to chaos:sync, not to this run. Until then the workspace holds a documented contradiction. This is the sole reason the verdict is READY_WITH_DEBT rather than READY."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: persistence, deploy-ops and integration safeguards are not owed",
+        "detail": "No data-store, deploy-ops or integration surface fired across nine scans, so those safeguards are N/A — asserted rather than silently skipped. Corroborated by the diff: Domain/** is untouched (no store shape, seeding or persistence change), there is no migration, no deployment or CI material, and no external integration or new dependency. The only sensitive surface in play is auth, and it is covered by VFY-001..VFY-003."
+      }
+    ]
+  }
+}

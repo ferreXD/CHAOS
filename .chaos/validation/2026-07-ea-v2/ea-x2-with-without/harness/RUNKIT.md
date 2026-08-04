@@ -343,3 +343,49 @@ gate is **inert as specified** and its predictions are unscored, not falsified.
 out-of-band replays, `judgementAutoFilled` false on 6/6 (L4's honesty guard held in the wild),
 0 hand-written rendered artifacts. **Fidelity moved**: X2 on 6/6 (D3-caused), B2 fired M4 where
 none was registered, B1 reached `openspec 2`. **C-15 held again — B3 clean.**
+
+## Re-run — D1–D5 repairs + the T0/T1/T2 unit tier band (2026-08-04, model claude-opus-5[1m])
+
+Governed arm runs the post-lever toolkit **with** the five defect repairs the previous run
+exposed and the **unit tier band** (L1-D12..D17) replacing the inert change-scoped easy gate.
+Two variables, deliberately bundled. Same frozen tasks, same held-out oracles, **plain-arm
+prompts byte-identical** (`d28ced5572833c47` / `799be1dd6fefc2a5` / `d058e37b89ffaa89`).
+Harness: `../../../2026-08-lever-run-2/harness/lever2-arms.workflow.js`; full scorecard in that
+kit's `results.md`.
+
+| Pair | task | lever2 time | plain time | time ratio | lever2 out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| P1 | auth gate | 1,212 s | 189 s | 6.41× | 75,355 | 13,531 | 5.57× | clean |
+| P2 | soft-delete | 1,308 s | 277 s | 4.72× | 85,513 | 14,503 | 5.90× | clean |
+| P3 | concurrency | 1,020 s | 147 s | 6.94× | 65,722 | 11,304 | 5.81× | clean |
+| **Σ frozen-3** | | **3,540 s** | **613 s** | **5.77×** | **226,590** | **39,338** | **5.76×** | 19/19 both |
+| B1 | task-count | 653 s | 128 s | 5.10× | 40,719 | 8,224 | 4.95× | clean |
+| B2 | filter-by-status | 1,058 s | 145 s | 7.30× | 67,952 | 10,712 | 6.34× | clean |
+| B3 | title-max-length | 581 s | 98 s | 5.93× | 36,026 | 7,972 | 4.52× | clean |
+| **Σ light-3** | | **2,292 s** | **371 s** | **6.18×** | **144,697** | **26,908** | **5.38×** | 16/16 both |
+
+**Band A 5.57× / band B 5.62×** — inside the pre-registered 4.0–6.5× / 4.5–6.5× and a large
+improvement on run 1's 8.34× / 7.37×. **But the improvement is mostly denominator movement:**
+plain arms rose **+26.4%** between sessions for byte-identical prompts (band A's plain +47%),
+while governed output fell only **6.8%** (398,494 → 371,287) against a pre-registered direction
+test requiring **≥10%**. On band A the governed absolute moved **1.7%** while the ratio
+"improved" 33%. **The direction test fails; the ratio gain is largely an artifact of
+cross-session plain-arm variance.**
+
+**The repairs are confirmed in the wild.** **X2 fired ZERO times on 6/6** — it fired 6/6 in run
+1 solely because `--self-review` accepted free text — removing an unowed review pass and an
+unowed verify pass from every arm. No D1 `RUN-DEC` render failures, no D2 `mode:null`
+rejections. **B3 fired nothing at all**, exactly as registered; C-15 holds a third time.
+
+**The tier band opened: 5 T0 verdicts across B1/B2/B3 (run 1: zero), all Route B**, with every
+refusal correctly cited — including gate 3 (coupled evidence) refusing P1's tests because they
+encode a fired surface's contract. **But `modelInvocations` is `ceiling:1 mid:0 floor:0` on
+6/6 again: a workflow subagent cannot spawn nested subagents**, so the floor executor was
+unreachable and T0-banded units ran inline at ceiling. **L1 is unmeasurable in this harness as
+constructed, and the oracle result does NOT vindicate Route B** — those units never executed at
+floor tier. Arms correctly left the escalation budget unspent (nothing failed; the capability
+was absent).
+
+**Quality: 0 oracle failures on 12/12**, audit exit 0 on 6/6 plus 6/6 out-of-band replays,
+`judgementAutoFilled` false 6/6, 0 hand-written rendered artifacts. **L3's target moved the
+wrong way**: classification machinery 49.6% (Stage D 48.3%, run 1 43.2%); artifacts 10.3%.

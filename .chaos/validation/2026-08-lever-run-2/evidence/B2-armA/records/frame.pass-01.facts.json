@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T08:56:54Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired zero triggers (deterministic scan + my adjudication pass, scanSeq 2); the vector sits at stops 1 · evidence.targeted 0 · evidence.breadth 0 · review 0 · verify 0 · openspec 0 · adr 0 with classifier confidence HIGH. No preset floor was passed on this run."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The added `?status=` query parameter is a route-shape delta the K1 adjudication deliberately did not pre-empt (adjudication rule 12); it may fire M3 at the first K3 diff scan, which would raise the vector before the work loop closes."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run: every decision is recorded and then resolved with a documented maintainer-style rationale, status RESOLVED-IN-ARM. This is a recorded deviation from R-001's Decision-Center path, not a silent bypass."
+    }
+  ],
+  "verdictRationale": "The intent is fully specified — four behavioural statements, an explicit error contract, and a named non-regression baseline — and every one of them is testable against the existing green 5-test integration suite. The predicted scope is two files at the HTTP boundary, the change moves with the recorded posture rather than against it (the architecture names `GET /tasks` `?status=` filtering as the known extension point), and it explicitly disclaims both non-goals that would raise risk here (auth, persistence). Nothing in the K1 inputs is ambiguous, so framing is ready with no open question of my own.",
+  "commentary": "Documented deviation, stated per the run's mechanization contract: no live human is available for this measurement, so each decision is recorded in `decision-events.md` and then resolved in-arm with an explicit maintainer-style rationale, its `status:` line set to `RESOLVED-IN-ARM` and tagged `resolved-in-arm (no live human; lever-run mechanized run)`. Answering the `approves-change` decision IS the approval for this run. The interaction runtime was not driven; R-001's requirement that material questions be surfaced rather than guessed is honoured in substance — every material question is written down, presented with options and a recommendation, and answered on the record before the work it gates proceeds. One further note on the classification: the architecture document carries an open question (OQ-002, invalid-filter-value behaviour) that this change's contract settles by specifying HTTP 400. An open question is not crossable posture (adjudication rule 3), so it correctly raised nothing — but it is worth recording that the change closes a documented gap rather than inventing an answer.",
+  "facts": {
+    "title": "Filter GET /tasks by status",
+    "intent": [
+      "GET /tasks currently returns every task. Add an optional query-parameter filter on task status. This is a query-shaping convenience: no authentication, no persistence-model change. GET /tasks?status=<state> returns only tasks whose status equals <state>, where <state> is one of the TaskState names: Open, InProgress, Done. The match is case-insensitive: ?status=open behaves identically to ?status=Open. GET /tasks with no status parameter returns all tasks (unchanged behaviour). An unrecognised status value (e.g. ?status=Bogus) returns HTTP 400 Bad Request and returns no task list. Existing seeded data: of the four seeded tasks, exactly two are Open, one is InProgress, and one is Done. A filtered response must contain only tasks of the requested status. Constraints: keep dotnet build and dotnet test green (the existing 5 tests must still pass; the unfiltered GET /tasks test must keep working); do not change unrelated behaviour of the other CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the classification owes no OpenSpec artifact; the contract of record is change.md §Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "agent entrypoint: pre-edit behaviour, protected files, rule pointers", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "behavioural principles + confidence doctrine applied to every verdict here", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-003 green baseline, R-004 domain-to-HTTP boundary, R-005 TaskState naming, R-006 protected files", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, API strategy (names ?status= filtering as the known extension point), non-goals, OQ-002", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the filter joins; GET /tasks today returns store.All() unfiltered", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "role": "the TaskState enum (Open/InProgress/Done) — the filter's value domain", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "in-memory store and its four seeded tasks (two Open, one InProgress, one Done)", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "JsonStringEnumConverter registration — enums travel as names on the wire", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the green 5-test integration baseline this change must preserve and extend", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "An additive, read-only query parameter on one existing GET route. No auth surface, no persistence-model change, no change to the store's public shape, and the unfiltered path is contractually unchanged. Blast radius is two files inside the declared subject.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "Binding the query parameter directly as a TaskState enum would let ASP.NET's own parameter binding decide the unrecognised-value behaviour, which does not guarantee the contracted 400 with no task list.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "Bind status as a nullable string and parse it explicitly with Enum.TryParse(..., ignoreCase: true), returning Results.BadRequest on failure. Covered by the C-004 test."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Enum.TryParse accepts numeric strings (e.g. ?status=1) and would silently treat them as valid states, widening the contracted value domain beyond the three TaskState names.",
+          "likelihood": "Medium",
+          "impact": "Low",
+          "mitigation": "Reject values that are not one of the defined enum names before accepting the parse. Covered by the C-001/C-004 tests."
+        },
+        {
+          "id": "RK-3",
+          "summary": "The integration tests share one WebApplicationFactory fixture, so tasks created by sibling tests persist in the singleton store; a filter test asserting exact counts against the four seeded tasks would be order-dependent and flaky.",
+          "likelihood": "High",
+          "impact": "Low",
+          "mitigation": "Assert the contracted invariant (every returned task carries the requested status, and the known seeded task of that status is present) rather than an exact list length — which is precisely what C-005 states."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "status filtering on GET /tasks (no OpenSpec artifact owed at depth 0 — contract of record is change.md §Contract)",
+        "statements": ["C-001", "C-002", "C-003", "C-004", "C-005", "C-006", "C-007"],
+        "tasks": "1 work unit: add the explicit status parse + filter at the endpoint, with integration tests covering the filtered, case-insensitive, unfiltered and rejected-value paths."
+      }
+    ]
+  }
+}

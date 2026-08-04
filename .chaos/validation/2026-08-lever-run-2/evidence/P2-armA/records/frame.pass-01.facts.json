@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-soft-delete-tasks-01",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T07:54:35Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No preset flag: zero floors. The vector is classification only — M2 (scan, data-store) and M1 (adjudication, data-store) at K1 give stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2 at scanSeq 2."
+    },
+    {
+      "kind": "CONFLICT",
+      "confidence": "HIGH",
+      "text": "openspec/specs/task-api/spec.md records `GET /tasks` status/priority filtering (with 400 on unrecognized values) that the code at this commit does not implement — TaskEndpoints.cs maps `GET /tasks` to store.All() unfiltered. Pre-existing spec/code drift from the archived add-task-query-filters change; neither introduced nor repaired here. The delta spec copies the requirement block whole per OpenSpec's MODIFIED rule, so the drift is carried, not widened. Statements C-001..C-012 deliberately claim nothing about filtering."
+    },
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "`includeDeleted` is read as a strict boolean query parameter: only `true` opts in; absent, empty or any other value keeps the default active-only view. The intent specifies only `includeDeleted=true`, so the rejection behaviour of a malformed value is assumed rather than specified."
+    }
+  ],
+  "verdictRationale": "The intent is fully specified for six of its seven observable behaviours and the green baseline (build clean, 5 tests) is verified by direct execution, so the contract is testable end-to-end. The one genuine gap — what the id-addressed endpoints do once a task is soft-deleted — is not guessed: it is folded into S1 as questions 3 and 4 and answered there, which is what adds C-011 and C-012. Nothing is inferred about the posture crossing either: M1 fired on it and the ADR records the decision, so evidence coverage is COMPLETE and assumption load stays LOW.",
+  "commentary": "DOCUMENTED DEVIATION — mechanized human stop. No live human is available in this measurement run. Every decision is still recorded as a first-class ledger entry and then resolved with an explicit maintainer-style rationale, with `status: RESOLVED-IN-ARM` and the tag `resolved-in-arm (no live human; lever-run mechanized run)`. Answering the `approves-change: true` decision (RUN-DEC-001) IS the approval for this run. Stops are resolved when reached, in order, never batched. This deviation is confined to WHO answers; what fires, what stops and what is owed are untouched.\n\nOn the M1 crossing: the architecture's boundary paragraph prefers new behaviour at the endpoint/query boundary rather than in the store's public shape, and hedges it with \"unless a decision says otherwise\". Soft-delete is lifecycle state rather than a query filter, so pushing the predicate to the endpoint would make every present and future caller responsible for re-applying the default — the failure mode the single-source-of-truth posture exists to prevent. The crossing is therefore taken deliberately and recorded in adr/2026-08-04-soft-delete-lives-in-the-store-shape.md; it is authorized by RUN-DEC-001, not assumed.\n\nReading protocol: `digest.py --check` exited 0, so the governance digest was read once and none of its source references were opened.",
+  "facts": {
+    "title": "Soft-delete for tasks (schema change + backward-compatible migration)",
+    "intent": [
+      "Soft-delete for tasks (schema change + backward-compatible migration). Today DELETE /tasks/{id} permanently removes a task. Change deletion to a soft delete so deleted tasks are retained but hidden by default. Add a nullable deletedAt timestamp to the task model, serialized in JSON as deletedAt (an ISO-8601 string when set, null when the task is active). DELETE /tasks/{id} must soft-delete: set deletedAt to the current time and return 204 No Content. It must not permanently remove the task. Deleting an unknown id still returns 404. GET /tasks returns only active (not soft-deleted) tasks by default. GET /tasks?includeDeleted=true returns all tasks including soft-deleted ones (whose deletedAt is non-null). GET /tasks/{id} returns 404 Not Found for a soft-deleted task. The four seeded tasks remain active (deletedAt = null) after startup - existing rows must keep working (backward-compatible migration). Constraints: keep dotnet build and dotnet test green (the existing 5 tests must still pass); do not change unrelated behaviour of the other CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "invocationPath": "openspec CLI, first-class path (not degraded mode): `openspec new change soft-delete-tasks --json` -> `openspec status --change soft-delete-tasks --json` -> `openspec instructions specs --change soft-delete-tasks --json` -> authored the delta spec at the path status returned (openspec/changes/soft-delete-tasks/specs/task-api/spec.md, reusing the existing task-api capability folder) -> `openspec validate soft-delete-tasks --strict` => `Change 'soft-delete-tasks' is valid`, exit 0. Depth 1 owes the delta spec only, so proposal.md/design.md/tasks.md were deliberately NOT authored; `openspec status` therefore reads isComplete: false with applyRequires: [tasks], which is the expected answer at depth 1, not a failure.",
+      "confidenceImpact": "None on the delta itself — validation PASSED under --strict. One recorded conflict: the main spec it deltas describes query filtering the code does not implement (see confidenceLimiters), which caps confidence in the MAIN spec's fidelity, not in this change's."
+    },
+    "sourceManifest": [
+      {
+        "path": "AGENTS.md",
+        "role": "agent entrypoint: pre-edit behaviour, protected files, governed subject",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/constitution.md",
+        "role": "behavioural principles + confidence doctrine (knowledge/confidence labelling)",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/rules/index.md",
+        "role": "R-001..R-007; R-003 green baseline, R-004 domain/HTTP boundary, R-005 TaskState naming, R-006 protected files",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/architecture.md",
+        "role": "boundary model + data-access posture + NON-GOALS — the posture M1 crossed",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "role": "the task record gaining the nullable DeletedAt field",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "role": "in-memory store: Remove() becomes a soft-delete transition; All()/Get() gain the visibility rule; the 4-task seeder",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "role": "the HTTP surface: DELETE semantics, includeDeleted binding, 404 for soft-deleted ids",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Program.cs",
+        "role": "JSON serialization configuration — checked for deletedAt naming/format, unchanged",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "role": "the 5-test green baseline; its Delete_removes_a_task case pins the behaviour being replaced",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "openspec/specs/task-api/spec.md",
+        "role": "the main spec the delta modifies (List Tasks requirement); CONFLICT with the code at this commit — see confidenceLimiters",
+        "knowledge": "FACT"
+      }
+    ],
+    "risk": {
+      "class": "MEDIUM",
+      "classRationale": "Not additive: this redefines an existing endpoint's semantics (DELETE stops removing) and narrows the default membership of GET /tasks, so it can break existing readers rather than merely extend them. It crosses a recorded posture line (M1, data-store) and touches the domain model shape. It is held below HIGH because the blast radius is four files in one in-memory single-instance demo service, there is no durable data to migrate, no auth surface, and every contract statement is reachable from the existing WebApplicationFactory integration-test harness.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "The baseline test `Delete_removes_a_task` asserts 204 then 404 on GET by id — it passes only if GET /tasks/{id} 404s for a soft-deleted task. If the 404 rule were implemented at the store but not for the id route (or vice versa), the baseline would silently keep passing while C-003 (retention) is unmet.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "C-003 gets its own assertion via includeDeleted=true rather than relying on the baseline's 404, so retention is proved positively and not inferred from the absence of the task."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Narrowing All() to active-only silently changes every current and future caller of the store, including any later filtering work.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "The narrowing is explicit in the ADR and in the delta spec's MODIFIED List Tasks requirement, and the opt-out (includeDeleted) is part of the store's signature rather than a caller-side convention."
+        },
+        {
+          "id": "RK-3",
+          "summary": "Adding DeletedAt to the TaskItem positional record changes its constructor arity; the seeder and any positional construction break or, worse, bind the wrong argument.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "The field is nullable with a default so existing construction sites stay valid (the backward-compatible migration), and C-008 asserts the four seeded tasks come back with deletedAt null — a compile-time break or a mis-bound argument fails that test."
+        },
+        {
+          "id": "RK-4",
+          "summary": "R-004 violation: binding includeDeleted or timestamping inside Domain/** could pull ASP.NET types into the domain.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "includeDeleted is bound in the endpoint layer and passed to the store as a plain bool; the store timestamps with DateTimeOffset.UtcNow, which is BCL, not ASP.NET. Asserted as C-010 and re-checked at self-review."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-api — Task Deletion Timestamp (openspec/changes/soft-delete-tasks/specs/task-api/spec.md, ADDED)",
+        "statements": [
+          "C-001"
+        ],
+        "tasks": "Work unit 1: add the nullable DeletedAt to TaskItem."
+      },
+      {
+        "capability": "task-api — Soft-Delete a Task (ADDED)",
+        "statements": [
+          "C-002",
+          "C-003",
+          "C-004"
+        ],
+        "tasks": "Work unit 1 (store: SoftDelete transition) + work unit 2 (endpoint: DELETE maps to 204/404). Re-deleting an already-soft-deleted task is unspecified by the intent and is folded into S1 as question 3; the answer adds a statement here."
+      },
+      {
+        "capability": "task-api — List Tasks (MODIFIED)",
+        "statements": [
+          "C-005",
+          "C-006"
+        ],
+        "tasks": "Work unit 1 (store: All(includeDeleted)) + work unit 2 (endpoint: bind includeDeleted)."
+      },
+      {
+        "capability": "task-api — Retrieve a Single Task Excludes Soft-Deleted (ADDED)",
+        "statements": [
+          "C-007"
+        ],
+        "tasks": "Work unit 1 (store: Get/Update exclude soft-deleted) + work unit 2 (endpoint: 404 mapping). PUT against a soft-deleted task is unspecified by the intent and is folded into S1 as question 4; the answer adds a statement here."
+      },
+      {
+        "capability": "task-api — Existing Tasks Migrate As Active (ADDED)",
+        "statements": [
+          "C-008"
+        ],
+        "tasks": "Work unit 1: the seeder leaves DeletedAt null; covered by an integration test."
+      },
+      {
+        "capability": "non-regression (no OpenSpec requirement — repository rules R-003/R-004/R-005 and the approved scope)",
+        "statements": [
+          "C-009",
+          "C-010"
+        ],
+        "tasks": "Work unit 3: the test pass — the 5 baseline tests stay green and new tests cover the soft-delete surface."
+      }
+    ]
+  }
+}

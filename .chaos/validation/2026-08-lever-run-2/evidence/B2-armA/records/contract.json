@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status",
+  "recordedAt": "2026-08-04T08:56:35Z",
+  "groups": ["Endpoint", "Invariants", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Endpoint",
+      "text": "`GET /tasks?status=<state>` returns HTTP 200 with only those tasks whose status equals `<state>`, where `<state>` is one of the `TaskState` names `Open`, `InProgress`, `Done`."
+    },
+    {
+      "id": "C-002",
+      "group": "Endpoint",
+      "text": "The `status` match is case-insensitive: `GET /tasks?status=open` behaves identically to `GET /tasks?status=Open`."
+    },
+    {
+      "id": "C-003",
+      "group": "Endpoint",
+      "text": "`GET /tasks` with no `status` query parameter returns all tasks — behaviour unchanged from the baseline."
+    },
+    {
+      "id": "C-004",
+      "group": "Endpoint",
+      "text": "An unrecognised `status` value (e.g. `GET /tasks?status=Bogus`) returns HTTP 400 Bad Request and no task list in the body."
+    },
+    {
+      "id": "C-005",
+      "group": "Invariants",
+      "text": "A filtered response contains only tasks of the requested status — no task of any other status appears, for each of the three `TaskState` names against the four seeded tasks (two `Open`, one `InProgress`, one `Done`)."
+    },
+    {
+      "id": "C-006",
+      "group": "Invariants",
+      "text": "Filtering is applied at the endpoint/query boundary: `TaskStore`'s public shape is unchanged and `Domain/**` references no ASP.NET Core type (R-004, R-005, architecture boundary posture)."
+    },
+    {
+      "id": "C-007",
+      "group": "Non-regression",
+      "text": "The other CRUD endpoints (`GET /tasks/{id}`, `POST /tasks`, `PUT /tasks/{id}`, `DELETE /tasks/{id}`) are behaviourally unchanged, the five baseline tests still pass, and `dotnet build` / `dotnet test` stay green (R-003)."
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-enforce-title-max-length",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T09:25:13Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are delivered and covered — five by dedicated tests, one by the untouched-surface argument backed by the unmodified baseline. Build is clean (0 warnings, 0 errors) and the suite is 10/10 green, with the 5 pre-existing tests unmodified and still passing. The diff never left the scope declared at K1, no trigger fired across eight scans, and there are no deviations from the approved framing.",
+  "commentary": "Two bounded assumptions, labelled per R-002 rather than hidden. (1) ASSUMPTION · HIGH — '200 characters' is enforced as `string.Length`, i.e. UTF-16 code units, which is the plain .NET reading of the contract; a title of 200 astral-plane characters would therefore be rejected. The request gives no counting rule and the repository has no precedent, but the interpretation is conventional and directly test-evidenced, so it was recorded here instead of manufactured into a stop. (2) FACT · HIGH — the two validation checks are ordered blank-first, length-second, so the pre-existing 'Title is required.' response body and status are byte-identical for blank input; the length rejection is a new, distinct message. Both endpoints share one private helper, so POST and PUT cannot drift apart.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 10,
+      "total": 10,
+      "note": "5 baseline tests unmodified and green + 5 added for the length bound and the PUT blank-title case"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — private const int MaxTitleLength = 200; enforced in the private ValidateTitle helper called by both write endpoints",
+          "src/TaskTracker.Api/Domain/** — untouched; no length rule leaked into the domain"
+        ],
+        "whyNotTest": "C-001 states where the bound lives (endpoint boundary, not the domain), which is a structural property no HTTP test can distinguish: the same 400s would appear if the rule were enforced in the store. The observable half of the statement is fully tested via C-002/C-003/C-004; the placement half is evidenced by the diff showing Domain/** unmodified."
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_title_longer_than_the_maximum_is_rejected_and_leaves_the_task_untouched"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_title_at_exactly_the_maximum_is_accepted",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_title_at_exactly_the_maximum_is_accepted"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected (pre-existing, unmodified)",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_blank_title_is_rejected (added — the PUT half was previously untested)"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "dotnet test: 10 passed / 0 failed, including the 4 untouched CRUD baseline tests",
+          "dotnet build: 0 warnings, 0 errors",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — the GET /tasks, GET /tasks/{id} and DELETE /tasks/{id} registrations are byte-identical in the diff"
+        ],
+        "whyNotTest": "Non-regression of untouched surface: the 5-test baseline already asserts the other CRUD endpoints and normal-length titles, and it was not modified. A new test here would assert the test suite rather than the behaviour; the evidence that matters is that the baseline is unchanged and still green."
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 10/10, 0 failed; the 5 pre-existing tests are unmodified in the diff and all pass. dotnet build: 0 errors, 0 warnings."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "No file under src/TaskTracker.Api/Domain/** is changed. The bound lives in Endpoints/TaskEndpoints.cs and uses only Results.BadRequest; the domain gains no HTTP reference and no validation responsibility."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "No enum or type was renamed; TaskState is untouched and TaskStatus is not introduced anywhere in the diff."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "Neither AGENTS.md nor the root README.md appears in the diff; the change touched only src/ and tests/."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 8 scan(s) — derived from classification-state.json; both changed paths were declared in the K1 scope line and approved by RUN-DEC-001"
+    }
+  }
+}

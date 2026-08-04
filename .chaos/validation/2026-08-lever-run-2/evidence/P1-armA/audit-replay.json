@@ -1,0 +1,60 @@
+{
+  "pass": true,
+  "dimensions": {
+    "stops": 1,
+    "evidence.targeted": 1,
+    "evidence.breadth": 0,
+    "review": 1,
+    "verify": 1,
+    "openspec": 2,
+    "adr": 2
+  },
+  "scanCount": 9,
+  "assertions": [
+    {
+      "id": "stops.all-answered",
+      "pass": true,
+      "detail": "1 entry, all resolved"
+    },
+    {
+      "id": "stops.placed-have-entries",
+      "pass": true,
+      "detail": "1 ledger entry vs 1 placed stop(s)"
+    },
+    {
+      "id": "adr.file-exists",
+      "pass": true,
+      "detail": "found .chaos/changes/require-api-key-auth/adr\\2026-08-04-api-key-authentication.md"
+    },
+    {
+      "id": "openspec.delta-spec",
+      "pass": true,
+      "detail": "found 2 spec file(s)"
+    },
+    {
+      "id": "openspec.full-set",
+      "pass": true,
+      "detail": "proposal.md present"
+    },
+    {
+      "id": "verify.record-exists",
+      "pass": true,
+      "detail": "found verify.pass-01.facts.json"
+    },
+    {
+      "id": "records.frame-exists",
+      "pass": true,
+      "detail": "found frame.pass-01.facts.json"
+    },
+    {
+      "id": "records.deliver-exists",
+      "pass": true,
+      "detail": "found deliver.pass-01.facts.json"
+    },
+    {
+      "id": "dims.at-or-above-floor",
+      "pass": true,
+      "detail": "vector >= floors on all 7 dimensions"
+    }
+  ]
+}

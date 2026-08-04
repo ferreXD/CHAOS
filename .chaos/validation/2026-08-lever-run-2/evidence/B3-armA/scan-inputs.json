@@ -1,0 +1,16 @@
+{
+ "intent": "Task titles are currently unbounded. Add an upper bound on title length as input validation. This is a request-validation convenience: no authentication, no persistence-model change.",
+ "scope": "scope: src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, src/TaskTracker.Api/Contracts/TaskRequests.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+ "declaredTriggers": [],
+ "mode": null,
+ "selfReview": "clean",
+ "subjectPaths": [
+  "src",
+  "tests"
+ ],
+ "mapFile": ".chaos\\path-class-map.json",
+ "postureFiles": [
+  ".chaos/architecture.md"
+ ],
+ "lastCheckpoint": "K4"
+}

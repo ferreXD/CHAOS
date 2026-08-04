@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-task-count",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T08:48:22Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are delivered and covered — four directly by new integration tests, the other two by evidence that is stronger than a duplicated test would be — build and tests are green (10/10, 0 warnings), no deviation from the approved framing was needed, and the C-15-scoped diff never left the two declared scope paths.",
+  "commentary": "One work unit delivered the whole contract. The unit was banded T0/route-B by scan.py tier (it maps 1:1 onto C-001..C-006), but this session has no subagent-spawn capability, so the floor delegation could not be performed and the unit was implemented inline at ceiling — a harness limitation, not a tier-map decision, and recorded here so the tiering telemetry is not read as a judgement call. The count is read at the endpoint from store.All(), the same snapshot GET /tasks serializes, which is what makes C-002 true by construction rather than by coincidence.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 10,
+      "total": 10,
+      "note": "5 baseline tests unchanged and green + 5 added for the count contract"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Get_count_returns_200_with_the_number_of_tasks"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Count_equals_the_number_of_items_returned_by_get_tasks"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Creating_a_task_increases_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Deleting_a_task_decreases_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs — all 5 baseline CRUD tests unmodified and passing",
+          "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Root_health_endpoint_is_unchanged"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "git status -- src tests: exactly 'M src/TaskTracker.Api/Endpoints/TaskEndpoints.cs' and 'A tests/TaskTracker.Tests/TaskCountEndpointTests.cs'",
+          "src/TaskTracker.Api/Domain/** untouched and free of Microsoft.AspNetCore references",
+          "no TaskStatus identifier introduced anywhere in src/ or tests/"
+        ],
+        "whyNotTest": "C-006 is a property of the diff and of the dependency direction, not of runtime behaviour: nothing a test could execute would distinguish a compliant diff from a non-compliant one that happens to pass. The checkable evidence is the diff itself plus the grep for the forbidden dependency and identifier — which is also exactly how R-004 and R-005 define their violation criteria."
+      }
+    ],
+    "rules": [
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 10/10, 0 failed; the 5 baseline tests are unmodified" },
+      { "id": "R-004", "status": "pass", "evidence": "no Domain/** file changed; the count is read at the endpoint boundary from store.All(), and Domain/** contains no Microsoft.AspNetCore reference" },
+      { "id": "R-005", "status": "pass", "evidence": "no TaskStatus identifier introduced; the work-item enum stays TaskState" },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are absent from git status — neither was read-modified nor written" }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs",
+        "change": "added"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 6 scan(s) — derived from classification-state.json; the C-15-scoped diff covers exactly the paths declared in the K1 scope"
+    }
+  }
+}
