@@ -190,7 +190,7 @@ latching**. Full scorecard of the failure: `.chaos/validation/2026-08-lever-run/
 
 | Band | Executes at | What | Condition |
 |---|---|---|---|
-| **T0** mechanical | **floor** (haiku) | render repair loop · mechanical audit repair · harness telemetry | validator-gated, no judgement (unchanged from §2) |
+| **T0** mechanical | **floor** (haiku) | render repair loop · mechanical audit repair · **mechanical implementation units** (§8.7) | validator-gated, no judgement |
 | **T1** routine implementation | **mid** (sonnet) | one work unit of implementation | all four gates in §8.2 hold |
 | **T2** governed judgement | **ceiling** (session model) | everything else: adjudication · every stop · ledger decision entries · judgement prose · OpenSpec authoring · self-review · in-loop verify · **any unit failing a T1 gate** | default — T2 is what you get unless T1 is proven |
 
@@ -261,7 +261,54 @@ fired trigger, which statement), appends the verdict to the scan digest trail, a
 escalation budget in `classification-state.json`. The loop reads the verdict; it does not
 re-derive it.
 
-### 8.6 Prediction (frozen before the build, scored in the next run)
+### 8.6 T0 implementation — the floor tier opens (creator, 2026-08-04)
+
+**Why this exists.** Asked whether T0 would ever fire in the harness, the honest answer from
+the evidence was *almost never*: harness telemetry is not delegable at all (the arm's
+schema-validated return value must come from the arm), Stage D measured **1 self-repaired
+render failure across 6 arms**, and no arm showed a confirmed mechanical audit-repair cycle.
+T0's inbox was empty **because L3 and L4 succeeded** — the deterministic-first ladder moved
+scan prep, payload assembly, `TRG-*` transcription and record facts into tools, which is
+exactly what L1-D3 predicted would happen and what leaves the floor tier with nothing to do.
+Rather than retire it, the creator widened it: **T0 may implement a work unit when the unit is
+mechanical and well specified.**
+
+- **L1-D16 (creator).** T0 implementation is allowed by **either** route below. "Well
+  specified" is never an agent's self-declaration — that is the free-text-changes-governance
+  pattern D3/D4/D5 were removed for. It is a `scan.py tier` verdict from evidence.
+
+**Common preconditions (both routes, all required):**
+
+1. every **T1 gate** of §8.2 holds (surface-disjoint retrospective + prospective, no coupled
+   evidence, budget intact) — T0 is *narrower* than T1, never a way around it;
+2. declared paths are **file-level**, not directories (the `vague_scope` rule already in the
+   classifier: a directory-level declaration is not a specification);
+3. declared blast radius sits **below the X1 review1 threshold** (8 files / 400 LOC).
+
+**Route A — test-first (a failing check already defines done).** An executable acceptance
+check for this unit **exists and currently fails**; T0's whole job is to turn it green. This
+is the strongest form: the validator that contains the risk is the same one that defines the
+task, which is the containment argument L1 was built on.
+
+**Route B — contract-anchored (no pre-existing test).** The unit maps 1:1 onto contract
+statements whose assertions are **pinned** (status codes, field names, headers, wire shapes),
+with no unpinned clause. **Recorded consequence, decided against the safer alternative:** this
+route has *no pre-existing validator*, so a floor-tier model attempts the unit with only
+after-the-fact checks catching a bad outcome. It is the wider surface and the weaker guarantee.
+
+**Post-conditions (deterministic, both routes).** After a T0 unit: the **full** test suite
+green, build clean, the actual diff ⊆ the declared file-level paths, and the rescan attributes
+**no new firing** to the unit. Any failure escalates.
+
+- **L1-D17 (creator) — escalate one rung.** A failed T0 unit is redone at **T1**; if that
+  fails too, at **T2**. Each rung climbed spends one unit of the shared budget of 2 (§8.3).
+  A unit never skips a rung, and after the budget is spent implementation stays at ceiling.
+
+**Quality rule, carried forward verbatim from L1-D11:** an oracle failure on an arm that used
+T0 implementation **closes the route that produced it** — Route B first, since it is the one
+without a pre-existing validator — rather than being tuned.
+
+### 8.7 Prediction (frozen before the build, scored in the next run)
 
 - **T1 opens on band A**: B2 and B3 fired only `M4`/`X2` (no path-class surface), so
   essentially **all** their implementation units should band T1 — the case the old gate
@@ -269,9 +316,14 @@ re-derive it.
 - **T1 opens partially on band B**: units away from the fired surface (unrelated DTOs,
   non-coupled regression tests) reach mid; the auth/data-store/contract units and their
   coupled tests stay ceiling.
-- **Mid-tier share of governed output: 15–35%** on band A, **5–15%** on band B.
-- **Escalations: ≤1 per arm.** More than that means the gates are mis-drawn, not that mid is
-  weak.
+- **T0 implementation fires at least once per band-A arm.** These tasks pin exact wire
+  contracts by design (the frozen kit's whole point), so Route B should qualify on B2/B3;
+  Route A qualifies wherever the loop writes tests before code. **T0 was measured at zero
+  invocations in the lever run — any non-zero count is the amendment working.**
+- **Floor+mid share of governed output: 20–40%** on band A, **5–15%** on band B.
+- **Escalations: ≤1 per arm.** More than that means the gates are mis-drawn, not that the
+  cheap tiers are weak. **Route B escalating more often than Route A is the expected shape**
+  and is the signal for whether Route B survives.
 - **Fidelity, oracle, and artifact set unchanged.** An oracle regression on an arm that used
   mid tier **closes the band** (reverts to ceiling-always) rather than being tuned — the
   L1-D11 rule, carried forward verbatim.
