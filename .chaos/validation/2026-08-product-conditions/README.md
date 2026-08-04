@@ -36,11 +36,17 @@ Workspace: **`D:/Proyectos/CHAOS/demo-light`** on `demo/dotnet` (`2bca328`).
 ## 3. The tests (frozen, in order)
 
 Run in the order given: it front-loads one test per band, so stopping after **T3** still yields
-full band coverage. Each prompt is pasted **verbatim, including the `[M2-Tn]` tag** — that tag is
-the only manual step, and it is what lets the stopwatch window each run exactly.
+full band coverage. Each prompt is pasted **verbatim** — its wording is the bookmark the
+stopwatch windows on (`--from-match`), including text inside `<command-args>` when the runtime
+renders a slash invocation. No tagging is required of the operator.
 
-**Between every test:** `git add -A && git commit -m "Tn"` in the demo workspace, so the next
-run's diff is clean. After the last test, send the single message `[M2-END]` to close the window.
+**No preset flag** on any test: that is what every measured row in the series used
+("no preset flag" in the RUNKIT titles), so the classifier decides rigour unaided and these
+numbers stay comparable.
+
+**Between every test:** `git add -A && git commit -m "Tn"` in the demo workspace — a scan
+classifies from the working-tree diff, so an uncommitted previous test would be read as part of
+the next one. After the last test, one short message closes the final window.
 
 | # | Test | Targets | Bar |
 |---|---|---|---|
@@ -50,38 +56,30 @@ run's diff is clean. After the last test, send the single message `[M2-END]` to 
 | **T4** | title max length | **band A** again, for n=2 on the headline bar | **≤ 5 min** |
 | **T5** | "archive old tasks" | **a stop** — the human-in-the-loop case | ≤ 15 min machine |
 
+Each block below is one chat message, pasted whole.
+
 ### T1 — band A
 
 ```text
-[M2-T1] chaos:run Add an optional ?priority= query filter to GET /tasks, accepting Low,
-Medium or High. Omitting it keeps today's behaviour of returning everything. An unrecognised
-value is a 400. Keep the filtering in the endpoint layer over the existing store.All() — do not
-change TaskStore.
+/chaos-run "Add an optional ?priority= query filter to GET /tasks, accepting Low, Medium or High. Omitting the parameter keeps today's behaviour of returning everything. An unrecognised value is a 400. Keep the filtering in the endpoint layer over the existing store.All() result - do not change TaskStore."
 ```
 
 ### T2 — band B
 
 ```text
-[M2-T2] chaos:run Give every task an optional DueDate. It is nullable, set on create and
-update, returned on every task, and absent means no due date. Existing stored tasks keep working
-with no due date.
+/chaos-run "Give every task an optional DueDate. It is nullable, settable on create and update, and returned on every task. Absent means no due date, and tasks already in the store keep working without one."
 ```
 
 ### T3 — band C (never measured in this program)
 
 ```text
-[M2-T3] chaos:run Scope tasks to their owner. Record the owning user on each task, taking the
-identity from the authenticated caller's JWT subject claim. GET /tasks must return only the
-caller's own tasks, and reading, updating or deleting someone else's task is a 404. This is a
-deliberate breaking change to the published contract: GET /tasks currently returns every task to
-any authenticated caller.
+/chaos-run "Scope tasks to their owner. Record the owning user on each task, taking the identity from the authenticated caller's JWT subject claim. GET /tasks must return only the caller's own tasks, and reading, updating or deleting someone else's task must be a 404. This is a deliberate breaking change to the published contract: GET /tasks currently returns every task to any authenticated caller."
 ```
 
 ### T4 — band A, second sample
 
 ```text
-[M2-T4] chaos:run Reject task titles longer than 200 characters on create and update with a
-400 and a clear message. Titles of exactly 200 characters are accepted.
+/chaos-run "Reject task titles longer than 200 characters on create and update, with a 400 and a clear message. A title of exactly 200 characters is accepted."
 ```
 
 ### T5 — the stop case
@@ -91,8 +89,15 @@ instrument. Answer CHAOS's questions however you genuinely would; your thinking 
 separately and is never counted against the bar.
 
 ```text
-[M2-T5] chaos:run Tasks are piling up. Add whatever's needed so users can get old tasks out of
-the way instead of deleting them.
+/chaos-run "Tasks are piling up. Add whatever is needed so users can get old tasks out of the way instead of deleting them."
+```
+
+### Closing message
+
+After T5 finishes, send this one short message so the last window has an end boundary:
+
+```text
+runs finished
 ```
 
 ## 4. Frozen predictions
@@ -132,11 +137,17 @@ of each test. A test that leaves the suite red is reported as a failure, not tun
 - **Subagent time.** Nested agents run inside the parent's elapsed time, so it is already counted.
 - **Price.** Derivable from the same transcripts if wanted, though the ceiling has 4–8× headroom.
 
-**Manual — three things, all on the operator:**
+**Manual — three things, and each exists for a concrete reason:**
 
-1. The **`[M2-Tn]` tag** at the start of each prompt (window boundaries).
-2. **`[M2-END]`** as a final message (closes the last window).
-3. **`git commit` between tests** (keeps each diff clean).
+1. **Paste each prompt verbatim.** The stopwatch finds a test in the transcript by searching for
+   a distinctive phrase from its own prompt (`--from-match`). The wording *is* the bookmark; a
+   reworded prompt cannot be located, so that test's timing is lost.
+2. **`git add -A && git commit` after each test.** A scan classifies from the working-tree diff.
+   If T1's edits are still uncommitted when T2 starts, T2's scan sees T1's files as part of T2 —
+   wrong surfaces, wrong band, invalid measurement.
+3. **One short closing message** (`runs finished`). Every test's window ends where the next
+   test's prompt begins; the last test has no successor, so without a closing message its window
+   would run to the end of the transcript and swallow any later conversation.
 
 ## 6. Procedure log
 
