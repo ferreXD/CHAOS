@@ -18,7 +18,7 @@ sections:
     mode: verbatim
     source: .claude/skills/chaos-shared/reference/change-template.md
     span: "## 2. Decision entry format (`decision-events.md`, append-only)"
-    sha256: 8e8282f732bd96773a8cbc53ca866ad5d11aefb38d8dbf9ab1f9e1f1972585b1
+    sha256: 657451d88f21e27800f9bf10151f6a5c76a0a102a7169d04f7bbb6b045336aa2
   - id: classifier-wiring
     mode: verbatim
     source: tools/chaos-classify/README.md
@@ -221,8 +221,9 @@ matching:
 ^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)
 ```
 
-Known prefixes: `PROP-` · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` · `ARC-` ·
-`RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
+Known prefixes: `PROP-` · `RUN-` (chaos:run — one continuous command, so its decisions sort at
+the same stage as `PROP-`) · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` ·
+`ARC-` · `RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
 narrative or grouping sections such as "Dependent decisions" or "Runtime note" — is NOT an entry.**
 This single rule governs everywhere decisions are enumerated or counted:
 `lifecycle.current.decisions`, the `chaos:archive` closure matrix, sync reconciliation, and audits.

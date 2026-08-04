@@ -190,8 +190,19 @@ they are what the levers actually cost when measured, and no re-run has happened
 | **D2** | `phase-facts.schema.json`: `mode` becomes `oneOf [enum, null]` — a run with no preset flag can now say so instead of claiming `light` | `test_mode_null_validates` |
 | **D3** | `scan.py k4 --self-review` is now `choices=["clean","fail"]` — a caller can no longer manufacture an X2 by wording | `test_k4_rejects_free_text_verdicts`, `test_k4_clean_does_not_fire_x2` |
 
-Post-repair: 135 tests green across five suites (scan 13, record 8, digest 13, render 62,
-classify 39), corpus scan-only all-PASS over 29 seeds, digest `--check` exit 0.
+**The D1 repair was incomplete, and a sweep found the rest — reported because it is the same
+failure mode a second time.** The decision-prefix set is duplicated across **six** sites; the
+first repair fixed three and left three. The sweep found `decision-entry.schema.json` (the
+renderer's *parse contract* — a `RUN-DEC-*` entry would fail it) and `change-template.md`'s
+documented "Known prefixes" line still stale. Both fixed, and the real repair is the new
+**guard test** (`test_every_prefix_site_agrees`): it reads all six sites — both `render.py`
+regexes, `PREFIX_STAGE`, the two schema `decisionRef` patterns, the decision-entry `id`
+pattern, and the template's prose list — and fails the moment any one drifts. That test is
+cheaper than another 12-arm run discovering the omission.
+
+Post-repair: 136 tests green across five suites (scan 13, record 8, digest 13, render 63,
+classify 39), corpus scan-only all-PASS over 29 seeds, digest `--check` exit 0 after
+restamping the `decision-entry-format` section (change-template is a digest source).
 
 **Still open, and deliberately not fixed here** because it is a design decision, not a bug:
 **the L1-D11 easy gate is inert.** "Zero triggers fired" never holds past the first scan. Any

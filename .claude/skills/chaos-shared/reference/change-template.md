@@ -151,8 +151,9 @@ matching:
 ^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)
 ```
 
-Known prefixes: `PROP-` · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` · `ARC-` ·
-`RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
+Known prefixes: `PROP-` · `RUN-` (chaos:run — one continuous command, so its decisions sort at
+the same stage as `PROP-`) · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` ·
+`ARC-` · `RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
 narrative or grouping sections such as "Dependent decisions" or "Runtime note" — is NOT an entry.**
 This single rule governs everywhere decisions are enumerated or counted:
 `lifecycle.current.decisions`, the `chaos:archive` closure matrix, sync reconciliation, and audits.

@@ -9,7 +9,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^(PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\\d{3}$"
+      "pattern": "^(PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO|RUN)-DEC-\\d{3}$"
     },
     "title": { "type": "string", "minLength": 1 },
     "kind": {

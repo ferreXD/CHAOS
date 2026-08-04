@@ -9,6 +9,7 @@ Fixtures mirror the golden reference (demo/dotnet secure-task-api) shapes.
 import importlib.util
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -855,6 +856,43 @@ class TestRunDecPrefix(unittest.TestCase):
     def test_run_prefix_has_a_stage(self):
         self.assertIn("RUN", render.PREFIX_STAGE)
         self.assertEqual(render.PREFIX_STAGE["RUN"], render.PREFIX_STAGE["PROP"])
+
+    def test_every_prefix_site_agrees(self):
+        """THE GUARD. D1 happened because the decision-prefix set is duplicated across six
+        places and `RUN` was added to some of them. Fixing the renderer then revealed two MORE
+        stale copies (the decision-entry parse contract and change-template's documented list).
+        This test fails the moment any site drifts from the others again — it is cheaper than
+        another 12-arm run discovering it."""
+        expected = {"PROP", "RUN", "REV", "APP", "APPLY", "VFY", "VER", "CR", "SYNC", "ARC",
+                    "RETRO"}
+        sites = {}
+
+        def from_pattern(text, label):
+            m = re.search(r"\(\??:?((?:[A-Z]+\|){3,}[A-Z]+)\)-DEC-", text)
+            self.assertIsNotNone(m, "no prefix alternation found in %s" % label)
+            sites[label] = set(m.group(1).split("|"))
+
+        from_pattern(render.ENTRY_HEADING_RE.pattern, "render.ENTRY_HEADING_RE")
+        from_pattern(render.REF_TOKEN_RE.pattern, "render.REF_TOKEN_RE")
+        for name, ref in (("contract.schema.json", "decisionRef"),
+                          ("phase-facts.schema.json", "decisionRef")):
+            from_pattern(render.load_schema(name)["$defs"][ref]["pattern"], name)
+        from_pattern(render.load_schema("decision-entry.schema.json")
+                     ["properties"]["id"]["pattern"], "decision-entry.schema.json")
+        sites["render.PREFIX_STAGE"] = {k for k in render.PREFIX_STAGE if k != "ESC"}
+
+        template = os.path.join(HERE, "..", "..", ".claude", "skills", "chaos-shared",
+                                "reference", "change-template.md")
+        if os.path.isfile(template):
+            with open(template, encoding="utf-8") as f:
+                body = f.read()
+            line = next((l for l in body.splitlines() if l.startswith("Known prefixes:")), "")
+            self.assertTrue(line, "change-template.md lost its 'Known prefixes:' line")
+            tail = body.split("Known prefixes:", 1)[1].split("(plus", 1)[0]
+            sites["change-template.md"] = set(re.findall(r"`([A-Z]+)-`", tail))
+
+        for label, found in sites.items():
+            self.assertEqual(found, expected, "%s prefix set drifted: %s" % (label, found))
 
     def test_mode_null_validates(self):
         """Defect D2: a run with no preset flag has mode null in classification-state.json;
