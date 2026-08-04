@@ -178,3 +178,23 @@ Ordered by evidence, not by ambition:
   taken from it: `read-volume.py` originally ordered transcripts by filename hash instead of
   journal start order, which assigned governed reads to plain arms. Fixed, re-run, and the
   corrected output is what §4 reports.
+
+## 8. Defect repairs landed (2026-08-04, after the measurement, before any re-run)
+
+D1–D3 are fixed on the toolkit. **The numbers in §1–§4 are pre-repair and stay that way** —
+they are what the levers actually cost when measured, and no re-run has happened.
+
+| Defect | Repair | Regression test |
+|---|---|---|
+| **D1** | `render.py`: `RUN` added to `ENTRY_HEADING_RE`, `REF_TOKEN_RE` and `PREFIX_STAGE` (stage 0, alongside `PROP` — one continuous command spans framing through close) | `TestRunDecPrefix`: heading match, reference token, stage parity |
+| **D2** | `phase-facts.schema.json`: `mode` becomes `oneOf [enum, null]` — a run with no preset flag can now say so instead of claiming `light` | `test_mode_null_validates` |
+| **D3** | `scan.py k4 --self-review` is now `choices=["clean","fail"]` — a caller can no longer manufacture an X2 by wording | `test_k4_rejects_free_text_verdicts`, `test_k4_clean_does_not_fire_x2` |
+
+Post-repair: 135 tests green across five suites (scan 13, record 8, digest 13, render 62,
+classify 39), corpus scan-only all-PASS over 29 seeds, digest `--check` exit 0.
+
+**Still open, and deliberately not fixed here** because it is a design decision, not a bug:
+**the L1-D11 easy gate is inert.** "Zero triggers fired" never holds past the first scan. Any
+re-run that hopes to measure L1 must first re-specify the gate — the evidence suggests keying
+it on the *vector* (e.g. mid tier allowed while `evidence.breadth 0`, `review ≤1`, and the unit
+touches no fired surface) rather than on trigger absence.

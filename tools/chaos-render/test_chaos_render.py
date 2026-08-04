@@ -838,6 +838,33 @@ class TestDecisionAudit(unittest.TestCase):
             repo.cleanup()
 
 
+class TestRunDecPrefix(unittest.TestCase):
+    """Lever-run defect D1: render.py's ledger regexes and PREFIX_STAGE omitted `RUN`, the
+    prefix chaos:run mandates, so the renderer parsed ZERO decisions from a conformant ledger
+    and hard-failed any deviation citing RUN-DEC-*. It blocked close on 6/6 measured arms."""
+
+    def test_run_dec_heading_is_recognized(self):
+        m = render.ENTRY_HEADING_RE.match("## RUN-DEC-001 — approve as framed?")
+        self.assertIsNotNone(m)
+        self.assertEqual(m.group(1), "RUN-DEC-001")
+
+    def test_run_dec_reference_token_is_recognized(self):
+        self.assertIn("RUN-DEC-002",
+                      render.REF_TOKEN_RE.findall("deviation backed by RUN-DEC-002 here"))
+
+    def test_run_prefix_has_a_stage(self):
+        self.assertIn("RUN", render.PREFIX_STAGE)
+        self.assertEqual(render.PREFIX_STAGE["RUN"], render.PREFIX_STAGE["PROP"])
+
+    def test_mode_null_validates(self):
+        """Defect D2: a run with no preset flag has mode null in classification-state.json;
+        the record must be able to say so instead of claiming 'light'."""
+        schema = render.load_schema("phase-facts.schema.json")
+        self.assertEqual(render.validate_schema(None, schema["$defs"]["mode"]), [])
+        self.assertEqual(render.validate_schema("light", schema["$defs"]["mode"]), [])
+        self.assertTrue(render.validate_schema("bogus", schema["$defs"]["mode"]))
+
+
 class TestExampleRecords(unittest.TestCase):
     """The examples/ records are the agent-facing replacement for reading the schemas
     (L2-D7, docs/design/2026-08-03-l2-corpus-amortization.md §3): agents pattern-match an

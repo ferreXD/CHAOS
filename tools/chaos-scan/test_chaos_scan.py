@@ -160,10 +160,24 @@ class TestScan(unittest.TestCase):
     def test_k4_self_review(self):
         self._k1()
         self.assertEqual(S.main(["k4", "--change-dir", self.change,
-                                 "--self-review", "issues-found"]), 0)
+                                 "--self-review", "fail"]), 0)
         d = self._digest(2)
         self.assertIn("FIRED X2", d)
         self.assertIn("adjudication: not due", d)      # K4 never sets it
+
+    def test_k4_clean_does_not_fire_x2(self):
+        self._k1()
+        self.assertEqual(S.main(["k4", "--change-dir", self.change,
+                                 "--self-review", "clean"]), 0)
+        self.assertIn("fired: none", self._digest(2))
+
+    def test_k4_rejects_free_text_verdicts(self):
+        """Lever-run defect D3: free text let 6/6 arms pass 'pass'/'PASS', firing X2 and
+        buying an unowed review + verify pass. The value is now a constrained choice."""
+        self._k1()
+        for bad in ("pass", "PASS", "issues-found", "ok"):
+            with self.assertRaises(SystemExit):
+                S.main(["k4", "--change-dir", self.change, "--self-review", bad])
 
     def test_update_scope_requires_decision(self):
         self._k1()

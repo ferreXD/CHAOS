@@ -323,11 +323,19 @@
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     },
     "mode": {
-      "type": "string",
-      "enum": [
-        "light",
-        "standard",
-        "strict"
+      "description": "The preset floor. null = no preset flag was given (zero floors) - the classified-only path; classification-state.json records mode null and records must be able to say so rather than claiming 'light'.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "light",
+            "standard",
+            "strict"
+          ]
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "confidence": {

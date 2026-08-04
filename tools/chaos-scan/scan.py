@@ -287,7 +287,15 @@ def main(argv=None):
         sp = sub.add_parser(name, help=hlp)
         common(sp)
         if name == "k4":
-            sp.add_argument("--self-review", required=True, dest="self_review")
+            # CONSTRAINED ON PURPOSE (lever-run defect D3). This was free text, and the
+            # classifier fires X2 for anything that is not the literal "clean" — so six of six
+            # measured arms passed "pass"/"PASS", tripped X2, and bought an independent review
+            # pass plus a verify pass they did not owe. A tool must not let a well-behaved
+            # caller manufacture governance by wording. `clean` = self-review found nothing;
+            # `fail` = it found something (X2 fires, review->2, verify->1, mechanically).
+            sp.add_argument("--self-review", required=True, dest="self_review",
+                            choices=["clean", "fail"],
+                            help="clean = nothing found; fail = issues found (fires X2)")
 
     mg = sub.add_parser("merge", help="apply adjudication raises (second call of the pattern)")
     common(mg)

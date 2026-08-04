@@ -51,17 +51,21 @@ COMMAND_PHASE = {
 }
 # Which lifecycle stage a ledger prefix belongs to (for "ledger as of phase P" views).
 PREFIX_STAGE = {
-    "ESC": 0, "PROP": 0, "REV": 1, "APPLY": 2, "APP": 2,
+    # RUN is the chaos:run (Stage-D collapse) prefix: one continuous command spans framing
+    # through close, so its decisions sort at stage 0 alongside PROP. Omitting it made the
+    # renderer parse ZERO decisions from conformant chaos:run ledgers — measured on 6/6 arms
+    # of the 2026-08-04 lever run (that kit's results.md, defect D1).
+    "ESC": 0, "PROP": 0, "RUN": 0, "REV": 1, "APPLY": 2, "APP": 2,
     "VFY": 3, "VER": 3, "CR": 3, "SYNC": 4, "ARC": 5, "RETRO": 6,
 }
 PHASE_STAGE = {"frame": 0, "review": 1, "deliver": 2, "verify": 3, "sync": 4, "archive": 5, "codeReview": 3, "retro": 6}
 
 ENTRY_HEADING_RE = re.compile(
-    r"^## ((?:PROP|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3}) — (.+)$"
+    r"^## ((?:PROP|RUN|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3}) — (.+)$"
 )
 FIELD_RE = re.compile(r"^- ([A-Za-z][A-Za-z0-9 -]*): (.*)$")
 REF_TOKEN_RE = re.compile(
-    r"\b((?:PROP|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3})\b"
+    r"\b((?:PROP|RUN|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3})\b"
 )
 
 
