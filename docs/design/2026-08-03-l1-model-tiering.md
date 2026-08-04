@@ -174,3 +174,104 @@ conflict.
   ceiling-only; total tokens still ≤ +5%. **Quality gate:** the oracle stays a
   stop-the-analysis gate on mid-tier arms specifically — an oracle regression there closes
   L1-D11, it does not get tuned.
+
+## 8. The tier band — L1-D11 replaced (creator, 2026-08-04, after the lever run)
+
+**L1-D11 is superseded.** The lever run measured it **inert**: `ceiling:1 mid:0 floor:0` on
+6/6 arms, 100% of tokens at ceiling. Cause, from the evidence: the gate was **change-scoped
+and latching** — it required *zero triggers fired* and closed permanently on the first firing,
+which arrived at scan 1 on four arms (M2), scan 3 on B2 (M4) and scan 6 on B3 (X2). A gate that
+shuts before the first implementation unit exists can never route anything.
+
+The replacement bands **work units, not changes**, and **recomputes per unit instead of
+latching**. Full scorecard of the failure: `.chaos/validation/2026-08-lever-run/results.md` §4.
+
+### 8.1 The bands
+
+| Band | Executes at | What | Condition |
+|---|---|---|---|
+| **T0** mechanical | **floor** (haiku) | render repair loop · mechanical audit repair · harness telemetry | validator-gated, no judgement (unchanged from §2) |
+| **T1** routine implementation | **mid** (sonnet) | one work unit of implementation | all four gates in §8.2 hold |
+| **T2** governed judgement | **ceiling** (session model) | everything else: adjudication · every stop · ledger decision entries · judgement prose · OpenSpec authoring · self-review · in-loop verify · **any unit failing a T1 gate** | default — T2 is what you get unless T1 is proven |
+
+**T2 is the default and the fallback.** A unit is mid-eligible only by passing every gate;
+anything unproven, unmapped, or ambiguous lands at ceiling. The **grader invariant of §7 is
+unchanged and absolute**: the steps that measure difficulty are never below ceiling.
+
+### 8.2 The four T1 gates (L1-D12 — creator: surface-disjoint + test coupling)
+
+A work unit runs at **mid** only if all four hold. All are computed **deterministically** —
+tier selection is a tool verdict, never a model judgement (the same discipline that makes
+rigor auditable):
+
+1. **Retrospective surface-disjoint.** The unit's declared paths intersect **no** path class
+   whose surface carries a **fired** trigger. (`fired[].surface` × the path-class map.)
+2. **Prospective surface-disjoint.** The unit's declared paths intersect **no** sensitive
+   class at all (`m2Classes`), even if nothing has fired there yet. Without this, the *first*
+   unit of every change is trivially T1 and can walk straight into an auth or data-store
+   surface before any scan has seen it.
+3. **No coupled evidence.** The unit authors no test or evidence for a contract statement
+   attributed to a fired trigger. This is the gate the creator specifically added, and the
+   lever run shows why: P1's ordering clause (C-007) was falsifiable *only* by tests that
+   encode the security contract — a weaker tier writing those tests is the failure mode where
+   everything passes and the contract is still broken.
+4. **Escalation budget intact** (§8.3).
+
+**What this changes in practice, and it is the point:** `M4` carries surface `process` and
+`X2` carries no surface at all — **neither maps to any path class**, so under gate 1 neither
+blocks mid-tier implementation. Those are exactly the firings that closed the old gate on B2
+and B3. Meanwhile `M1`/`M2`/`M3` fire on real surfaces and correctly keep the units touching
+them at ceiling.
+
+### 8.3 Escalation — budget 2, then latch (L1-D14, creator)
+
+A mid unit **escalates** when any of these occur: its tests fail, its actual diff spills
+outside the declared paths into a sensitive or fired class, or the rescan attributes a new
+firing to it. On escalation the unit is **redone at ceiling** and one unit of budget is spent.
+**After the second escalation, implementation stays at ceiling for the rest of the run.**
+
+Escalation is never a stop and never a governance event. The declared-paths claim is
+**verified after the fact by the rescan diff**, which is what makes gates 1–2 more than a
+promise: an agent cannot declare innocent paths and then edit auth.
+
+### 8.4 Presets are orthogonal (L1-D13 — creator)
+
+**Presets do not affect tier.** `--strict` raises *obligations* (stops, evidence, OpenSpec
+depth, ADR) and leaves *who executes* to the band. Recorded consequence, since it was decided
+against the alternative: **under `--strict` a mid-tier model may still write code** for units
+that pass all four gates. The mitigations are the gates themselves — a strict change's
+sensitive surfaces are exactly where triggers fire, so those units are T2 anyway — plus the
+after-the-fact diff verification and the strict preset's own heavier verify obligations. If a
+measured strict arm shows mid-tier work reaching a fired surface, this decision is the first
+thing to revisit.
+
+### 8.5 Mechanism
+
+`chaos-scan` gains a deterministic `tier` subcommand — the tier verdict joins the rigor
+verdict as tool output:
+
+```bash
+python tools/chaos-scan/scan.py tier --change-dir <dir> \
+    --unit-path src/App/Dto/Widget.cs --unit-path tests/WidgetDtoTests.cs \
+    [--covers C-004,C-005]
+```
+
+It answers `T1` or `T2` with the **gate that decided it** and a citation (which class, which
+fired trigger, which statement), appends the verdict to the scan digest trail, and records the
+escalation budget in `classification-state.json`. The loop reads the verdict; it does not
+re-derive it.
+
+### 8.6 Prediction (frozen before the build, scored in the next run)
+
+- **T1 opens on band A**: B2 and B3 fired only `M4`/`X2` (no path-class surface), so
+  essentially **all** their implementation units should band T1 — the case the old gate
+  measured at zero.
+- **T1 opens partially on band B**: units away from the fired surface (unrelated DTOs,
+  non-coupled regression tests) reach mid; the auth/data-store/contract units and their
+  coupled tests stay ceiling.
+- **Mid-tier share of governed output: 15–35%** on band A, **5–15%** on band B.
+- **Escalations: ≤1 per arm.** More than that means the gates are mis-drawn, not that mid is
+  weak.
+- **Fidelity, oracle, and artifact set unchanged.** An oracle regression on an arm that used
+  mid tier **closes the band** (reverts to ceiling-always) rather than being tuned — the
+  L1-D11 rule, carried forward verbatim.
