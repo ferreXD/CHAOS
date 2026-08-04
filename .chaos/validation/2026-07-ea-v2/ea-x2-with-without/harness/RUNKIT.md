@@ -296,7 +296,10 @@ The held-out **oracles** (`AuthOracleTests.cs`, `SoftDeleteOracleTests.cs`,
   **arm-self-reported** (`date +%s`), not an independent stopwatch. Keep both caveats on any re-run.
 - **Metric label (2026-08-04).** Every row above, through *D1–D5 repairs + tier band*, is measured
   under metric **M1 = output-token ratio vs the within-session plain arm**. M1 was retired on
-  2026-08-04 in favour of **M2 = blended cost**; see
+  2026-08-04 in favour of **M2 = an absolute wall-clock envelope per governed change (primary,
+  gates) with a secondary price ceiling** — band A ≤5 min/≤$10, band B ≤15 min/≤$25. **Wall time
+  is already in every row above** (the `time ratio` and `s` columns), so the series is readable in
+  M2's primary unit today, with the standing caveat that it is arm-self-reported. See
   [`docs/design/2026-08-04-metric-rebase.md`](../../../../../docs/design/2026-08-04-metric-rebase.md),
   which preserves M1's definition, its bars, and this series. **Rows are not comparable across
   metrics — label the metric on every future row**, and keep reporting the output-token columns

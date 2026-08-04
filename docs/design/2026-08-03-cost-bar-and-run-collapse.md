@@ -21,7 +21,9 @@
 
 > **PARTIALLY SUPERSEDED 2026-08-04** by
 > [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md). The unit changed from output
-> tokens to **blended cost**; only the clause "on output tokens" below is retired. **Everything
+> tokens to **wall clock, price-capped**; only the clause "on output tokens" below is retired.
+> Note that the *first* bullet below — "Tokens are the gate. Time … does not pass or fail a run" —
+> is **exactly what the re-base overturns**: time is now the gate. **Everything
 > else in this section still holds** — the within-session plain-arm denominator, re-running plain
 > arms every session, ratio-only cross-model comparison. This section remains the definition of
 > record for metric **M1**, under which every row through lever run 2 was measured; it is left
@@ -51,8 +53,11 @@ Consequences of the lock:
 > [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md). **The banding itself survives the
 > re-base unchanged** — bands are still set by the classifier's own verdict and pass/fail is still
 > on the band aggregate Σ. Only the **≤2.0× / ≤3.0× / ≤4.0× values** are retired, because they are
-> denominated in output tokens; their replacements are open (rebase doc §5, O1). The table below
-> is the M1 bar of record: **no measured row ever passed it** (rebase doc §1.4).
+> denominated in output tokens. **Their replacements are set** (rebase doc §3.1) and are no longer
+> ratios at all: an **absolute wall-clock envelope per change** — band A ≤5 min, band B ≤15 min,
+> band C ≤30 min — with a secondary price ceiling of $10 / $25 / $50. The table below is the M1 bar
+> of record: **no measured row ever passed it** (rebase doc §1.4), and **band A fails the new
+> primary bar by 2.7× as well**.
 
 A flat target would quietly abandon progressive rigor's core promise — that a change the system
 itself certifies as trivial should cost near-nothing. The bar is therefore banded by **the

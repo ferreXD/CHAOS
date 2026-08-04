@@ -1,4 +1,4 @@
-# The metric re-base — M1 (output tokens) retired, M2 (blended cost) adopted
+# The metric re-base — M1 (output tokens) retired, M2 (wall clock, price-capped) adopted
 
 > Toolkit meta-work (no CHAOS governance). **Creator decision, 2026-08-04**, taken on the
 > recommendation in §7 of [`2026-08-03-performance-levers-handoff.md`](2026-08-03-performance-levers-handoff.md).
@@ -11,10 +11,17 @@
 
 ## 0. The change in one line
 
-**Ratios were measured on output tokens. From 2026-08-04 they are measured on blended API cost,
-with output tokens demoted to a secondary diagnostic.** The denominator discipline, the banding,
-and the pre-registration rules are unchanged. The **bar values are not yet set** in the new unit
-(§5, O1) and no result may be claimed against M2 until they are.
+**Cost was a ratio of output tokens. From 2026-08-04 it is an absolute wall-clock envelope per
+governed change, with price as a very secondary absurdity ceiling and output tokens demoted to a
+diagnostic.** The banding, the plain-arm denominator discipline and the pre-registration rules are
+unchanged. **The bars are set in §3.1** — and CHAOS currently fails the primary one.
+
+**Why the primary measure is time, not money.** Priced properly, governance overhead is
+**+$1.07–1.37 per change**; at 1,000 changes/month that is $1,547/mo against $276/mo plain — a
+rounding error beside payroll. The same governance adds **+11.6–14.4 minutes per change**, and a
+developer will not wait 13 minutes to add a title-length validation; they will route around the
+tool. **Money was never the binding constraint. Minutes are.** Seven falsified cost hypotheses
+were chasing the wrong quantity.
 
 ---
 
@@ -142,10 +149,44 @@ response to a number that came out wrong.
 
 ## 3. M2 — the metric of record from 2026-08-04
 
-**Ratios are measured against the within-session plain arm, on blended API cost (input + cache +
-output, priced at published rates), same model.**
+**Primary — and it is the one that matters: the wall-clock envelope.** A governed change must
+complete within an **absolute** wall-clock budget set by its classifier band. This is the gate. It
+is what passes or fails a run.
 
-### 3.1 What carries over from M1, unchanged
+**Secondary, and *very* secondary: a price ceiling.** Not an optimization target — an absurdity
+guard. In the creator's words: a trivial change obviously cannot cost fifty dollars, but **ten
+dollars is fine if the wall clock is under 3–5 minutes**. Price exists to catch a pathological
+blow-up, not to be minimized.
+
+### 3.1 The bars (creator, 2026-08-04)
+
+| Band | **Wall clock — PRIMARY, gates** | Price ceiling — secondary | Measured today | Verdict |
+|---|---|---|---|---|
+| **A — trivial** | **≤ 5 min** (aspiration 3 min) | ≤ $10 / change | **13.7 min** · ~$1.30 | **FAILS time by 2.7×**; price passes with ~8× headroom |
+| **B — single-surface materiality** | **≤ 15 min** | ≤ $25 / change | **17.5 min** · ~$1.67 | fails time by 1.2×; price passes with ~15× headroom |
+| **C — multi-surface / breaking** | **≤ 30 min** (provisional) | ≤ $50 / change | never measured | — |
+
+**Attribution, so the record is exact.** The band-A envelope (3–5 min) and the $10 ceiling are the
+**creator's**. Band B and C wall clocks and the $25 / $50 ceilings are **assistant extrapolations**
+from that anchor, carried from the 2026-08-04 recommendation and open to correction the first time
+each band is measured. Band C remains provisional for the same reason it always was: no arm in the
+program has ever reached it.
+
+Price figures shown are **output-only floors** — true blended cost is higher (§3.4). Wall-clock
+figures are arm-self-reported and indicative, not product-conditions (§3.4).
+
+### 3.2 How the two limbs interact
+
+- **Time gates; price only bites when it is absurd.** A run that meets its envelope is not failed
+  for costing $8 instead of $2.
+- **The price ceiling currently has 4–8× of headroom.** Therefore **cost-reduction work is no
+  longer justified on price grounds.** Any further performance work must be justified by the wall
+  clock or not undertaken. This is the price limb's actual job: **telling you when to stop**, which
+  is the one thing M1 could never do, and the reason this program ran seven falsified hypotheses.
+- The two can conflict — buying wall time with parallel spawns raises price. The rule is that time
+  wins until the ceiling is hit, and the ceiling is deliberately generous.
+
+### 3.3 What carries over from M1, unchanged
 
 These were never properties of the *unit* and survive the re-base intact:
 
@@ -160,24 +201,43 @@ These were never properties of the *unit* and survive the re-base intact:
   the guard that caught run 2 and the reason §2.2 is provable at all.
 - **The oracle as a stop-the-analysis gate.** Quality is not traded for cost.
 
-### 3.2 What changes
+**One thing that does not carry, and is the point:** the plain arm is **no longer the gate's
+denominator**. The primary bar is absolute — "≤5 minutes", not "≤2× plain" — so the ±26–47%
+plain-arm drift that broke M1 (§2.2) **cannot touch the gate at all**. Plain arms are still run
+every session, but now as a *control* feeding the diagnostics, not as the thing the verdict divides
+by.
 
-- **Unit: blended cost.** Input tokens, cache-read and cache-creation tokens, and output tokens,
-  each at their published rate, per arm. This is what an operator actually pays.
-- **Output tokens are demoted to a diagnostic.** They stay in every RUNKIT row — they are the only
-  way the M1 series remains comparable, and they remain the right instrument for L3/L4, which
-  attack generated output directly.
-- **Wall time is reported, not gating** (recommendation, §5 O3). §7 proposed "blended cost + wall
-  time"; making time a gate contradicts M1 §1's own finding that time is too noisy at n=3, and it
-  is still arm-self-reported rather than independently stamped. **One gate, on cost.**
+### 3.4 Units, rates and instrumentation
 
-### 3.3 Rates
+- **Wall clock (primary).** End-to-end elapsed time per governed change, **independently stamped —
+  not `date +%s` reported by the arm itself**, and measured under product conditions rather than as
+  a workflow subagent. **Today's instrument does not meet this standard**; every wall-clock figure
+  in this document is self-reported from inside workflow arms and is indicative only. Fixing this
+  is now the highest-priority instrument work (§5, O2).
+- **Price (secondary).** Input + cache-read + cache-creation + output tokens, each at its published
+  rate. Rates are **supplied at measurement time, never hardcoded** — a stale table silently
+  corrupts a cost number. The rate set used is recorded in the row beside the result. This rule is
+  already implemented in
+  [`counterfactual-price.py`](../../.chaos/validation/2026-08-lever-run-2/harness/counterfactual-price.py)
+  and carries forward.
+- **Output tokens (diagnostic).** Retained in every RUNKIT row. They are the only thing keeping the
+  M1 series readable, and they remain the right instrument for L3/L4, which attack generated output
+  directly.
+- **The time ratio (diagnostic).** Absolute time is what a developer feels, but the ratio is the
+  only scale-extrapolation instrument — today's tasks are single endpoints and real changes are
+  10–100× larger. Watch it; do not gate on it.
 
-Rates are **supplied at measurement time, never hardcoded** — a stale price table silently
-corrupts a blended-cost number. The rate set used must be recorded in the row alongside the result.
-This rule is already implemented in
-[`counterfactual-price.py`](../../.chaos/validation/2026-08-lever-run-2/harness/counterfactual-price.py)
-and carries forward.
+### 3.5 A reversal, recorded rather than quietly edited
+
+The first revision of this document (commit `05efd49`) recommended the opposite: *"blended cost
+gates; wall time is reported but does not pass or fail a run."* **That was reversed the same day by
+creator decision, and the creator was right.**
+
+The recommendation reasoned about *instrument quality* — time is self-reported and noisy at n=3 —
+and never asked **which quantity a user actually experiences**. That is precisely the error M1
+made, committed while writing the document that diagnoses it. Bad instrumentation is a reason to
+fix the instrument, not to demote the measurement. Recorded here because a decision record that
+silently absorbs its own reversals is worth nothing.
 
 ---
 
@@ -186,38 +246,115 @@ and carries forward.
 Stated before the first M2 number exists, so it cannot be claimed as a convenient discovery
 afterwards:
 
-1. **M2 will probably flatter CHAOS relative to M1.** CHAOS's cost is input-heavy and its fixed
-   governance corpus is exactly the kind of content that lands in cache reads at a fraction of the
-   base input rate — which is what L2 was built to exploit. A governed arm that is 5.6× on output
-   tokens may well be materially less than that in dollars. **That is a predicted consequence of
-   the unit change, not evidence that the levers worked.**
+1. **The price limb flatters CHAOS; the time limb does not — and the time limb is the gate.**
+   CHAOS's cost is input-heavy and its fixed corpus lands in cache reads at a fraction of the base
+   input rate, which is what L2 was built to exploit, so a 5.6× on output tokens is materially less
+   in dollars. Predicted as a consequence of the unit change, **not** as evidence the levers worked.
+   Against the primary bar the movement runs the other way: **CHAOS fails band A by 2.7×**, and the
+   lever program looks *worse* under M2 than under M1 (§4.1). **A re-base that makes the system
+   fail its headline bar is not a laundering operation.**
 2. **Therefore the M1 series stays on the record** (§1.3), in M1's unit, unedited, with its
    uniform-failure verdict (§1.4) intact.
-3. **The M2 bar values must be derived by a stated rule and frozen before the first M2
-   measurement** (§5, O1). A bar chosen after seeing where the system already sits is not a bar.
+3. **The bars were set from principle, not from the data** (§3.1). The band-A envelope comes from
+   the developer context-switch horizon and the price ceiling from what an operator would balk at —
+   neither was fitted to where CHAOS already sits, which is why CHAOS fails one of them. Where the
+   figures *are* extrapolations rather than creator decisions, §3.1 says so by name.
 4. **No M2 result may be compared to an M1 row as though they were the same measurement.** Rows are
    labelled by metric in the RUNKIT.
 5. **Any re-derivation of historical rows into M2** (§6) is a *recomputation of archived
    transcripts*, published beside the M1 figure, never replacing it.
 
+### 4.1 The re-base makes this program's most recent work look worse
+
+The cleanest proof that the new metric is not self-serving:
+
+| Stage D → lever run 2 | Under M1 (output tokens) | Under M2 (wall clock) |
+|---|---:|---:|
+| Governed total, 6 arms | 398,494 → 371,287 = **−6.8%** | 4,698 s → 5,832 s = **+24.1%** |
+
+**The four levers cut tokens slightly and made the felt cost 24% worse.** M1 could not see that;
+M2 gates on it. Anyone re-basing a metric to flatter their own work does not choose the unit under
+which their last two runs are a regression.
+
 ---
 
-## 5. Open — required before any M2 result is claimed
+## 5. Decisions taken, and the one thing still open
 
-| # | Open item | Owner |
+| # | Item | Status |
 |---|---|---|
-| **O1** | **The M2 bar values.** M1's ≤2.0× / ≤3.0× / ≤4.0× do not transfer; a 5.57× in output tokens is a different number in dollars. Proposed derivation rule: re-derive rows 7–12 in M2 from the archived transcripts, publish them, and *then* set bars from the bands' original intent (A: a change the system itself calls trivial costs near-nothing; B: single-surface materiality ≤3× the plain cost) — **fixing the numbers before the next run, not after**. | **Creator** |
-| **O2** | **The instrument.** No `blended-cost.py` exists. It needs per-message `usage` including `cache_read_input_tokens` and `cache_creation_input_tokens`, rates supplied on the command line, and the same journal-ordered arm attribution that `read-volume.py` needed after it got that wrong once. ~1 tool + tests. | Assistant, on go |
-| **O3** | **Wall time's status.** Recommended above as reported-not-gating. If it is ever to gate, it needs independent stamping (not `date +%s` inside the arm) and more than n=3. | **Creator** |
-| **O4** | **The "~3× baseline" goal** needs restating in M2's unit, or explicit retirement. | **Creator** |
+| **O1** | **The M2 bar values.** | **RESOLVED 2026-08-04 — §3.1.** Band A (3–5 min, $10) is the creator's; B/C are marked extrapolations. |
+| **O3** | **Wall time's status.** | **RESOLVED 2026-08-04 — it is the primary gate** (§3, §3.5). |
+| **O4** | **The "~3× baseline" goal.** | **RESOLVED 2026-08-04 — retired, replaced by the promise in §5.1.** |
+| **O2** | **The instruments**, re-prioritized by the decision. | **OPEN.** See below. |
 
-## 6. What is *not* re-derived
+**O2, re-prioritized.** The build order inverts: measure the thing that gates before pricing the
+thing that does not.
 
-The M1 series is **not** being converted wholesale. Re-derivation is cheap in principle — the
-archived transcripts carry per-message `usage`, and `counterfactual-price.py` already demonstrates
-transcript → dollars — but it is a separate, scoped piece of work gated on O2, and only rows 7–12
-(Stage D onward, where transcripts are archived in the lever kits) are candidates. Rows 1–6 stay
-M1-only unless their transcripts are located.
+1. **An independent stopwatch (now first).** Wall clock must be stamped outside the arm and
+   measured under product conditions — a real `chaos:run` from chat/CLI, not a workflow subagent.
+   Every wall-clock figure in this document fails that standard and is indicative only. **Nothing
+   can be gated until this exists.**
+2. **`blended-cost.py` (now second, and possibly never).** Per-message `usage` including
+   `cache_read_input_tokens` and `cache_creation_input_tokens`, rates supplied on the command line,
+   and the journal-ordered arm attribution that `read-volume.py` needed after it got that wrong
+   once. Given the price ceiling's 4–8× headroom (§3.2), this is a periodic sanity check, not a
+   measurement the program runs on.
+
+### 5.1 The goal: "~3× baseline" is retired
+
+**Retired, not restated.** It was denominated in a dead unit; it was a *ratio* goal, which is
+gameable by degrading the baseline and unstable on small denominators; and it never had an
+operational meaning — nobody could say what passing would feel like. Its wording and its history
+are preserved in §1.2, so retiring it costs no record.
+
+**Replaced by a promise rather than a ratio:**
+
+> **A change CHAOS itself classifies as trivial is fully governed — classified, recorded,
+> traceable — in under 5 minutes. A single-surface material change, in under 15 minutes. Neither
+> costs more than a few dollars of model spend.**
+
+This is falsifiable, it is in units a user feels, it can go in a README, and it makes the
+*graduated* claim checkable — which matters, because §6 shows CHAOS is not currently delivering it.
+
+## 6. The history is already in the new unit — and it is not good news
+
+**No re-derivation is needed for the primary measure.** Wall time was recorded in every RUNKIT row
+all along, as the non-gating secondary. Adopting it as primary therefore costs nothing in lost
+history — the whole series can be read in the new unit today, with the standing caveat that it is
+arm-self-reported (§3.4).
+
+| Row | Model | Governed / change | Plain / change | Time ratio |
+|---|---|---:|---:|---:|
+| EA-X2 frozen baseline | opus-4-8 | 11.9 min | 3.0 min | 3.94× |
+| **Stage A `--light`** | opus-4-8 | **5.0 min** | 1.5 min | 3.35× |
+| Stage B light | opus-5 | 9.0 min | 2.4 min | 3.79× |
+| Stage B standard | opus-5 | 13.9 min | 2.4 min | 5.68× |
+| Stage C core | opus-5 | 13.0 min | 2.7 min | 4.86× |
+| Stage C extended (light band) | opus-5 | 10.0 min | 1.7 min | 5.95× |
+| Stage D frozen-3 | opus-5 | 15.4 min | 3.2 min | 4.83× |
+| Stage D light-3 | opus-5 | 10.7 min | 1.8 min | 5.86× |
+| Lever run 1 frozen-3 | opus-5 | 20.5 min | 2.5 min | 8.06× |
+| Lever run 1 light-3 | opus-5 | 13.5 min | 1.5 min | 8.84× |
+| Lever run 2 frozen-3 | opus-5 | 19.7 min | 3.4 min | 5.77× |
+| Lever run 2 light-3 | opus-5 | 12.7 min | 2.1 min | 6.18× |
+
+**Two findings fall straight out, both invisible under M1:**
+
+**(a) The best result this program ever produced was its earliest.** Stage A `--light` at
+**5.0 min/change** is the only row that would meet the band-A envelope, and it was measured
+2026-07-24. The light path has degraded monotonically since: **9.0 → 10.0 → 10.7 → 13.5 →
+12.7 min**. Stage A used a different model (opus-4-8), so the A→B jump is confounded — but
+**within opus-5 alone the light path went 9.0 → 12.7 min, +41%**, and that comparison is clean.
+
+**(b) The graduated bar is not graduating.** Band A costs **78%** of band B per change (51,989 vs
+66,827 tok; 13.7 vs 17.5 min) at near-identical ratios of 5.57× and 5.62×. Progressive rigor's core
+promise is that a change the system certifies as trivial costs near-nothing — **the measured curve
+is nearly flat.** The fixed cost of *entering* the governed loop dominates everything the classifier
+decides.
+
+**(b) is the target the next phase should attack**, and it is a structural target — cut the fixed
+entry cost — rather than another attempt to shave generated tokens, which four levers and seven
+hypotheses have now failed to convert into anything a user would notice.
 
 ## 7. Where this is recorded
 

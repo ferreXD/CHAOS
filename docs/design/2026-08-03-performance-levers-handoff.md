@@ -201,12 +201,18 @@ expectation moves** — but confirm that yourself before touching code (§6).
 
 ## 7. The metric question — settle it before the next run
 
-> **SETTLED 2026-08-04 (creator): accepted.** The re-base is recorded in
+> **SETTLED 2026-08-04 (creator): accepted, and sharpened.** The re-base is recorded in
 > [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md), which preserves the superseded
-> metric (M1) and its complete measured series. One deviation from the recommendation below:
-> **blended cost gates; wall time is reported but does not pass or fail a run**, because time is
-> still arm-self-reported and too noisy at n=3 (rebase doc §3.2, §5 O3). The bar *values* in the
-> new unit remain open (§5 O1) — nothing may be claimed against M2 until they are frozen.
+> metric (M1) and its complete measured series.
+>
+> The recommendation below said "blended cost + wall time". The creator's decision goes further:
+> **wall clock is THE primary measure and the gate; price is a very secondary absurdity ceiling**
+> (band A ≤5 min / ≤$10 per change — rebase doc §3.1). The reason is that governance adds
+> **~$1.20 and ~12 minutes** per change: the money is a rounding error beside payroll, the minutes
+> are what makes a developer route around the tool.
+>
+> An intermediate assistant recommendation — *cost gates, wall time reported only* — was **reversed
+> the same day** and the reversal is recorded in rebase doc §3.5 rather than quietly absorbed.
 >
 > Note the timestamps: this recommendation is commit `8cb8543`, **2026-08-03 19:27** — 14 hours
 > before lever run 2 was pre-registered and 16 before its result existed.
