@@ -93,3 +93,8 @@ prediction's scope. Decide and record which, in that kit's procedure log, before
 - 2026-08-04 — composites built (`tools/chaos-loop/loop.py`), parity + behavior suite green
   (11 tests; sibling tool suites 160 tests unregressed), `chaos-run` SKILL.md routed through
   the composites. §3/§4 frozen at the landing commit. **No arm has run.**
+- 2026-08-04 — **option 2 (zero-trigger short-circuit) landed after this kit froze.** Arms
+  executing on the toolkit tip therefore price options 1+2 **jointly** against lever run 1;
+  the option-2 kit ([`2026-08-option2-short-circuit`](../2026-08-option2-short-circuit/README.md))
+  records the joint reading, the curve gate, and the optional pinned-to-`1c1e707`
+  attribution arm. This kit's §3/§4 gates stand unchanged.
