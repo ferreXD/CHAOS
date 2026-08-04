@@ -20,27 +20,79 @@
     "facts"
   ],
   "properties": {
-    "schemaVersion": { "type": "integer", "const": 1 },
-    "recordType": { "type": "string", "const": "phase-facts" },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "recordType": {
+      "type": "string",
+      "const": "phase-facts"
+    },
     "phase": {
       "type": "string",
-      "enum": ["frame", "review", "deliver", "verify", "sync", "archive"]
+      "enum": [
+        "frame",
+        "review",
+        "deliver",
+        "verify",
+        "sync",
+        "archive"
+      ]
     },
-    "pass": { "type": "integer", "minimum": 1 },
-    "changeId": { "type": "string", "minLength": 1, "maxLength": 160 },
-    "sourceCommand": { "type": "string", "pattern": "^chaos:[a-z-]+$" },
-    "run": { "$ref": "#/$defs/runId" },
-    "mode": { "$ref": "#/$defs/mode" },
-    "verdict": { "type": "string", "minLength": 1 },
-    "at": { "$ref": "#/$defs/timestamp" },
+    "pass": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "changeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "sourceCommand": {
+      "type": "string",
+      "pattern": "^chaos:[a-z-]+$"
+    },
+    "run": {
+      "$ref": "#/$defs/runId"
+    },
+    "mode": {
+      "$ref": "#/$defs/mode"
+    },
+    "verdict": {
+      "type": "string",
+      "minLength": 1
+    },
+    "at": {
+      "$ref": "#/$defs/timestamp"
+    },
     "assessment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["confidence", "evidenceCoverage", "assumptionLoad"],
+      "required": [
+        "confidence",
+        "evidenceCoverage",
+        "assumptionLoad"
+      ],
       "properties": {
-        "confidence": { "$ref": "#/$defs/confidence" },
-        "evidenceCoverage": { "type": "string", "enum": ["COMPLETE", "PARTIAL", "WEAK"] },
-        "assumptionLoad": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidenceCoverage": {
+          "type": "string",
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "WEAK"
+          ]
+        },
+        "assumptionLoad": {
+          "type": "string",
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH"
+          ]
+        }
       }
     },
     "confidenceLimiters": {
@@ -48,177 +100,481 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "text"],
+        "required": [
+          "kind",
+          "text"
+        ],
         "properties": {
-          "kind": { "type": "string", "enum": ["FACT", "INFERENCE", "ASSUMPTION", "CONFLICT", "UNKNOWN"] },
-          "confidence": { "$ref": "#/$defs/confidence" },
-          "text": { "type": "string", "minLength": 1 }
+          "kind": {
+            "type": "string",
+            "enum": [
+              "FACT",
+              "INFERENCE",
+              "ASSUMPTION",
+              "CONFLICT",
+              "UNKNOWN"
+            ]
+          },
+          "confidence": {
+            "$ref": "#/$defs/confidence"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
-    "verdictRationale": { "type": ["string", "null"] },
-    "commentary": { "type": ["string", "null"] },
+    "verdictRationale": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commentary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "todoCandidates": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["title"],
+        "required": [
+          "title"
+        ],
         "properties": {
-          "title": { "type": "string", "minLength": 1 },
-          "ref": { "type": ["string", "null"] },
-          "note": { "type": ["string", "null"] }
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
-    "facts": { "type": "object" }
+    "facts": {
+      "type": "object"
+    }
   },
   "allOf": [
     {
-      "if": { "properties": { "phase": { "const": "frame" } } },
-      "then": {
+      "if": {
         "properties": {
-          "verdict": { "enum": ["READY_FOR_REVIEW", "BLOCKED"] },
-          "facts": { "$ref": "#/$defs/frameFacts" }
+          "phase": {
+            "const": "frame"
+          }
         }
-      }
-    },
-    {
-      "if": { "properties": { "phase": { "const": "review" } } },
+      },
       "then": {
         "properties": {
           "verdict": {
-            "enum": ["READY_FOR_APPROVAL", "READY_WITH_CONDITIONS", "NEEDS_REVISION", "BLOCKED", "INSUFFICIENT_EVIDENCE"]
+            "enum": [
+              "READY_FOR_REVIEW",
+              "BLOCKED"
+            ]
           },
-          "facts": { "$ref": "#/$defs/reviewFacts" }
+          "facts": {
+            "$ref": "#/$defs/frameFacts"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "phase": { "const": "deliver" } } },
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "review"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "verdict": { "enum": ["APPLIED", "PARTIALLY_APPLIED"] },
-          "facts": { "$ref": "#/$defs/deliverFacts" }
+          "verdict": {
+            "enum": [
+              "READY_FOR_APPROVAL",
+              "READY_WITH_CONDITIONS",
+              "NEEDS_REVISION",
+              "BLOCKED",
+              "INSUFFICIENT_EVIDENCE"
+            ]
+          },
+          "facts": {
+            "$ref": "#/$defs/reviewFacts"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "phase": { "const": "verify" } } },
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "deliver"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "verdict": { "enum": ["READY", "READY_WITH_DEBT", "NOT_READY"] },
-          "facts": { "$ref": "#/$defs/verifyFacts" }
+          "verdict": {
+            "enum": [
+              "APPLIED",
+              "PARTIALLY_APPLIED"
+            ]
+          },
+          "facts": {
+            "$ref": "#/$defs/deliverFacts"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "phase": { "const": "sync" } } },
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "verify"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "verdict": { "enum": ["RECONCILED", "PARTIALLY_RECONCILED", "NOT_RECONCILED"] },
-          "facts": { "$ref": "#/$defs/syncFacts" }
+          "verdict": {
+            "enum": [
+              "READY",
+              "READY_WITH_DEBT",
+              "NOT_READY"
+            ]
+          },
+          "facts": {
+            "$ref": "#/$defs/verifyFacts"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "phase": { "const": "archive" } } },
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "sync"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "verdict": { "enum": ["ARCHIVED", "ARCHIVED_WITH_DEBT", "ARCHIVED_UNDER_GOVERNANCE_OVERRIDE"] },
-          "facts": { "$ref": "#/$defs/archiveFacts" }
+          "verdict": {
+            "enum": [
+              "RECONCILED",
+              "PARTIALLY_RECONCILED",
+              "NOT_RECONCILED"
+            ]
+          },
+          "facts": {
+            "$ref": "#/$defs/syncFacts"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "archive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "enum": [
+              "ARCHIVED",
+              "ARCHIVED_WITH_DEBT",
+              "ARCHIVED_UNDER_GOVERNANCE_OVERRIDE"
+            ]
+          },
+          "facts": {
+            "$ref": "#/$defs/archiveFacts"
+          }
         }
       }
     }
   ],
   "$defs": {
-    "runId": { "type": "string", "pattern": "^RUN-[A-Za-z0-9][A-Za-z0-9-]*$" },
-    "timestamp": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$" },
-    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "mode": { "type": "string", "enum": ["light", "standard", "strict"] },
-    "confidence": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
-    "knowledge": { "type": "string", "enum": ["FACT", "INFERENCE", "ASSUMPTION", "UNKNOWN"] },
+    "runId": {
+      "type": "string",
+      "pattern": "^RUN-[A-Za-z0-9][A-Za-z0-9-]*$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "mode": {
+      "description": "The preset floor. null = no preset flag was given (zero floors) - the classified-only path; classification-state.json records mode null and records must be able to say so rather than claiming 'light'.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "light",
+            "standard",
+            "strict"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "knowledge": {
+      "type": "string",
+      "enum": [
+        "FACT",
+        "INFERENCE",
+        "ASSUMPTION",
+        "UNKNOWN"
+      ]
+    },
     "decisionRef": {
       "type": "string",
-      "pattern": "^((PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\\d{3}|ESC-\\d{3})$"
+      "pattern": "^((PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO|RUN)-DEC-\\d{3}|ESC-\\d{3})$"
     },
-    "contractId": { "type": "string", "pattern": "^C-\\d{3}$" },
-    "riskId": { "type": "string", "pattern": "^RK-\\d+$" },
-    "ruleId": { "type": "string", "pattern": "^R-\\d{3}$" },
-    "impactLoad": { "type": "string", "enum": ["NONE", "LOW", "MEDIUM", "HIGH"] },
+    "contractId": {
+      "type": "string",
+      "pattern": "^C-\\d{3}$"
+    },
+    "riskId": {
+      "type": "string",
+      "pattern": "^RK-\\d+$"
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^R-\\d{3}$"
+    },
+    "impactLoad": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ]
+    },
     "conditionStatus": {
       "type": "string",
-      "enum": ["CONFIRMED", "SATISFIED", "PENDING", "NOT_DISCHARGED", "FAILED"]
+      "enum": [
+        "CONFIRMED",
+        "SATISFIED",
+        "PENDING",
+        "NOT_DISCHARGED",
+        "FAILED"
+      ]
     },
     "checkRow": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["check", "result"],
+      "required": [
+        "check",
+        "result"
+      ],
       "properties": {
-        "check": { "type": "string", "minLength": 1 },
-        "result": { "type": "string", "minLength": 1 },
-        "note": { "type": ["string", "null"] }
+        "check": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "buildCheck": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["warnings", "errors"],
+      "required": [
+        "warnings",
+        "errors"
+      ],
       "properties": {
-        "command": { "type": ["string", "null"] },
-        "warnings": { "type": "integer", "minimum": 0 },
-        "errors": { "type": "integer", "minimum": 0 },
-        "note": { "type": ["string", "null"] }
+        "command": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "testsCheck": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["passed", "total"],
+      "required": [
+        "passed",
+        "total"
+      ],
       "properties": {
-        "command": { "type": ["string", "null"] },
-        "passed": { "type": "integer", "minimum": 0 },
-        "total": { "type": "integer", "minimum": 0 },
-        "note": { "type": ["string", "null"] }
+        "command": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "openspecCheck": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["validation", "isComplete"],
+      "required": [
+        "validation",
+        "isComplete"
+      ],
       "properties": {
-        "validation": { "type": "string", "enum": ["PASS", "FAIL"] },
-        "isComplete": { "type": "boolean" },
+        "validation": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "isComplete": {
+          "type": "boolean"
+        },
         "tasks": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["done", "total"],
+          "required": [
+            "done",
+            "total"
+          ],
           "properties": {
-            "done": { "type": "integer", "minimum": 0 },
-            "total": { "type": "integer", "minimum": 0 }
+            "done": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
-        "note": { "type": ["string", "null"] }
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "ruleCheck": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "status", "evidence"],
+      "required": [
+        "id",
+        "status",
+        "evidence"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/ruleId" },
-        "status": { "type": "string", "enum": ["pass", "fail"] },
-        "evidence": { "type": "string", "minLength": 1 }
+        "id": {
+          "$ref": "#/$defs/ruleId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "scopeDrift": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "properties": {
-        "status": { "type": "string", "enum": ["NO_DRIFT", "DRIFT"] },
-        "risk": { "type": ["string", "null"], "enum": ["LOW", "MEDIUM", "HIGH", null] },
-        "note": { "type": ["string", "null"] }
+        "status": {
+          "type": "string",
+          "enum": [
+            "NO_DRIFT",
+            "DRIFT"
+          ]
+        },
+        "risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            null
+          ]
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "approvalConditions": {
@@ -226,12 +582,30 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["index", "status"],
+        "required": [
+          "index",
+          "status"
+        ],
         "properties": {
-          "index": { "type": "integer", "minimum": 1 },
-          "status": { "$ref": "#/$defs/conditionStatus" },
-          "note": { "type": ["string", "null"] },
-          "detail": { "type": ["string", "null"] }
+          "index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "$ref": "#/$defs/conditionStatus"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
@@ -239,59 +613,155 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["NONE", "CREATE_ADR", "UPDATE_CHAOS_RULES", "AMEND_OPENSPEC_SPEC", "RECORD_ACCEPTED_RISK"]
+        "enum": [
+          "NONE",
+          "CREATE_ADR",
+          "UPDATE_CHAOS_RULES",
+          "AMEND_OPENSPEC_SPEC",
+          "RECORD_ACCEPTED_RISK"
+        ]
       }
     },
     "frameFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "intent", "openspec"],
+      "required": [
+        "title",
+        "intent",
+        "openspec"
+      ],
       "properties": {
-        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "intent": {
           "type": "array",
           "minItems": 1,
           "maxItems": 3,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "openspec": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "properties": {
-            "status": { "type": "string", "enum": ["INVOKED", "DEGRADED", "NOT_INVOKED"] },
+            "status": {
+              "type": "string",
+              "enum": [
+                "INVOKED",
+                "DEGRADED",
+                "NOT_INVOKED"
+              ]
+            },
+            "depth": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "enum": [
+                0,
+                1,
+                2,
+                null
+              ],
+              "description": "Stage-C classified openspec dimension: 0 none owed / 1 delta spec / 2 full set. Records what the classifier decided, so readers can tell an intentionally shallow set from an incomplete one. `openspec status --json` measures the FULL set, so its isComplete:false is EXPECTED at depth 0 or 1 and is not a defect."
+            },
             "engine": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "properties": {
-                "name": { "type": "string", "minLength": 1 },
-                "version": { "type": ["string", "null"] },
-                "configSource": { "type": ["string", "null"] }
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "configSource": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               }
             },
-            "invocationPath": { "type": ["string", "null"] },
-            "artifacts": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "invocationPath": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
             "statusCheck": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["isComplete"],
+              "required": [
+                "isComplete"
+              ],
               "properties": {
-                "isComplete": { "type": "boolean" },
-                "note": { "type": ["string", "null"] }
+                "isComplete": {
+                  "type": "boolean"
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               }
             },
             "validation": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["command", "result"],
+              "required": [
+                "command",
+                "result"
+              ],
               "properties": {
-                "command": { "type": "string", "minLength": 1 },
-                "result": { "type": "string", "enum": ["PASS", "FAIL"] },
-                "note": { "type": ["string", "null"] }
+                "command": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "result": {
+                  "type": "string",
+                  "enum": [
+                    "PASS",
+                    "FAIL"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               }
             },
-            "confidenceImpact": { "type": ["string", "null"] }
+            "confidenceImpact": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
         "sourceManifest": {
@@ -299,33 +769,90 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["path", "role", "knowledge"],
+            "required": [
+              "path",
+              "role",
+              "knowledge"
+            ],
             "properties": {
-              "path": { "type": "string", "minLength": 1 },
-              "role": { "type": "string", "minLength": 1 },
-              "knowledge": { "$ref": "#/$defs/knowledge" }
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "knowledge": {
+                "$ref": "#/$defs/knowledge"
+              }
             }
           }
         },
         "risk": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["class", "items"],
+          "required": [
+            "class",
+            "items"
+          ],
           "properties": {
-            "class": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
-            "classRationale": { "type": ["string", "null"] },
+            "class": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            },
+            "classRationale": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "items": {
               "type": "array",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "summary", "likelihood", "impact", "mitigation"],
+                "required": [
+                  "id",
+                  "summary",
+                  "likelihood",
+                  "impact",
+                  "mitigation"
+                ],
                 "properties": {
-                  "id": { "$ref": "#/$defs/riskId" },
-                  "summary": { "type": "string", "minLength": 1 },
-                  "likelihood": { "type": "string", "enum": ["Low", "Medium", "High"] },
-                  "impact": { "type": "string", "enum": ["Low", "Medium", "High", "Critical"] },
-                  "mitigation": { "type": "string", "minLength": 1 }
+                  "id": {
+                    "$ref": "#/$defs/riskId"
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "likelihood": {
+                    "type": "string",
+                    "enum": [
+                      "Low",
+                      "Medium",
+                      "High"
+                    ]
+                  },
+                  "impact": {
+                    "type": "string",
+                    "enum": [
+                      "Low",
+                      "Medium",
+                      "High",
+                      "Critical"
+                    ]
+                  },
+                  "mitigation": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
@@ -336,12 +863,35 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["capability", "statements", "tasks"],
+            "required": [
+              "capability",
+              "statements",
+              "tasks"
+            ],
             "properties": {
-              "capability": { "type": ["string", "null"] },
-              "requirements": { "type": ["integer", "null"], "minimum": 0 },
-              "statements": { "type": "array", "items": { "$ref": "#/$defs/contractId" } },
-              "tasks": { "type": "string", "minLength": 1 }
+              "capability": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "requirements": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "statements": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/contractId"
+                }
+              },
+              "tasks": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -350,24 +900,54 @@
     "reviewFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["scope", "findings"],
+      "required": [
+        "scope",
+        "findings"
+      ],
       "properties": {
         "scope": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["paths", "rulesInPlay"],
+          "required": [
+            "paths",
+            "rulesInPlay"
+          ],
           "properties": {
-            "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-            "rulesInPlay": { "type": "array", "items": { "$ref": "#/$defs/ruleId" } }
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "rulesInPlay": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ruleId"
+              }
+            }
           }
         },
         "openspecValidation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["result"],
+          "required": [
+            "result"
+          ],
           "properties": {
-            "result": { "type": "string", "enum": ["PASSED", "FAILED"] },
-            "note": { "type": ["string", "null"] }
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASSED",
+                "FAILED"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
         "findings": {
@@ -375,15 +955,60 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "severity", "summary", "status"],
+            "required": [
+              "id",
+              "severity",
+              "summary",
+              "status"
+            ],
             "properties": {
-              "id": { "type": "string", "pattern": "^REV-\\d{3}$" },
-              "severity": { "type": "string", "enum": ["BLOCKING", "MAJOR", "MINOR", "ADVISORY"] },
-              "summary": { "type": "string", "minLength": 1 },
-              "status": { "type": "string", "enum": ["OPEN", "RESOLVED_DURING_REVIEW", "ACCEPTED_RISK"] },
-              "decision": { "oneOf": [{ "$ref": "#/$defs/decisionRef" }, { "type": "null" }] },
-              "note": { "type": ["string", "null"] },
-              "detail": { "type": ["string", "null"] }
+              "id": {
+                "type": "string",
+                "pattern": "^REV-\\d{3}$"
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "BLOCKING",
+                  "MAJOR",
+                  "MINOR",
+                  "ADVISORY"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "OPEN",
+                  "RESOLVED_DURING_REVIEW",
+                  "ACCEPTED_RISK"
+                ]
+              },
+              "decision": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/decisionRef"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "detail": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         }
@@ -392,35 +1017,89 @@
     "deliverFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["build", "tests", "coverage", "rules", "files"],
+      "required": [
+        "build",
+        "tests",
+        "coverage",
+        "rules",
+        "files"
+      ],
       "properties": {
-        "build": { "$ref": "#/$defs/buildCheck" },
-        "tests": { "$ref": "#/$defs/testsCheck" },
+        "build": {
+          "$ref": "#/$defs/buildCheck"
+        },
+        "tests": {
+          "$ref": "#/$defs/testsCheck"
+        },
         "coverage": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["statement", "covered", "evidence"],
+            "required": [
+              "statement",
+              "covered",
+              "evidence"
+            ],
             "properties": {
-              "statement": { "$ref": "#/$defs/contractId" },
-              "covered": { "type": "boolean" },
-              "evidence": { "type": "string", "enum": ["test", "code", "doc"] },
-              "refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-              "whyNotTest": { "type": ["string", "null"] }
+              "statement": {
+                "$ref": "#/$defs/contractId"
+              },
+              "covered": {
+                "type": "boolean"
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "code",
+                  "doc"
+                ]
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "whyNotTest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },
-        "rules": { "type": "array", "items": { "$ref": "#/$defs/ruleCheck" } },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleCheck"
+          }
+        },
         "files": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["path", "change"],
+            "required": [
+              "path",
+              "change"
+            ],
             "properties": {
-              "path": { "type": "string", "minLength": 1 },
-              "change": { "type": "string", "enum": ["added", "modified", "deleted"] }
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "change": {
+                "type": "string",
+                "enum": [
+                  "added",
+                  "modified",
+                  "deleted"
+                ]
+              }
             }
           }
         },
@@ -429,59 +1108,144 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["summary", "decision"],
+            "required": [
+              "summary",
+              "decision"
+            ],
             "properties": {
-              "summary": { "type": "string", "minLength": 1 },
-              "decision": { "$ref": "#/$defs/decisionRef" }
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "decision": {
+                "$ref": "#/$defs/decisionRef"
+              }
             }
           }
         },
-        "scopeDrift": { "$ref": "#/$defs/scopeDrift" },
-        "approvalConditions": { "$ref": "#/$defs/approvalConditions" }
+        "scopeDrift": {
+          "$ref": "#/$defs/scopeDrift"
+        },
+        "approvalConditions": {
+          "$ref": "#/$defs/approvalConditions"
+        }
       }
     },
     "verifyFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["archiveReadiness", "checks"],
+      "required": [
+        "archiveReadiness",
+        "checks"
+      ],
       "properties": {
-        "archiveReadiness": { "type": "string", "enum": ["READY", "READY_WITH_DEBT", "NOT_READY"] },
+        "archiveReadiness": {
+          "type": "string",
+          "enum": [
+            "READY",
+            "READY_WITH_DEBT",
+            "NOT_READY"
+          ]
+        },
         "checks": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["build", "tests", "contract"],
+          "required": [
+            "build",
+            "tests",
+            "contract"
+          ],
           "properties": {
-            "build": { "$ref": "#/$defs/buildCheck" },
-            "tests": { "$ref": "#/$defs/testsCheck" },
+            "build": {
+              "$ref": "#/$defs/buildCheck"
+            },
+            "tests": {
+              "$ref": "#/$defs/testsCheck"
+            },
             "contract": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["ticked", "total"],
+              "required": [
+                "ticked",
+                "total"
+              ],
               "properties": {
-                "ticked": { "type": "integer", "minimum": 0 },
-                "total": { "type": "integer", "minimum": 0 },
-                "note": { "type": ["string", "null"] }
+                "ticked": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               }
             },
-            "openspec": { "$ref": "#/$defs/openspecCheck" },
-            "scopeDrift": { "$ref": "#/$defs/scopeDrift" },
-            "rules": { "type": "array", "items": { "$ref": "#/$defs/ruleCheck" } }
+            "openspec": {
+              "$ref": "#/$defs/openspecCheck"
+            },
+            "scopeDrift": {
+              "$ref": "#/$defs/scopeDrift"
+            },
+            "rules": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ruleCheck"
+              }
+            }
           }
         },
-        "approvalConditions": { "$ref": "#/$defs/approvalConditions" },
+        "approvalConditions": {
+          "$ref": "#/$defs/approvalConditions"
+        },
         "traceability": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["requirement", "capability", "implementation", "test", "status", "confidence"],
+            "required": [
+              "requirement",
+              "capability",
+              "implementation",
+              "test",
+              "status",
+              "confidence"
+            ],
             "properties": {
-              "requirement": { "type": "string", "minLength": 1 },
-              "capability": { "type": "string", "minLength": 1 },
-              "implementation": { "type": "string", "minLength": 1 },
-              "test": { "type": ["string", "null"] },
-              "status": { "type": "string", "enum": ["SATISFIED", "PARTIAL", "MISSING"] },
-              "confidence": { "$ref": "#/$defs/confidence" }
+              "requirement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "capability": {
+                "type": "string",
+                "minLength": 1
+              },
+              "implementation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "test": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "SATISFIED",
+                  "PARTIAL",
+                  "MISSING"
+                ]
+              },
+              "confidence": {
+                "$ref": "#/$defs/confidence"
+              }
             }
           }
         },
@@ -490,16 +1254,59 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "severity", "knowledge", "confidence", "title"],
+            "required": [
+              "id",
+              "severity",
+              "knowledge",
+              "confidence",
+              "title"
+            ],
             "properties": {
-              "id": { "type": "string", "pattern": "^VFY-\\d{3}$" },
-              "severity": { "type": "string", "enum": ["BLOCKER", "MAJOR", "MINOR", "ADVISORY"] },
-              "knowledge": { "$ref": "#/$defs/knowledge" },
-              "confidence": { "$ref": "#/$defs/confidence" },
-              "title": { "type": "string", "minLength": 1 },
-              "detail": { "type": ["string", "null"] },
-              "recommendation": { "type": ["string", "null"] },
-              "confirms": { "oneOf": [{ "$ref": "#/$defs/decisionRef" }, { "type": "null" }] }
+              "id": {
+                "type": "string",
+                "pattern": "^VFY-\\d{3}$"
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "BLOCKER",
+                  "MAJOR",
+                  "MINOR",
+                  "ADVISORY"
+                ]
+              },
+              "knowledge": {
+                "$ref": "#/$defs/knowledge"
+              },
+              "confidence": {
+                "$ref": "#/$defs/confidence"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "detail": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "recommendation": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confirms": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/decisionRef"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
             }
           }
         }
@@ -508,16 +1315,36 @@
     "syncFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["invocation", "driftFindings", "decisionReconciliation"],
+      "required": [
+        "invocation",
+        "driftFindings",
+        "decisionReconciliation"
+      ],
       "properties": {
         "invocation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["scope", "roleLevel", "dryRun"],
+          "required": [
+            "scope",
+            "roleLevel",
+            "dryRun"
+          ],
           "properties": {
-            "scope": { "type": "string", "const": "change" },
-            "roleLevel": { "type": "string", "enum": ["contributor-safe", "maintainer", "repo-owner"] },
-            "dryRun": { "type": "boolean" }
+            "scope": {
+              "type": "string",
+              "const": "change"
+            },
+            "roleLevel": {
+              "type": "string",
+              "enum": [
+                "contributor-safe",
+                "maintainer",
+                "repo-owner"
+              ]
+            },
+            "dryRun": {
+              "type": "boolean"
+            }
           }
         },
         "sourceManifest": {
@@ -525,24 +1352,64 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["source", "status"],
+            "required": [
+              "source",
+              "status"
+            ],
             "properties": {
-              "source": { "type": "string", "minLength": 1 },
-              "status": { "type": "string", "enum": ["verified", "drift", "empty", "missing"] },
-              "finding": { "type": ["string", "null"], "pattern": "^SYNC-\\d{3}$" },
-              "note": { "type": ["string", "null"] }
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "drift",
+                  "empty",
+                  "missing"
+                ]
+              },
+              "finding": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^SYNC-\\d{3}$"
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },
-        "openspec": { "$ref": "#/$defs/openspecCheck" },
+        "openspec": {
+          "$ref": "#/$defs/openspecCheck"
+        },
         "authority": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["contextSource", "confidence"],
+          "required": [
+            "contextSource",
+            "confidence"
+          ],
           "properties": {
-            "contextSource": { "type": "string", "minLength": 1 },
-            "confidence": { "$ref": "#/$defs/confidence" },
-            "note": { "type": ["string", "null"] }
+            "contextSource": {
+              "type": "string",
+              "minLength": 1
+            },
+            "confidence": {
+              "$ref": "#/$defs/confidence"
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
         "driftFindings": {
@@ -550,22 +1417,69 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "category", "severity", "knowledge", "confidence", "summary", "action"],
+            "required": [
+              "id",
+              "category",
+              "severity",
+              "knowledge",
+              "confidence",
+              "summary",
+              "action"
+            ],
             "properties": {
-              "id": { "type": "string", "pattern": "^SYNC-\\d{3}$" },
-              "category": { "type": "string", "minLength": 1 },
-              "severity": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
-              "knowledge": { "$ref": "#/$defs/knowledge" },
-              "confidence": { "$ref": "#/$defs/confidence" },
-              "summary": { "type": "string", "minLength": 1 },
+              "id": {
+                "type": "string",
+                "pattern": "^SYNC-\\d{3}$"
+              },
+              "category": {
+                "type": "string",
+                "minLength": 1
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ]
+              },
+              "knowledge": {
+                "$ref": "#/$defs/knowledge"
+              },
+              "confidence": {
+                "$ref": "#/$defs/confidence"
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
               "action": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["kind"],
+                "required": [
+                  "kind"
+                ],
                 "properties": {
-                  "kind": { "type": "string", "enum": ["APPLY", "RECOMMEND", "DEFER"] },
-                  "target": { "type": ["string", "null"] },
-                  "note": { "type": ["string", "null"] }
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "APPLY",
+                      "RECOMMEND",
+                      "DEFER"
+                    ]
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
                 }
               }
             }
@@ -576,16 +1490,28 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["decision", "classification", "promotions"],
+            "required": [
+              "decision",
+              "classification",
+              "promotions"
+            ],
             "properties": {
-              "decision": { "$ref": "#/$defs/decisionRef" },
-              "classification": { "type": "string", "minLength": 1 },
+              "decision": {
+                "$ref": "#/$defs/decisionRef"
+              },
+              "classification": {
+                "type": "string",
+                "minLength": 1
+              },
               "promotions": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["token", "state"],
+                  "required": [
+                    "token",
+                    "state"
+                  ],
                   "properties": {
                     "token": {
                       "type": "string",
@@ -602,9 +1528,21 @@
                     },
                     "state": {
                       "type": "string",
-                      "enum": ["done", "satisfied", "candidate", "pending", "blocked", "closed"]
+                      "enum": [
+                        "done",
+                        "satisfied",
+                        "candidate",
+                        "pending",
+                        "blocked",
+                        "closed"
+                      ]
                     },
-                    "note": { "type": ["string", "null"] }
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
                   }
                 }
               }
@@ -616,27 +1554,70 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["action", "file", "result"],
+            "required": [
+              "action",
+              "file",
+              "result"
+            ],
             "properties": {
-              "action": { "type": "string", "minLength": 1 },
-              "file": { "type": "string", "minLength": 1 },
-              "result": { "type": "string", "minLength": 1 }
+              "action": {
+                "type": "string",
+                "minLength": 1
+              },
+              "file": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
-        "notModified": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "notModified": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "ruleCandidates": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "source", "statement", "violationCriterion", "severity"],
+            "required": [
+              "id",
+              "source",
+              "statement",
+              "violationCriterion",
+              "severity"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/ruleId" },
-              "source": { "$ref": "#/$defs/decisionRef" },
-              "statement": { "type": "string", "minLength": 1 },
-              "violationCriterion": { "type": "string", "minLength": 1 },
-              "severity": { "type": "string", "enum": ["advisory", "minor", "major", "blocker"] }
+              "id": {
+                "$ref": "#/$defs/ruleId"
+              },
+              "source": {
+                "$ref": "#/$defs/decisionRef"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "violationCriterion": {
+                "type": "string",
+                "minLength": 1
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "advisory",
+                  "minor",
+                  "major",
+                  "blocker"
+                ]
+              }
             }
           }
         },
@@ -645,11 +1626,23 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "source", "statement"],
+            "required": [
+              "id",
+              "source",
+              "statement"
+            ],
             "properties": {
-              "id": { "type": "string", "minLength": 1 },
-              "source": { "$ref": "#/$defs/decisionRef" },
-              "statement": { "type": "string", "minLength": 1 }
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source": {
+                "$ref": "#/$defs/decisionRef"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
@@ -658,12 +1651,29 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["item", "reason", "impact", "followUp"],
+            "required": [
+              "item",
+              "reason",
+              "impact",
+              "followUp"
+            ],
             "properties": {
-              "item": { "type": "string", "minLength": 1 },
-              "reason": { "type": "string", "minLength": 1 },
-              "impact": { "type": "string", "minLength": 1 },
-              "followUp": { "type": "string", "minLength": 1 }
+              "item": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "impact": {
+                "type": "string",
+                "minLength": 1
+              },
+              "followUp": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
@@ -672,25 +1682,58 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["check", "result"],
+            "required": [
+              "check",
+              "result"
+            ],
             "properties": {
-              "check": { "type": "string", "minLength": 1 },
-              "result": { "type": "string", "enum": ["PASS", "FAIL"] },
-              "note": { "type": ["string", "null"] }
+              "check": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },
         "rollup": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["driftLoad", "decisionLoad", "manualFollowUpRequired"],
+          "required": [
+            "driftLoad",
+            "decisionLoad",
+            "manualFollowUpRequired"
+          ],
           "properties": {
-            "driftLoad": { "$ref": "#/$defs/impactLoad" },
-            "decisionLoad": { "$ref": "#/$defs/impactLoad" },
-            "ruleImpact": { "$ref": "#/$defs/impactLoad" },
-            "gateImpact": { "$ref": "#/$defs/impactLoad" },
-            "adrImpact": { "$ref": "#/$defs/impactLoad" },
-            "manualFollowUpRequired": { "type": "boolean" }
+            "driftLoad": {
+              "$ref": "#/$defs/impactLoad"
+            },
+            "decisionLoad": {
+              "$ref": "#/$defs/impactLoad"
+            },
+            "ruleImpact": {
+              "$ref": "#/$defs/impactLoad"
+            },
+            "gateImpact": {
+              "$ref": "#/$defs/impactLoad"
+            },
+            "adrImpact": {
+              "$ref": "#/$defs/impactLoad"
+            },
+            "manualFollowUpRequired": {
+              "type": "boolean"
+            }
           }
         }
       }
@@ -698,67 +1741,159 @@
     "archiveFacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["gate", "closureMatrix", "openspecArchive", "sourceOfTruth"],
+      "required": [
+        "gate",
+        "closureMatrix",
+        "openspecArchive",
+        "sourceOfTruth"
+      ],
       "properties": {
         "gate": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["decision", "verificationRun", "forceWaiver", "governanceOverride"],
+          "required": [
+            "decision",
+            "verificationRun",
+            "forceWaiver",
+            "governanceOverride"
+          ],
           "properties": {
-            "decision": { "$ref": "#/$defs/decisionRef" },
-            "verificationRun": { "$ref": "#/$defs/runId" },
-            "forceWaiver": { "type": "boolean" },
-            "governanceOverride": { "type": "boolean" }
+            "decision": {
+              "$ref": "#/$defs/decisionRef"
+            },
+            "verificationRun": {
+              "$ref": "#/$defs/runId"
+            },
+            "forceWaiver": {
+              "type": "boolean"
+            },
+            "governanceOverride": {
+              "type": "boolean"
+            }
           }
         },
-        "preArchiveValidation": { "type": "array", "items": { "$ref": "#/$defs/checkRow" } },
+        "preArchiveValidation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/checkRow"
+          }
+        },
         "closureMatrix": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["decision", "source", "classification", "closure", "syncAction", "confidence"],
+            "required": [
+              "decision",
+              "source",
+              "classification",
+              "closure",
+              "syncAction",
+              "confidence"
+            ],
             "properties": {
-              "decision": { "$ref": "#/$defs/decisionRef" },
+              "decision": {
+                "$ref": "#/$defs/decisionRef"
+              },
               "source": {
                 "type": "string",
-                "enum": ["propose", "review", "apply", "verify", "sync", "archive", "code-review", "retro"]
+                "enum": [
+                  "propose",
+                  "review",
+                  "apply",
+                  "verify",
+                  "sync",
+                  "archive",
+                  "code-review",
+                  "retro"
+                ]
               },
-              "classification": { "type": "string", "minLength": 1 },
+              "classification": {
+                "type": "string",
+                "minLength": 1
+              },
               "closure": {
                 "type": "string",
-                "enum": ["CLOSED", "ACCEPTED_RISK", "FOLLOW_UP_CHANGE_REQUIRED", "OPENSPEC_AMENDED"]
+                "enum": [
+                  "CLOSED",
+                  "ACCEPTED_RISK",
+                  "FOLLOW_UP_CHANGE_REQUIRED",
+                  "OPENSPEC_AMENDED"
+                ]
               },
               "syncAction": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["tokens"],
+                "required": [
+                  "tokens"
+                ],
                 "properties": {
-                  "tokens": { "$ref": "#/$defs/syncActionTokens" },
-                  "note": { "type": ["string", "null"] }
+                  "tokens": {
+                    "$ref": "#/$defs/syncActionTokens"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
                 }
               },
-              "retroTopic": { "type": ["string", "null"] },
-              "confidence": { "$ref": "#/$defs/confidence" }
+              "retroTopic": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confidence": {
+                "$ref": "#/$defs/confidence"
+              }
             }
           }
         },
         "openspecArchive": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["command", "archivedAs", "totals"],
+          "required": [
+            "command",
+            "archivedAs",
+            "totals"
+          ],
           "properties": {
-            "command": { "type": "string", "minLength": 1 },
-            "archivedAs": { "type": "string", "minLength": 1 },
+            "command": {
+              "type": "string",
+              "minLength": 1
+            },
+            "archivedAs": {
+              "type": "string",
+              "minLength": 1
+            },
             "totals": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["added", "modified", "removed", "renamed"],
+              "required": [
+                "added",
+                "modified",
+                "removed",
+                "renamed"
+              ],
               "properties": {
-                "added": { "type": "integer", "minimum": 0 },
-                "modified": { "type": "integer", "minimum": 0 },
-                "removed": { "type": "integer", "minimum": 0 },
-                "renamed": { "type": "integer", "minimum": 0 }
+                "added": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "modified": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "removed": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "renamed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
               }
             },
             "promotions": {
@@ -766,24 +1901,62 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["capability", "op", "requirements"],
+                "required": [
+                  "capability",
+                  "op",
+                  "requirements"
+                ],
                 "properties": {
-                  "capability": { "type": "string", "minLength": 1 },
-                  "op": { "type": "string", "enum": ["create", "modify", "remove"] },
-                  "requirements": { "type": "integer", "minimum": 0 }
+                  "capability": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "modify",
+                      "remove"
+                    ]
+                  },
+                  "requirements": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             },
-            "warnings": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           }
         },
         "sourceOfTruth": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["status", "checks"],
+          "required": [
+            "status",
+            "checks"
+          ],
           "properties": {
-            "status": { "type": "string", "enum": ["CONFIRMED", "PARTIAL", "UNCONFIRMED"] },
-            "checks": { "type": "array", "items": { "$ref": "#/$defs/checkRow" } }
+            "status": {
+              "type": "string",
+              "enum": [
+                "CONFIRMED",
+                "PARTIAL",
+                "UNCONFIRMED"
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/checkRow"
+              }
+            }
           }
         },
         "acceptedRisks": {
@@ -791,17 +1964,59 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["ref", "condition", "acceptedBy", "date", "rationale", "impact"],
+            "required": [
+              "ref",
+              "condition",
+              "acceptedBy",
+              "date",
+              "rationale",
+              "impact"
+            ],
             "properties": {
-              "ref": { "$ref": "#/$defs/decisionRef" },
-              "risk": { "oneOf": [{ "$ref": "#/$defs/riskId" }, { "type": "null" }] },
-              "condition": { "type": "string", "minLength": 1 },
-              "acceptedBy": { "type": "string", "minLength": 1 },
-              "date": { "$ref": "#/$defs/date" },
-              "rationale": { "type": "string", "minLength": 1 },
-              "impact": { "type": "string", "minLength": 1 },
-              "confidenceImpact": { "type": ["string", "null"] },
-              "followUp": { "type": ["string", "null"] }
+              "ref": {
+                "$ref": "#/$defs/decisionRef"
+              },
+              "risk": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/riskId"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "acceptedBy": {
+                "type": "string",
+                "minLength": 1
+              },
+              "date": {
+                "$ref": "#/$defs/date"
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 1
+              },
+              "impact": {
+                "type": "string",
+                "minLength": 1
+              },
+              "confidenceImpact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "followUp": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },
@@ -810,16 +2025,40 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["item", "reason", "impact", "route"],
+            "required": [
+              "item",
+              "reason",
+              "impact",
+              "route"
+            ],
             "properties": {
-              "item": { "type": "string", "minLength": 1 },
-              "reason": { "type": "string", "minLength": 1 },
-              "impact": { "type": "string", "minLength": 1 },
-              "route": { "type": "string", "minLength": 1 }
+              "item": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "impact": {
+                "type": "string",
+                "minLength": 1
+              },
+              "route": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
-        "debtLoad": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }
+        "debtLoad": {
+          "type": "string",
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH"
+          ]
+        }
       }
     }
   }

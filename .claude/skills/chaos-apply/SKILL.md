@@ -27,17 +27,82 @@ Read the reference files before acting:
 - `reference/question-bank.md`
 - `.claude/skills/chaos-shared/reference/change-template.md` (universal change artifacts)
 
-## `change.md` entry (mode inferred)
+## `change.md` entry (classification-driven)
 
 Before anything else: if `.chaos/changes/<change-id>/change.md` exists, this apply is the
-**DELIVER** phase of the universal change lifecycle — infer the mode from `chaosMetadata.mode`
-(light | standard | strict) and run the **Deliver** section of `reference/apply-contract.md`
-(gate: all decisions ANSWERED, else point at the Decision Center and stop; output = `change.md`
-§Delivery dashboard at mode depth, no apply-report/verification.md). Light runs it as the
-collapsed lifecycle instead of the standard stages and does not require `chaos:verify`;
-standard/strict keep the standard-stage rigor inside the Deliver shell and still recommend
-`chaos:verify`. Only when `change.md` is absent (legacy change) use the legacy stages and the
-legacy output below.
+**DELIVER** phase of the universal change lifecycle. Read
+`.chaos/changes/<change-id>/classification-state.json` (Stage-C; design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`):
+
+- **Present** → the **dimension vector, not mode words, sets the rigor** (run the "Stage-C
+  checkpoints" section below alongside the Deliver section of `reference/apply-contract.md`);
+  `chaosMetadata.mode` is floor provenance only. The collapsed lifecycle is the universal base;
+  depth comes from the dimensions.
+- **Absent** (pre-C change) → legacy behaviour: infer the mode from `chaosMetadata.mode` and run
+  Deliver at mode depth.
+
+Either way the entry gate is unchanged: all decisions ANSWERED, else point at the Decision
+Center and stop; output = rendered `change.md` §Delivery, no apply-report/verification.md.
+Recommend `chaos:verify` when the `verify` dimension ≥ 1 (or a floor demands it); at
+`verify 0` it stays post-hoc optional. Only when `change.md` is absent (legacy change) use the
+legacy stages and the legacy output below.
+
+## Stage-C checkpoints (K2 at entry · K3 at DELIVER end)
+
+When `classification-state.json` exists:
+
+1. **K2 (entry, scan-only — C-12):** build the classifier payload (intent + scope from
+   `change.md` §Intent / §Review scope line; `ledgerFile` = `decision-events.md`; `mapFile` =
+   `.chaos/path-class-map.json`) and run
+   `python tools/chaos-classify/classify.py --inline <payload.json> --state .chaos/changes/<change-id>/classification-state.json`
+   with `checkpoint: K2`. An M4 firing here raises review/openspec/evidence.targeted — apply
+   the new obligations BEFORE implementing.
+2. **Implement to contract** (unchanged: preflight, boundary construction, delegation, scope
+   discipline).
+3. **K3 (DELIVER end):** regenerate the payload with `numstatFile`/`patchFile` from
+   `git diff --numstat` / `git diff` against the pre-apply base — **scoped per the rule below**;
+   scan call first, then perform
+   the **adjudication pass** per `tools/chaos-classify/adjudication-prompt.md` (K3 is an
+   adjudication checkpoint) over the verdict's demoted candidates + full inputs, and merge
+   raises via `--adjudication`. Record one `TRG-*` ledger event per new firing
+   (`chaos-shared/reference/change-template.md` §2).
+
+   **Diff-scope rule (mandatory — governance must not amplify itself).** The numstat and patch
+   describe the **governed subject only**. Always exclude the change's own bookkeeping:
+   `.chaos/**` and `openspec/**` (and any ADR the change authored). Stage newly created files
+   first (`git add -N <subject paths>`) or the diff is blind to them. Concretely:
+
+   ```bash
+   git add -N src tests                      # subject paths; new files must be visible
+   git diff --numstat -- src tests > .tmp/k3.numstat
+   git diff          -- src tests > .tmp/k3.patch
+   ```
+
+   *Why this is a rule and not a preference:* measured on 2026-08-03 across six governed arms
+   (`.chaos/validation/2026-08-stage-c-step5-rerun/results.md` §3), **every** arm that counted its
+   own governance artifacts crossed X1's blast-radius threshold — the artifacts a change produces
+   trip the trigger that then demands more governance. One arm actually did it, producing the
+   program's only classification miss, and the spurious X1 also raised `verify` 0→1, which changed
+   whether the final checkpoint ran at all. Blast radius is a property of the **subject**, never
+   of the paperwork.
+4. **New-stop protocol:** `newStops > 0` in the K3 verdict (a scope spill, or first-fired
+   materiality with no covering ANSWERED decision — MR-3 satisfaction is the classifier's,
+   not yours) ⇒ surface **one** runtime decision carrying every folded question, declaring
+   `folds: <n>` on the entry (`change-template.md` §2 — M4 counts questions, not headings),
+   create the resume capsule, and STOP (`mustStop`). Do not complete the deliver record until it is
+   ANSWERED. A `stopSatisfiedBy` field means no stop — cite the covering decision in the
+   delivery facts instead.
+5. **Late-fired obligations (design §5.3 law 5):** artifact obligations from K2/K3 firings
+   (openspec delta/full, adr entry/ADR) are due **before DELIVER completes**; verify enforces
+   them.
+6. **DELIVER-exit sign-off:** when the stops floor is ≥ 2 (strict preset), surface the
+   sign-off decision at DELIVER exit before terminalizing.
+7. **Scope drift:** M5 is the mechanical detector for `reference/scope-drift-policy.md`; the
+   policy still governs what to DO about drift — detection and stop placement are the
+   classifier's.
+
+Open item (design §12, unchanged): K3 runs at DELIVER end only for now; per-task-boundary
+classification is revisited with step-5 data.
 
 ## Golden rules
 
@@ -47,6 +112,8 @@ legacy output below.
 - C# specialists implement tasks; they do not decide scope.
 - Light/standard can continue through non-direct blockers after explicit user confirmation.
 - Strict blocks unless proposal/review/evidence are approval-ready.
+- Under Stage-C, the classification dimension vector — never mode words — sets the rigor;
+  floors only raise, and the system never lowers a fired dimension (human override only).
 - Every in-apply decision must be recorded for `chaos:sync`.
 
 ## Output

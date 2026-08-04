@@ -9,6 +9,7 @@ Fixtures mirror the golden reference (demo/dotnet secure-task-api) shapes.
 import importlib.util
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -444,6 +445,105 @@ class TestModelAndRendering(unittest.TestCase):
         self.assertNotIn("| Verify |", text)
         self.assertNotIn("traceability", text.split("\n")[7] if len(text.split("\n")) > 7 else "")
 
+    # --- C.1 repairs (Stage-C defects found by the step-5 measurement) -------------------
+
+    def _light_frame(self, openspec=None):
+        """Put the change on the collapsed base: a light frame record AND a ledger with no
+        escalation — an `escalates:` entry would raise the model's mode straight back up."""
+        facts = json.loads(json.dumps(FRAME_FACTS))
+        if openspec is not None:
+            facts["openspec"] = openspec
+        self.repo.write_record(
+            "frame.pass-01.facts.json",
+            make_facts("frame", "READY_FOR_REVIEW", "chaos-propose-fixture-e2858e",
+                       facts, mode="light"))
+        with open(os.path.join(self.repo.change_dir, "decision-events.md"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("\n".join(
+                line for line in GOLDEN_LEDGER.splitlines()
+                if not line.startswith("- escalates:")
+            ).replace("## ESC-001 — auto-escalated: intent crosses the auth non-goal",
+                      "## Removed heading"))
+
+    def test_light_lifecycle_still_projects_a_verify_that_actually_ran(self):
+        """`light` is floor provenance only under Stage C — verify runs at dimension >= 1.
+
+        Keying the projection off the mode word dropped a completed Verify phase and its
+        archiveReadiness from the state view (step-5 core tier, findings 4)."""
+        self._light_frame()
+        self.repo.write_record("verify.pass-01.facts.json", make_verify(3))
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["mode"], "light")
+        self.assertEqual(model["phases"]["verify"]["status"], "complete")
+        text = render.render_lifecycle_md(model, None)
+        self.assertIn("| Verify |", text)
+        self.assertIn("archive", text.split("Current:")[1].split("\n")[0])
+
+    def test_light_lifecycle_hides_phases_that_never_ran(self):
+        """The converse: a genuinely un-run phase must NOT appear as noise."""
+        self._light_frame()
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["phases"]["verify"]["status"], "pending")
+        self.assertNotIn("| Verify |", render.render_lifecycle_md(model, None))
+
+    def test_openspec_zero_emits_no_dangling_pointer(self):
+        """At `openspec 0` no folder exists; pointing at one is a dangling reference."""
+        self._light_frame(openspec={"status": "NOT_INVOKED", "depth": 0})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertNotIn(f"`openspec/changes/{model['changeId']}/`", change)
+        self.assertIn("none owed at the classified depth", change)
+        lifecycle = render.render_lifecycle_md(model, None)
+        self.assertNotIn(f"OpenSpec: openspec/changes/{model['changeId']}", lifecycle)
+        self.assertIn("none owed at the classified depth", lifecycle)
+
+    def test_openspec_invoked_still_points_at_the_folder(self):
+        """Guard the fix: a change that DOES owe OpenSpec keeps its pointer."""
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertIn(f"`openspec/changes/{model['changeId']}/`", render.render_change_md(model, None))
+
+    def test_incomplete_status_is_qualified_at_shallow_depth(self):
+        """`openspec status` measures the FULL set, so isComplete:false is EXPECTED at depth < 2.
+
+        Unqualified it read as unfinished work and drove an arm to rewrite a completed pass
+        record to remove the apparent contradiction (step-5 core tier, findings 3)."""
+        self._light_frame(openspec={"status": "INVOKED", "depth": 1,
+                                    "artifacts": ["openspec/changes/fixture-change/specs/x/spec.md"],
+                                    "statusCheck": {"isComplete": False}})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertIn("Classified depth: **1 — delta spec only**", change)
+        self.assertIn("expected: the CLI measures the full set", change)
+
+    def test_incomplete_status_is_not_excused_at_full_depth(self):
+        """At depth 2 an incomplete set is a REAL problem and must not be explained away."""
+        self._light_frame(openspec={"status": "INVOKED", "depth": 2,
+                                    "statusCheck": {"isComplete": False}})
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        change = render.render_change_md(model, None)
+        self.assertNotIn("expected: the CLI measures the full set", change)
+
+    def test_escalated_from_absent_when_never_escalated(self):
+        """`Escalated-from` is pre-C vocabulary; render it only when actually set."""
+        self._light_frame()
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertIsNone(model["escalatedFrom"])
+        self.assertNotIn("Escalated-from", render.render_lifecycle_md(model, None))
+
+    def test_escalated_from_still_shown_on_legacy_escalated_changes(self):
+        """Guard the fix: legacy escalated changes must keep the field visible."""
+        model, errors, _ = self.build()
+        self.assertEqual(errors, [])
+        self.assertEqual(model["escalatedFrom"], "standard")
+        self.assertIn("Escalated-from: standard", render.render_lifecycle_md(model, None))
+
     def test_cross_ref_validation_catches_bogus_ref(self):
         model, errors, _ = self.build()
         self.assertEqual(errors, [])
@@ -737,6 +837,114 @@ class TestDecisionAudit(unittest.TestCase):
             self.assertTrue(audit_archive.startswith("7 entries:"), audit_archive)
         finally:
             repo.cleanup()
+
+
+class TestRunDecPrefix(unittest.TestCase):
+    """Lever-run defect D1: render.py's ledger regexes and PREFIX_STAGE omitted `RUN`, the
+    prefix chaos:run mandates, so the renderer parsed ZERO decisions from a conformant ledger
+    and hard-failed any deviation citing RUN-DEC-*. It blocked close on 6/6 measured arms."""
+
+    def test_run_dec_heading_is_recognized(self):
+        m = render.ENTRY_HEADING_RE.match("## RUN-DEC-001 — approve as framed?")
+        self.assertIsNotNone(m)
+        self.assertEqual(m.group(1), "RUN-DEC-001")
+
+    def test_run_dec_reference_token_is_recognized(self):
+        self.assertIn("RUN-DEC-002",
+                      render.REF_TOKEN_RE.findall("deviation backed by RUN-DEC-002 here"))
+
+    def test_run_prefix_has_a_stage(self):
+        self.assertIn("RUN", render.PREFIX_STAGE)
+        self.assertEqual(render.PREFIX_STAGE["RUN"], render.PREFIX_STAGE["PROP"])
+
+    def test_every_prefix_site_agrees(self):
+        """THE GUARD. D1 happened because the decision-prefix set is duplicated across six
+        places and `RUN` was added to some of them. Fixing the renderer then revealed two MORE
+        stale copies (the decision-entry parse contract and change-template's documented list).
+        This test fails the moment any site drifts from the others again — it is cheaper than
+        another 12-arm run discovering it."""
+        expected = {"PROP", "RUN", "REV", "APP", "APPLY", "VFY", "VER", "CR", "SYNC", "ARC",
+                    "RETRO"}
+        sites = {}
+
+        def from_pattern(text, label):
+            m = re.search(r"\(\??:?((?:[A-Z]+\|){3,}[A-Z]+)\)-DEC-", text)
+            self.assertIsNotNone(m, "no prefix alternation found in %s" % label)
+            sites[label] = set(m.group(1).split("|"))
+
+        from_pattern(render.ENTRY_HEADING_RE.pattern, "render.ENTRY_HEADING_RE")
+        from_pattern(render.REF_TOKEN_RE.pattern, "render.REF_TOKEN_RE")
+        for name, ref in (("contract.schema.json", "decisionRef"),
+                          ("phase-facts.schema.json", "decisionRef")):
+            from_pattern(render.load_schema(name)["$defs"][ref]["pattern"], name)
+        from_pattern(render.load_schema("decision-entry.schema.json")
+                     ["properties"]["id"]["pattern"], "decision-entry.schema.json")
+        sites["render.PREFIX_STAGE"] = {k for k in render.PREFIX_STAGE if k != "ESC"}
+
+        template = os.path.join(HERE, "..", "..", ".claude", "skills", "chaos-shared",
+                                "reference", "change-template.md")
+        if os.path.isfile(template):
+            with open(template, encoding="utf-8") as f:
+                body = f.read()
+            line = next((l for l in body.splitlines() if l.startswith("Known prefixes:")), "")
+            self.assertTrue(line, "change-template.md lost its 'Known prefixes:' line")
+            tail = body.split("Known prefixes:", 1)[1].split("(plus", 1)[0]
+            sites["change-template.md"] = set(re.findall(r"`([A-Z]+)-`", tail))
+
+        for label, found in sites.items():
+            self.assertEqual(found, expected, "%s prefix set drifted: %s" % (label, found))
+
+    def test_mode_null_validates(self):
+        """Defect D2: a run with no preset flag has mode null in classification-state.json;
+        the record must be able to say so instead of claiming 'light'."""
+        schema = render.load_schema("phase-facts.schema.json")
+        self.assertEqual(render.validate_schema(None, schema["$defs"]["mode"]), [])
+        self.assertEqual(render.validate_schema("light", schema["$defs"]["mode"]), [])
+        self.assertTrue(render.validate_schema("bogus", schema["$defs"]["mode"]))
+
+
+class TestExampleRecords(unittest.TestCase):
+    """The examples/ records are the agent-facing replacement for reading the schemas
+    (L2-D7, docs/design/2026-08-03-l2-corpus-amortization.md §3): agents pattern-match an
+    example and let `render.py --check` catch them, so an example that drifts from its
+    schema MUST fail here. The loop emits contract/frame/deliver/verify; review is not
+    emitted by chaos:run and deliberately has no example until a command needs one."""
+
+    EXAMPLES_DIR = os.path.join(HERE, "examples")
+    EXPECTED = ["contract.example.json", "frame.facts.example.json",
+                "deliver.facts.example.json", "verify.facts.example.json"]
+
+    def _load(self, name):
+        with open(os.path.join(self.EXAMPLES_DIR, name), encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_every_expected_example_exists(self):
+        for name in self.EXPECTED:
+            self.assertTrue(os.path.isfile(os.path.join(self.EXAMPLES_DIR, name)), name)
+
+    def test_examples_validate_against_their_schema(self):
+        facts_schema = render.load_schema("phase-facts.schema.json")
+        contract_schema = render.load_schema("contract.schema.json")
+        for name in self.EXPECTED:
+            data = self._load(name)
+            schema = contract_schema if name.startswith("contract") else facts_schema
+            issues = render.validate_schema(data, schema)
+            self.assertEqual(issues, [], "%s: %s" % (name, issues))
+
+    def test_examples_carry_the_honesty_fields(self):
+        """The whole point of curated examples: weak-evidence honesty stays visible."""
+        deliver = self._load("deliver.facts.example.json")
+        non_test = [c for c in deliver["facts"]["coverage"] if c["evidence"] != "test"]
+        self.assertTrue(non_test and all(c.get("whyNotTest") for c in non_test))
+        self.assertTrue(all(d.get("decision") for d in deliver["facts"]["deviations"]))
+        frame = self._load("frame.facts.example.json")
+        self.assertTrue(frame.get("confidenceLimiters"))
+
+    def test_examples_phase_matches_filename(self):
+        for name in self.EXPECTED:
+            if name.startswith("contract"):
+                continue
+            self.assertEqual(self._load(name)["phase"], name.split(".", 1)[0], name)
 
 
 if __name__ == "__main__":

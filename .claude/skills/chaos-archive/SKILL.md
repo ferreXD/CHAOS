@@ -13,6 +13,16 @@ chaos:archive <change-id>
 
 or asks to archive/close a CHAOS/OpenSpec change.
 
+## Stage-C closure duties
+
+When `.chaos/changes/<change-id>/classification-state.json` exists (design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`): the closure matrix includes the
+classification trail — every `TRG-*` event's obligation met or carried as **named** debt
+(`adr 2` without an ADR ⇒ ARCHIVED_WITH_DEBT at best, never a clean ARCHIVED); a change
+classified `openspec 0/1` archives WITHOUT a full OpenSpec set **by design** — confirm against
+the classified depth, do not flag it; `classification-state.json` is archived with the change
+folder as audit evidence.
+
 ## Required references
 
 Read these references before acting:

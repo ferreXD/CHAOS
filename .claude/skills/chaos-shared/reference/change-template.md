@@ -9,7 +9,7 @@ mode, is exactly four artifacts, each with one job:
 | `change.md` | the **story**: intent → contract → review → delivery | propose (FRAME sections) + apply (Delivery section) |
 | `lifecycle.md` | the **state**: generated view of `change.md` frontmatter | stub at phase transitions (rendered mechanically in Stage B) |
 | `decision-events.md` | the **decisions**: append-only ledger | any command surfacing/resolving a decision |
-| `openspec/changes/<id>/` | the **spec**: full OpenSpec set | OpenSpec (all modes, unchanged) |
+| `openspec/changes/<id>/` | the **spec**, at the classified depth | OpenSpec — **none owed at `openspec 0`** (Stage C, C-10); delta at 1; full set at 2 |
 
 **Modes scale section depth, not file count.** Light = tables/checklists/single lines only
 (hard rule: **no paragraphs**). Standard = short prose allowed per section. Strict = fuller
@@ -87,6 +87,8 @@ chaosMetadata:
 - [ ] <testable statement 2>
 
 OpenSpec: `openspec/changes/<change-id>/` · decisions: see `decision-events.md`
+<!-- At `openspec 0` the renderer emits "none owed at the classified depth" instead: there is no
+     OpenSpec folder to point at, and the Contract above is the contract of record. -->
 
 ## Review
 
@@ -149,8 +151,9 @@ matching:
 ^## (<PREFIX>-DEC-<nnn>|ESC-<nnn>)
 ```
 
-Known prefixes: `PROP-` · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` · `ARC-` ·
-`RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
+Known prefixes: `PROP-` · `RUN-` (chaos:run — one continuous command, so its decisions sort at
+the same stage as `PROP-`) · `REV-` · `APP-`/`APPLY-` · `VFY-`/`VER-` · `CR-` · `SYNC-` ·
+`ARC-` · `RETRO-` (plus `ESC-` for escalation events). **Any other `##` heading in `decision-events.md` —
 narrative or grouping sections such as "Dependent decisions" or "Runtime note" — is NOT an entry.**
 This single rule governs everywhere decisions are enumerated or counted:
 `lifecycle.current.decisions`, the `chaos:archive` closure matrix, sync reconciliation, and audits.
@@ -170,6 +173,11 @@ to the ledger always uses the `##` entry shape above, whatever shape a report te
 - recommendation: <letter> — <one clause>
 - answer: <letter or verbatim short answer>
 - why-material: <one line>
+- folds: <n> — <label> · <label> · <label>
+                                   # OPTIONAL. Present when this ONE stop carries N material
+                                   # questions folded into it (design section 5.3 law 2). The
+                                   # integer is machine-read by the M4 decision-density detector;
+                                   # omit it and the entry counts as exactly 1 question.
 - sync-action: NONE | CREATE_ADR | UPDATE_CHAOS_RULES | AMEND_OPENSPEC_SPEC | RECORD_ACCEPTED_RISK
                                    # "+"-combined when several apply; optional trailing "— <note>"
 - escalates: <from> → <to>         # ONLY when this entry's answer changed the mode (human escalation);
@@ -187,6 +195,26 @@ Escalation events use the same shape with the `ESC-` prefix:
 - trigger: <posture-crossing | decision-count | scope-spill | self-review-fail | openspec-degraded | answer-widened-scope>
 - kept-work: <one line — what FRAME output seeds the standard path>
 ```
+
+**Stage-C trigger events** (progressive rigor; design
+`docs/design/2026-08-02-stage-c-progressive-rigor.md`; commands wired to the classifier record
+one per fired trigger — under C these replace mode escalation):
+
+```markdown
+## TRG-001 — trigger fired: M2 sensitive-surface
+
+- status: RECORDED (<date>) [· run: <commandRunId>]
+- trigger: M1|M2|M3|M4|M5|X1|X2|X3 · by: scan|adjudication|declared · surface: <class or none>
+- cite: <the input line/section pair that justified the firing>
+- dimensions-after: stops <n> · evidence.targeted <n> · evidence.breadth <n> · review <n> · verify <n> · openspec <n> · adr <n>
+```
+
+`TRG-` headings are **deliberately NOT decision entries** under the §2 scan rule (they must not
+inflate `lifecycle.current.decisions` or the M4 decision-density count). The classifier's
+machine state lives in `.chaos/changes/<change-id>/classification-state.json` (the
+`tools/chaos-classify --state` file — the classifier's own working state, not a Stage-B
+`records/` artifact; the frontmatter classification block is deferred until Stage-B's writer
+fate is decided, so C stays unwelded from B).
 
 ## 3. `lifecycle.md` — generated state view
 

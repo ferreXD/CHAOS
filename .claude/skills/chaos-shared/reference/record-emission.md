@@ -8,7 +8,20 @@ records**; the deterministic renderer (`tools/chaos-render/render.py`) projects
 
 Design of record: `docs/design/2026-07-24-artifact-model-roadmap.md` §Stage B.
 Formats: `chaos-shared/reference/change-template.md` (§5 = machine layer).
-Machine schemas: `tools/chaos-render/schema/*.schema.json`.
+Machine schemas: `tools/chaos-render/schema/*.schema.json` — the renderer's truth,
+**not reading material**.
+
+**Authoring protocol (L2 + L4): never read the schemas.** For frame/deliver/verify, start
+from the emitter — `python tools/chaos-record/record.py <phase> --change-dir <dir> --run
+<runId> ...` writes the partial record at the real path with the facts derived and every
+judgement field empty; you fill the judgement (verdict, assessment, rationale, coverage
+evidence, `whyNotTest`, deviations, findings) and `render.py --check` gates completion. The
+emitter never guesses: an underivable fact stays empty. For `contract.json` (agent-authored
+end-to-end) copy `tools/chaos-render/examples/contract.example.json`; the other examples
+show the filled shape of each record. The examples are schema-validated by unit test, so
+they cannot drift from the machine truth. **An aborted pass deletes its partial record** —
+rule 3 below is about completed passes, and a partial left by an abandoned attempt is
+debris, not a record.
 
 ## The three writer rules (hard)
 
@@ -16,10 +29,12 @@ Machine schemas: `tools/chaos-render/schema/*.schema.json`.
    `lifecycle.md`, `sync-report.md`, `archive-report.md` and `appendix/*` are
    renderer-owned. The fix direction is always source-first: fix the record (or
    ledger entry), re-render.
-2. **The ledger stays hand-appended.** `decision-events.md` is agent-written,
-   append-only, per `change-template.md` §2 — it is a *source*, not a render
-   target. A decision entry whose answer changes the mode MUST carry
-   `- escalates: <from> → <to>`.
+2. **Decision entries stay hand-appended.** `decision-events.md` is append-only and a
+   *source*, not a render target. Every `*-DEC-*` and `ESC-*` entry is agent-written per
+   `change-template.md` §2; a decision entry whose answer changes the mode MUST carry
+   `- escalates: <from> → <to>`. `TRG-*` trigger events are the one exception (L3-D6,
+   creator 2026-08-03): `chaos-scan` appends them mechanically, byte-derived from the
+   classifier verdict — never hand-write or edit one.
 3. **A record is emitted only for a COMPLETED pass.** A deferred or aborted
    attempt writes no record — the deferral lives in its ledger entry
    (e.g. an `ARC-DEC` deferral). Re-runs append the next pass number; a pass

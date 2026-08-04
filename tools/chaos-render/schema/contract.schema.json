@@ -48,7 +48,7 @@
     "contractId": { "type": "string", "pattern": "^C-\\d{3}$" },
     "decisionRef": {
       "type": "string",
-      "pattern": "^((PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\\d{3}|ESC-\\d{3})$"
+      "pattern": "^((PROP|REV|APP|APPLY|VFY|VER|CR|SYNC|ARC|RETRO|RUN)-DEC-\\d{3}|ESC-\\d{3})$"
     }
   }
 }

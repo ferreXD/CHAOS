@@ -39,9 +39,8 @@ test("19/20. stdio server starts, lists tools, runs a decision flow, serves reso
     ]) {
       assert.ok(names.includes(required), `missing tool ${required}`);
     }
-    assert.equal(names.length, 14);
+    assert.equal(names.length, 13);
     assert.ok(names.includes("chaos_find_resume_candidates"));
-    assert.ok(names.includes("chaos_prune_capsule"));
 
     // begin -> create-decision (mustStop) -> answer -> response ANSWERED.
     const begin = textOf(

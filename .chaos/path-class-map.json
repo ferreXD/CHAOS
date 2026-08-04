@@ -1,0 +1,51 @@
+{
+  "_comment": [
+    "Path-class map for the Task Tracker demo. This file decides M2 (sensitive surface).",
+    "Without it M2 can NEVER fire and every change scans as 'fired: none' at HIGH confidence,",
+    "so scan.py k1 refuses to run unless it is present or --no-map is passed explicitly.",
+    "Classes are tuned to THIS app's real layout: there is no Security/ directory — all",
+    "authentication, authorization, CORS and rate-limit policy lives in Program.cs, which is",
+    "why the composition root is classed as auth."
+  ],
+  "classes": {
+    "auth": {
+      "surface": "auth",
+      "paths": [
+        "src/**/Program.cs",
+        "src/**/Security/**",
+        "src/**/*ApiKey*",
+        "src/**/*Auth*"
+      ]
+    },
+    "secrets": {
+      "surface": "auth",
+      "paths": ["**/*.pem", "**/*.pfx", "**/secrets*.json"],
+      "configKeyMarkers": {
+        "file": "**/appsettings*.json",
+        "keys": ["Auth", "SigningKey", "Issuer", "Audience", "Token", "ApiKey"]
+      }
+    },
+    "persistence": {
+      "surface": "data-store",
+      "paths": [
+        "src/**/Domain/**",
+        "**/Migrations/**",
+        "**/*.sql"
+      ]
+    },
+    "contract-artifacts": {
+      "surface": "contract-dependency",
+      "paths": ["**/*.openapi.*", "**/openapi*.json", "**/*.http"]
+    }
+  },
+  "m2Classes": ["auth", "secrets", "persistence"],
+  "renameShapeGuard": {
+    "minFiles": 6,
+    "globalAddDeleteRatioTolerance": 0.2,
+    "minFractionFilesWithBothAddsAndDeletes": 0.8
+  },
+  "x1Thresholds": {
+    "review1": {"files": 8, "loc": 400},
+    "review2": {"files": 20, "loc": 1000}
+  }
+}

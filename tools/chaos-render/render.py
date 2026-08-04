@@ -51,17 +51,21 @@ COMMAND_PHASE = {
 }
 # Which lifecycle stage a ledger prefix belongs to (for "ledger as of phase P" views).
 PREFIX_STAGE = {
-    "ESC": 0, "PROP": 0, "REV": 1, "APPLY": 2, "APP": 2,
+    # RUN is the chaos:run (Stage-D collapse) prefix: one continuous command spans framing
+    # through close, so its decisions sort at stage 0 alongside PROP. Omitting it made the
+    # renderer parse ZERO decisions from conformant chaos:run ledgers — measured on 6/6 arms
+    # of the 2026-08-04 lever run (that kit's results.md, defect D1).
+    "ESC": 0, "PROP": 0, "RUN": 0, "REV": 1, "APPLY": 2, "APP": 2,
     "VFY": 3, "VER": 3, "CR": 3, "SYNC": 4, "ARC": 5, "RETRO": 6,
 }
 PHASE_STAGE = {"frame": 0, "review": 1, "deliver": 2, "verify": 3, "sync": 4, "archive": 5, "codeReview": 3, "retro": 6}
 
 ENTRY_HEADING_RE = re.compile(
-    r"^## ((?:PROP|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3}) — (.+)$"
+    r"^## ((?:PROP|RUN|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3}) — (.+)$"
 )
 FIELD_RE = re.compile(r"^- ([A-Za-z][A-Za-z0-9 -]*): (.*)$")
 REF_TOKEN_RE = re.compile(
-    r"\b((?:PROP|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3})\b"
+    r"\b((?:PROP|RUN|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\d{3}|ESC-\d{3})\b"
 )
 
 
@@ -1008,7 +1012,15 @@ def render_change_body(model: Dict[str, Any]) -> List[str]:
         )
     else:
         out.append("")
-        out.append(f"OpenSpec: `openspec/changes/{model['changeId']}/` · decisions: see `decision-events.md`")
+        # Stage-C `openspec 0`: the classifier owed no OpenSpec artifacts, so the folder does not
+        # exist. Pointing at it produced a dangling reference on every zero-trigger change
+        # (step-5 extended tier, findings 9). The contract above IS the contract of record.
+        osf_status = ((frame or {}).get("facts", {}).get("openspec") or {}).get("status")
+        if osf_status == "NOT_INVOKED":
+            out.append("OpenSpec: none owed at the classified depth — the Contract above is the "
+                       "contract of record · decisions: see `decision-events.md`")
+        else:
+            out.append(f"OpenSpec: `openspec/changes/{model['changeId']}/` · decisions: see `decision-events.md`")
 
     if frame:
         osf = frame["facts"]["openspec"]
@@ -1030,13 +1042,25 @@ def render_change_body(model: Dict[str, Any]) -> List[str]:
             out.append("Generated OpenSpec artifacts:")
             out.append("")
             out.extend(f"- `{a}`" for a in osf["artifacts"])
+        if osf.get("depth") is not None:
+            depth_label = {0: "0 — none owed", 1: "1 — delta spec only", 2: "2 — full set"}
+            out.append("")
+            out.append(f"Classified depth: **{depth_label[osf['depth']]}**")
         if osf.get("statusCheck"):
             sc = osf["statusCheck"]
             note = f"; {sc['note']}" if sc.get("note") else ""
             out.append("")
+            # `openspec status` measures the FULL artifact set and has no notion of Stage-C
+            # classified depth, so isComplete:false is the EXPECTED answer at depth 0/1. Saying so
+            # inline stops a correct shallow set from reading as unfinished work — and stops an
+            # agent "fixing" a completed pass record to remove the apparent contradiction
+            # (step-5 core tier, findings 3).
+            expected = osf.get("depth") is not None and osf["depth"] < 2 and not sc["isComplete"]
+            qualifier = (" — expected: the CLI measures the full set, which this change does not "
+                         "owe at its classified depth") if expected else ""
             out.append(
                 f"`openspec status --change {model['changeId']} --json` reports "
-                f"`isComplete: {str(sc['isComplete']).lower()}`{note}."
+                f"`isComplete: {str(sc['isComplete']).lower()}`{qualifier}{note}."
             )
         if osf.get("validation"):
             v = osf["validation"]
@@ -1458,13 +1482,22 @@ def render_lifecycle_body(model: Dict[str, Any]) -> List[str]:
     out.append(f"# Lifecycle — {model['changeId']}")
     out.append("")
     out.append(f"Status: {model['status']}")
-    out.append(f"Mode: {model['mode']} · Escalated-from: {model['escalatedFrom'] or 'none'}")
+    # `Escalated-from` is pre-Stage-C vocabulary: under C a trigger fires, it does not escalate a
+    # mode. Legacy changes still carry it, so render the field only when it is actually set.
+    mode_line = f"Mode: {model['mode']}"
+    if model["escalatedFrom"]:
+        mode_line += f" · Escalated-from: {model['escalatedFrom']}"
+    out.append(mode_line)
 
     archive = latest(model["records"], "archive")
+    lc_frame = latest(model["records"], "frame")
+    openspec_owed = ((lc_frame or {}).get("facts", {}).get("openspec") or {}).get("status") != "NOT_INVOKED"
     if archive:
         openspec_path = f"openspec/changes/archive/{archive['facts']['openspecArchive']['archivedAs']}"
-    else:
+    elif openspec_owed:
         openspec_path = f"openspec/changes/{model['changeId']}"
+    else:
+        openspec_path = "none owed at the classified depth"
     runs = " · ".join(
         f"{phase} {model['phases'][phase]['run']}"
         for phase in PHASES + OPTIONAL_PHASES
@@ -1479,15 +1512,28 @@ def render_lifecycle_body(model: Dict[str, Any]) -> List[str]:
         parts.append(f"tests {dash(cur['tests'])}")
     parts.append(f"contract {dash(cur['contract'])}")
     parts.append(f"decisions {dash(cur['decisions'])}")
-    if not light:
-        parts.append(f"traceability {dash(cur['traceability'])}")
-        parts.append(f"sync {dash(cur['syncState'])}")
-        parts.append(f"archive {dash(cur['archiveReadiness'])}")
+    # Under Stage C `mode` is FLOOR PROVENANCE ONLY — verify/review/sync run whenever their
+    # dimension is >= 1, regardless of the mode word. Keying the projection off `light` silently
+    # dropped a completed Verify phase and its archiveReadiness from the state view (step-5,
+    # findings 4). Rule: hide a rollup only when the change genuinely has no value for it.
+    for key, label in (("traceability", "traceability"), ("syncState", "sync"),
+                       ("archiveReadiness", "archive")):
+        if not light or cur[key] is not None:
+            parts.append(f"{label} {dash(cur[key])}")
     out.append("Current: " + " · ".join(parts))
     out.append("")
     out.append("| Phase | Status | Mode | Verdict | Date | Pointer |")
     out.append("|---|---|---|---|---|---|")
-    rendered_phases = ["frame", "deliver"] if light else PHASES
+    # Same reason: on the collapsed base project frame+deliver PLUS any phase that actually ran.
+    # PHASES order is preserved so the table still reads as a lifecycle.
+    if light:
+        rendered_phases = [
+            p for p in PHASES
+            if p in ("frame", "deliver")
+            or (model["phases"].get(p) or {}).get("status", "pending") != "pending"
+        ]
+    else:
+        rendered_phases = PHASES
     rendered_phases = rendered_phases + [p for p in OPTIONAL_PHASES if p in model["phases"]]
     sync_rec = latest(model["records"], "sync")
     for phase in rendered_phases:

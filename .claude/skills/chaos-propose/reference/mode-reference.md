@@ -1,30 +1,23 @@
 # `chaos:propose` Mode Reference
 
-## Default mode
+> **Stage-C (2026-08-02):** the flags are **floor vectors over one flow**, not paths
+> (`docs/design/2026-08-02-stage-c-progressive-rigor.md` §8; SKILL.md "Dimension-driven
+> obligations"). Mode inference is retired — the trigger classifier owns rigor; a flag only
+> raises minimums and can never suppress a fired trigger. The per-flag sections below survive
+> as **floor-choice guidance** ("when might a human want to floor higher"); where anything here
+> conflicts with SKILL.md's Stage-C sections, Stage-C wins.
 
-If no mode is supplied, infer the mode from risk and relevance.
+## Default (no flag)
 
-Default inference:
-
-- `--light` for documentation-only, small isolated, low-risk, non-behavioural proposals.
-- `--standard` for normal product/backend/frontend/mobile/workflow changes.
-- `--strict` for brownfield, data, auth/security, external side effects, offline/replay, deployment/cutover, architecture, or customer-visible behavioural changes.
-
-The command must show the inferred mode and rationale before final proposal generation.
-
-Example:
+Zero floors + the mandatory FRAME approval stop (design C-11). Rigor comes from classification
+alone. Do NOT infer a mode from risk — run the classifier (SKILL.md workflow step 3) and show
+its result instead:
 
 ```text
-Mode inferred: --strict
-Reason:
-- Change touches persistence.
-- Change affects existing business behaviour.
-- ADR/rule alignment is required.
-
-Options:
-1. Continue with --strict
-2. Downgrade to --standard and record rationale
-3. Stop
+Classified: M2 sensitive-surface (scan: predicted scope includes Security/ (new)) ·
+M1 posture-crossing (adjudication: intent x non-goals auth)
+Dimensions: stops 1 · evidence.targeted 1 · verify 1 · openspec 1 · adr 2
+Their questions fold into the approval decision. Override: a recorded human decision only.
 ```
 
 ## `--light`
@@ -47,22 +40,17 @@ Behaviour:
   repo-wide sweeps).
 - Ask at most three clarification questions unless the request is unsafe or ambiguous.
 - One recommended approach; compact Approach Alignment Checkpoint.
-- Full OpenSpec set (unchanged in every mode).
+- OpenSpec at the classified depth (`openspec` dimension: skip / delta / full — SKILL.md
+  "Dimension-driven obligations").
 - Output = `change.md` + lean decision entries + `lifecycle.md` stub + capsule
   (`chaos-shared/reference/change-template.md`), then STOP for the human.
 - `chaos:review` is not part of the light path — the Review line in `change.md` records the
   inline self-review; next command after answers is `chaos:apply`.
 
-Cannot stay light — **auto-escalate to `--standard` without asking** (announce, `⚠ escalated`
-line, `escalatedFrom` metadata, `ESC-*` entry, reuse all FRAME output) — if the change:
-
-- crosses an architecture non-goal or posture boundary (persisted data, auth/security, external
-  side effects, existing business behaviour, offline/replay/idempotency, deployment/cutover);
-- surfaces more than `modes.light.maxMaterialDecisions` material decisions (config, default 2);
-- fails the inline self-review checklist;
-- hits OpenSpec-unavailable degraded mode.
-
-Never downgrade automatically.
+There is no "cannot stay light" under Stage-C — there are no modes to leave. The cases the old
+valve escalated on are now triggers that raise dimensions in place (see "Escalation → the
+ratchet" below); the flag's zero floors are unaffected by firings, and firings are unaffected
+by the flag.
 
 ## `--standard`
 
@@ -108,22 +96,15 @@ Behaviour:
 - Proposal cannot be marked ready if blocking evidence gaps remain.
 - `chaos:review` is mandatory before implementation.
 
-## Mode escalation
+## Escalation → the ratchet (Stage-C)
 
-- **`--light` → `--standard` is automatic** (the valve — see the `--light` section): never ask,
-  always announce and record (`⚠` line under the `change.md` H1, `escalatedFrom`, `ESC-*`
-  entry), reuse all FRAME output, and keep the `change.md` model — create `change.md` at the
-  target mode's depth if the trigger fired before FRAME wrote it; never emit
-  `proposal-report.md`/`proposal-review.md` on an escalated change.
-- **→ `--strict`** (from light or standard) remains confirm-based when strict-class risk is
-  detected:
-
-```text
-The change touches ERP finalization (strict-class risk).
-Escalating to --strict is recommended.
-Proceed as strict? [yes/no/waive]
-```
-
+Mode escalation is retired. Triggers fire, dimensions raise, obligations grow — monotone,
+recorded as `TRG-*` ledger events (change-template §2), announced but never asked about.
+The old valve's cases map onto triggers (posture crossing → M1, decision count → M4,
+self-review fail → X2, scope spill → M5); `ESC-*`/`escalatedFrom`/⚠ H1 warnings remain only on
+legacy pre-C changes. "Escalate to strict?" confirmations are gone: what strict used to bundle
+now arrives per-dimension when triggers demand it, and a human who wants more anyway sets a
+floor flag. Downgrades exist only as recorded human override decisions (design C-8).
 
 ## Runtime decision behaviour by mode
 
