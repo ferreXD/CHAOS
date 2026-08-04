@@ -91,6 +91,32 @@ class TestPrimitives(unittest.TestCase):
         # No `folds:` declared => each entry is exactly one material question.
         self.assertEqual([e["folds"] for e in entries], [1, 1])
 
+    def test_unknown_mode_fails_closed(self):
+        """A typo'd preset must NOT silently degrade to zero floors. Found by the post-lever-run
+        sweep: `--mode stricct` used to yield stops 1 / openspec 0 / adr 0 — a caller asking for
+        strict governance got none, with no error."""
+        self.assertEqual(C.initial_state("strict")["floors"]["stops"], 2)
+        for bad in ("stricct", "Strict", "none", ""):
+            with self.assertRaises(ValueError, msg=bad):
+                C.initial_state(bad)
+        self.assertEqual(C.initial_state(None)["floors"]["stops"], 1)   # no preset stays valid
+
+    def test_unknown_declared_trigger_fails_closed(self):
+        """A typo'd declaration used to fire a PHANTOM trigger: recorded in state (and emitted
+        as a TRG event) while bumping no dimension — it looked like governance and owed
+        nothing. Both the declared name and the raw trigger id must keep working."""
+        def run(decl):
+            sections = {"frontmatter":
+                        "chaosMetadata:\n  mode: null\n  declaredTriggers: [%s]\n" % decl,
+                        "intent": "x", "scope": "scope: src/App/File.cs"}
+            return C.classify(sections, "K1", None, None, MAP)[0]
+        self.assertEqual([f["trigger"] for f in run("sensitive-surface:auth")["newlyFired"]],
+                         ["M2"])
+        self.assertEqual([f["trigger"] for f in run("M2")["newlyFired"]], ["M2"])
+        for bad in ("sensitve-surface:auth", "garbage", "M9"):
+            with self.assertRaises(ValueError, msg=bad):
+                run(bad)
+
     def test_terminal_statuses_read_as_answered(self):
         """Only OPEN is pending; RESOLVED-IN-ARM and RECORDED are terminal (Stage-D results
         section 5: the ANSWERED-only match made every in-arm-resolved stop read as unanswered

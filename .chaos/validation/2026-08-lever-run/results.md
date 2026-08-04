@@ -204,6 +204,28 @@ Post-repair: 136 tests green across five suites (scan 13, record 8, digest 13, r
 classify 39), corpus scan-only all-PASS over 29 seeds, digest `--check` exit 0 after
 restamping the `decision-entry-format` section (change-template is a digest source).
 
+### 8.1 The recheck found two more, of the same class (D4, D5)
+
+Re-verifying the repairs against real input surfaced two latent defects nobody had hit yet,
+both the **same failure mode as D3** — a free-text field that silently changes what governance
+is owed. Both are worse than D3, because D3 *manufactured* rigor and these *remove* it:
+
+| # | Defect | Behaviour before | Fix |
+|---|---|---|---|
+| **D4** | `--mode` typo silently degrades to **zero floors** | `--mode stricct` → `stops 1 / openspec 0 / adr 0`: a caller asking for **strict** governance got **none**, with no error (`FLOORS.get(mode, FLOORS[None])`) | `initial_state` fails closed on an unknown preset; `scan.py --mode` constrained to `light\|standard\|strict` |
+| **D5** | A typo'd `declaredTriggers` entry fires a **phantom trigger** | `sensitve-surface:auth` → recorded in `fired` (and emitted as a `TRG-*` event by `chaos-scan`) while bumping **no** dimension: it looked like governance and owed nothing | resolved trigger must be a known id or declared name, else `ValueError`; both spellings still first-class |
+
+**End-to-end verification, not just unit tests.** D1 was re-proved by rendering a real arm's
+`RUN-DEC-*` ledger (P1's, with two decisions and four TRG events) through the repaired
+renderer: exit 0, `decisions: 2` in the frontmatter (the original symptom was `decisions 0`),
+deviations resolving their `RUN-DEC-002` citation. D2 was re-proved by flipping every record in
+that change to `mode: null` and re-rendering: no validation error. D3/D4 are rejected at the
+argparse boundary before any state is touched.
+
+Post-recheck: **138 tests** green (scan 13, record 8, digest 13, render 63, classify 41),
+corpus scan-only all-PASS over 29 seeds (including ADV-05, which uses declared triggers),
+digest `--check` exit 0.
+
 **Still open, and deliberately not fixed here** because it is a design decision, not a bug:
 **the L1-D11 easy gate is inert.** "Zero triggers fired" never holds past the first scan. Any
 re-run that hopes to measure L1 must first re-specify the gate — the evidence suggests keying

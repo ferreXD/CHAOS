@@ -274,7 +274,10 @@ def main(argv=None):
     k1.add_argument("--intent", required=True, help="the change intent, verbatim")
     k1.add_argument("--scope", required=True, help="predicted scope line")
     k1.add_argument("--declared", default="", help="comma list of declaredTriggers")
-    k1.add_argument("--mode", default=None, help="preset floor (light|standard|strict)")
+    # Constrained for the same reason as --self-review: a typo'd preset used to fall through to
+    # zero floors, silently giving a caller who asked for strict governance none at all.
+    k1.add_argument("--mode", default=None, choices=["light", "standard", "strict"],
+                    help="preset floor; omit for no preset (zero floors, classification only)")
     k1.add_argument("--subject", action="append", default=None, required=True,
                     help="C-15 subject path root (repeatable), e.g. --subject src --subject tests")
     k1.add_argument("--map", default=os.path.join(".chaos", "path-class-map.json"))

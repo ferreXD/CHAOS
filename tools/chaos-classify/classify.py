@@ -347,7 +347,15 @@ def compute_dimensions(state):
 
 
 def initial_state(mode):
-    floors = dict(FLOORS.get(mode, FLOORS[None]))
+    # FAIL CLOSED on an unknown preset. This was `FLOORS.get(mode, FLOORS[None])`, so a typo
+    # (`--mode stricct`) silently produced ZERO floors — a caller asking for strict governance
+    # got none, with no error. Same defect class as the lever-run D3 (a free-text field that
+    # quietly changes what is owed), but inverted and worse: D3 manufactured rigor, this
+    # removed it. Governance must never be downgraded by a spelling mistake.
+    if mode not in FLOORS:
+        raise ValueError("unknown mode %r — expected one of: %s"
+                         % (mode, ", ".join(sorted(str(k) for k in FLOORS))))
+    floors = dict(FLOORS[mode])
     placed = ["K1:floor-approval"]
     if floors["stops"] >= 2:
         placed.append("deliver-exit:floor-signoff")
@@ -418,7 +426,17 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     if not state["checkpointsRun"]:
         for decl in fm["declaredTriggers"]:
             name, _, surf = decl.partition(":")
+            # Both spellings are first-class: the declared NAME ("sensitive-surface") and the
+            # raw trigger id ("M2"). Anything else FAILS CLOSED. It used to fall through as a
+            # phantom trigger — recorded in `fired` (and emitted as a TRG event by chaos-scan)
+            # while bumping no dimension, so a typo'd declaration looked like governance and
+            # owed nothing. Same class as the mode typo: never lose rigor to a spelling mistake.
             trig = DECLARED_NAMES.get(name.strip(), name.strip())
+            if trig not in MATERIALITY and trig not in MECHANICAL:
+                raise ValueError(
+                    "unknown declaredTrigger %r — expected a trigger id (%s) or a declared name "
+                    "(%s)" % (decl, ", ".join(sorted(MATERIALITY | MECHANICAL)),
+                              ", ".join(sorted(DECLARED_NAMES))))
             fire(trig, "declared", surf.strip() or "declared",
                  "frontmatter declaredTriggers: [%s]" % decl)
 
