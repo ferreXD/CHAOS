@@ -437,6 +437,13 @@ class TestContinuousMode(unittest.TestCase):
         self.assertEqual(state["seenPaths"], ["src/App/F.cs"])
 
 
+def _corpus_present():
+    """The fidelity corpus is a main-side validation asset; branches that carry only the
+    product surface (demo/dotnet) do not have it. Absent corpus = skip, never fail."""
+    import run_corpus
+    return os.path.isdir(os.path.join(run_corpus.DEFAULT_CORPUS, "seeds"))
+
+
 class TestCorpusHarnessFailsClosed(unittest.TestCase):
     """Full mode without --adjudication once produced five FAIL blocks that read as a
     classifier regression. It was a missing input. The guard must not rot back."""
@@ -461,9 +468,11 @@ class TestCorpusHarnessFailsClosed(unittest.TestCase):
         self.assertIn("--adjudication", err)
         self.assertIn("--scan-only", err)
 
+    @unittest.skipUnless(_corpus_present(), "fidelity corpus not on this branch")
     def test_scan_only_needs_no_adjudication(self):
         self.assertEqual(self._run(["--scan-only"])[0], 0)
 
+    @unittest.skipUnless(_corpus_present(), "fidelity corpus not on this branch")
     def test_full_mode_passes_with_the_checked_in_adjudication_evidence(self):
         import run_corpus
         adj = os.path.join(run_corpus.DEFAULT_CORPUS, "evidence-adjudication-results.json")

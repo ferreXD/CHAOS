@@ -60,12 +60,14 @@ def main(argv=None):
     # silently.
     if not args.scan_only and not args.emit_packets and not args.adjudication:
         default_adj = os.path.join(args.corpus, "evidence-adjudication-results.json")
-        hint = ("\n  full  : run_corpus.py --adjudication %s"
-                % default_adj) if os.path.isfile(default_adj) else ""
+        # Always name --adjudication, even where the evidence file is not on this branch (the
+        # corpus lives on main; the demo branch carries the product surface only).
+        target = default_adj if os.path.isfile(default_adj) else "<adjudication-results.json>"
         sys.stderr.write(
             "error: full mode scores adjudication raises and none were supplied.\n"
-            "Pick the mode you actually mean:%s\n"
-            "  scan  : run_corpus.py --scan-only   (deterministic layer only)\n" % hint)
+            "Pick the mode you actually mean:\n"
+            "  full  : run_corpus.py --adjudication %s\n"
+            "  scan  : run_corpus.py --scan-only   (deterministic layer only)\n" % target)
         return 2
 
     seeds_dir = os.path.join(args.corpus, "seeds")
