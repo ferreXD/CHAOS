@@ -155,3 +155,28 @@ Filled in as the run proceeds; never back-dated.
 
 - 2026-08-04 — kit authored; §3/§4 frozen **before** any test ran. Workspace aligned
   (`2bca328`), path-class map added and pre-flighted, baseline 34/34 green.
+
+## 9. Toolkit changes between T1 run 1 and the re-run
+
+Run 1 exposed two defects that were repaired before the re-run. Both change what the re-run
+measures, so both are recorded here rather than folded silently into the result.
+
+| Change | Commit | Effect on the measurement |
+|---|---|---|
+| **Scope parser splits on whitespace**, not commas only | `805b5c9` | Removes the false-positive M5 that cost run 1 an unowed stop, an unowed decision and the re-scope tail |
+| **Route B closed** — T0 now reachable only by route A | `ca7ce7d` | Removes the floor-tier delegation that cost run 1 ~4 net minutes and shipped a contract violation |
+
+**The re-run is therefore not a repeat — it is a different toolkit**, which is why run 1's
+evidence is kept intact at `evidence/T1-run1/` rather than overwritten. The delta between the two
+is the measurement: it isolates what the two defects cost, which run 1 could not separate.
+
+**Predictions for the re-run, frozen before it runs:**
+
+- **M5 must not fire.** If it does, the parser fix did not take. This is the sharpest test here.
+- **No T0 delegation.** The implementation unit should band **T1**, with `t0Blocked` citing the
+  route B closure. `modelInvocations` should show no floor-tier call.
+- **M4 will probably still fire**, because it counts material questions and the case ambiguity is
+  real. So the re-run is still unlikely to reach band A — which is itself the finding about
+  whether band A is reachable for any change carrying a genuine question.
+- **Machine time 16–21 min.** Below run 1's 23.7 (the two defects cost roughly 4–7 min between
+  them) but still above the ≤15 min band-B bar. **Predicting another miss, and saying so first.**
