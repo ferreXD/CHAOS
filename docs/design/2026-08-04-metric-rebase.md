@@ -272,15 +272,25 @@ afterwards:
 
 The cleanest proof that the new metric is not self-serving:
 
-| Stage D → lever run 2 | Under M1 (output tokens) | Under M2 (wall clock, **measured**) |
-|---|---:|---:|
-| Governed total, 6 changes | 398,494 → 371,287 = **−6.8%** | 87.0 → 105.3 min = **+21.0%** |
-| — frozen-3 tasks | | 16.9 → 21.0 min/change = **+24.3%** |
-| — B-tasks | | 12.1 → 14.1 min/change = **+16.5%** |
+> **Correction (2026-08-05).** An earlier revision of this table paired **run 1 → run 2** token
+> figures (−6.8%) against **Stage D → run 2** time figures (+21%) and read the mismatch as
+> "tokens fell while time rose". The comparison was mislabelled. Corrected below with both
+> metrics measured over the same interval, from the same transcripts.
 
-**The four levers cut tokens slightly and made the felt cost ~21% worse.** M1 could not see that;
-M2 gates on it. Anyone re-basing a metric to flatter their own work does not choose the unit under
-which their last two runs are a regression.
+| Interval (6 governed changes) | Output tokens | Tool calls | Wall clock |
+|---|---:|---:|---:|
+| **Stage D → lever run 2** | 273,539 → 359,347 = **+31.4%** | 453 → 518 = **+14.3%** | 5,208 → 6,312 s = **+21.2%** |
+| Lever run 1 → lever run 2 | 380,126 → 359,347 = **−5.5%** | 550 → 518 = **−5.8%** | 6,555 → 6,312 s = **−3.7%** |
+
+**The honest reading: every quantity moved the same way, in both intervals.** The lever program
+made the governed loop bigger on every axis against Stage D — a third more output, a seventh more
+tool calls, a fifth more wall clock — and then clawed a little of each back between its own two
+runs.
+
+The anti-laundering point survives and is simply broader than first stated: **M2 does not flatter
+this program's recent work — but neither did M1.** Both units show the same regression against
+Stage D. A re-base chosen to make one's own work look good would not pick a unit under which the
+last two runs are a regression; here *no available unit* does that.
 
 ---
 

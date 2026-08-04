@@ -105,23 +105,36 @@ delegation, since closed — see §6), `Read` 25 / 24 s, `Edit` 11 / 24 s, `Writ
 tool call was issued alone, so the run paid 113 sequential model round-trips. Wall time is
 essentially `round-trips × per-turn latency`.
 
-### 4.1 L3 traded tokens for round-trips — and that is the regression
+### 4.1 What drives the clock is **genuinely unresolved** — and that is the first thing to fix
 
-Same tasks, same model, one with the L3/L4 mechanization and one without:
+> **Correction (2026-08-05), before this doc was ever handed over.** An earlier revision claimed
+> "L3 traded tokens for round-trips": that tokens fell while wall clock rose. **It was wrong.** It
+> paired a run 1 → run 2 token delta with a Stage D → run 2 time delta. Measured over the same
+> interval, from the same transcripts, every quantity moves the same way:
 
-| | tool calls/arm | bash calls/arm | min/arm |
+| Interval (6 governed changes) | Output tokens | Tool calls | Wall clock |
 |---|---:|---:|---:|
-| Stage D (no L3/L4) | 76 | 39 | 14.5 |
-| Lever run 2 (L3+L4) | **86** | **49** | **17.5** |
-| Δ | **+13%** | **+26%** | **+21%** |
+| **Stage D → lever run 2** | **+31.4%** | **+14.3%** | **+21.2%** |
+| Lever run 1 → lever run 2 | −5.5% | −5.8% | −3.7% |
 
-L3 mechanized the classification protocol into tool invocations. That **cut reasoning tokens** —
-which is what it was measured on, and it succeeded there — **while adding ten round-trips per
-change.** Under the token metric it read as progress. Under wall clock it is the single clearest
-mechanism for the +21% degradation.
+And across all 36 archived arms, wall clock correlates almost identically with both candidates —
+which are themselves collinear:
 
-**This is the central insight to carry forward: the previous program optimized the wrong term.
-Tokens fall when you move work into tools; minutes rise when you add round-trips.**
+| | r |
+|---|---:|
+| time ↔ output tokens | **+0.994** |
+| time ↔ tool calls | **+0.994** |
+| output tokens ↔ tool calls | **+0.987** |
+
+**This dataset cannot separate them.** Seconds-per-tool-call is also strikingly stable across 18
+governed arms (10.2–13.6 s, mean ≈ 11.9), which is equally consistent with "each round-trip costs
+a fixed ~12 s" and with "tokens per call are roughly constant, and tokens are what cost time".
+
+**So the honest state of knowledge is: the loop got bigger on every axis, and no measurement yet
+distinguishes which axis the clock is actually on.** That distinction decides everything downstream
+— if it is round-trips, batching is the lever; if it is tokens, batching buys almost nothing and
+the target is generated volume. **Separating them is the highest-value first experiment, and it is
+cheap** (see §7.0).
 
 ## 5. What has already been tried — do not repeat it
 
@@ -155,11 +168,18 @@ to save wall clock.
 
 ## 7. The leads, ranked by expected wall-clock impact
 
-None of these has been built. They follow from §4, and the first is by far the largest.
+None of these has been built. They follow from §4.
+
+**0. First, separate round-trips from tokens (§4.1). Nothing below is safely ranked until you do.**
+The two are collinear at r≈0.99 in all archived data, so the ranking of every other lead is
+currently a guess. The experiment is cheap and needs no governed run: take one fixed workload and
+vary *only* the batching — same tools, same outputs, same prompts — then see whether wall clock
+tracks the call count or stays flat. A null result kills lead 1 outright and promotes lead 5. **Do
+this before building anything.**
 
 1. **Cut round-trips — batch independent tool calls.** Today 0% of turns issue more than one tool
-   call, across 113 calls. Writing five independent artifacts is five turns; it could be one. The
-   ceiling here is large and completely untouched. **Start here.**
+   call, across 113 calls. Writing five independent artifacts is five turns; it could be one.
+   Completely untouched, and the largest lever **if** §7.0 says the clock is on round-trips.
 2. **Make the frame proportional to the verdict.** 39% of the run precedes any code. `k1` already
    returns "fired: none" for a trivial change — yet a full contract record, frame record, OpenSpec
    proposal and two renders are produced anyway. A zero-trigger verdict should buy a near-zero frame.
