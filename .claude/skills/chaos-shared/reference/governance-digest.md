@@ -23,12 +23,12 @@ sections:
     mode: verbatim
     source: tools/chaos-classify/README.md
     span: "## Wiring adapter (step 4 — commands call this)"
-    sha256: b0444b8bdc3789f62eb07c14af8bb1e1e6185b9a9470fd9be3fbaf7ce0867dd2
+    sha256: eac32a61adf17507bf628995611d780738bd3fda022e2ccca9ffc55fe2fbf439
   - id: classifier-continuous-mode
     mode: verbatim
     source: tools/chaos-classify/README.md
     span: "## Continuous mode (Stage D — `chaos:run`)"
-    sha256: b0444b8bdc3789f62eb07c14af8bb1e1e6185b9a9470fd9be3fbaf7ce0867dd2
+    sha256: eac32a61adf17507bf628995611d780738bd3fda022e2ccca9ffc55fe2fbf439
   - id: adjudication-contract
     mode: verbatim
     source: tools/chaos-classify/adjudication-prompt.md
