@@ -109,10 +109,28 @@ def build_sections(change_dir, inputs, checkpoint):
 
 
 def load_map(inputs):
+    """The path-class map decides M2. Without it NOTHING can be sensitive, so a missing map
+    silently converts every material change into 'fired: none' at HIGH confidence — the same
+    silent-governance-loss shape as D4/D5, and the worst variant, because it certifies work as
+    immaterial rather than merely under-flooring it. A map that was named and has since moved
+    is therefore an error, never a degrade-to-empty. The only way to run without classes is to
+    say so at k1 (`--no-map`), which records the choice in scan-inputs.json.
+    """
     map_file = inputs.get("mapFile")
-    if map_file and os.path.isfile(map_file):
-        return _load_json(map_file)
-    return {}
+    if not map_file:
+        if inputs.get("noMap"):
+            return {}
+        raise ScanError(
+            "scan-inputs.json has no mapFile and no recorded --no-map choice. M2 cannot fire "
+            "without a path-class map, so this scan would report 'fired: none' for changes on "
+            "sensitive surfaces. Re-run k1 with --map <file>, or --no-map to accept that this "
+            "repository declares no sensitive classes.")
+    if not os.path.isfile(map_file):
+        raise ScanError(
+            "path-class map %r is named in scan-inputs.json but does not exist. M2 cannot fire "
+            "without it and this scan would silently under-report materiality. Restore the file "
+            "or re-run k1 with the correct --map." % map_file)
+    return _load_json(map_file)
 
 
 # --- C-15 diff generation (L3-D3) ----------------------------------------------------------
@@ -178,7 +196,8 @@ def append_trg_events(change_dir, verdict, run_id=None, today=None):
 
 # --- the verdict digest (L3-D4) ------------------------------------------------------------
 
-def write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path=None):
+def write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path=None, inputs=None):
+    inputs = inputs or {}
     scan_dir = paths(change_dir)["scan"]
     os.makedirs(scan_dir, exist_ok=True)
     seq = verdict["scanSeq"]
@@ -191,6 +210,10 @@ def write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path=None):
                             " [%s]" % tid if tid else "", f.get("cite", "")))
     else:
         lines.append("- fired: none")
+    if inputs.get("noMap"):
+        # Never let 'fired: none' stand unqualified when M2 was structurally unable to fire.
+        lines.append("- NOTE: no path-class map (--no-map). M2 cannot fire; "
+                     "'fired: none' does NOT mean no sensitive surface was touched.")
     if verdict.get("scanEcho"):
         lines.append("- echo (already fired, re-detected): %s" % ", ".join(verdict["scanEcho"]))
     for d in verdict.get("demotedCandidates", []):
@@ -248,7 +271,7 @@ def run_checkpoint(change_dir, checkpoint, inputs, adjudication=None, run_id=Non
                                   checkpoint, sections, verdict, state)
         packet_path = os.path.join(p["scan"], "packet-%d.json" % verdict["scanSeq"])
         _write_json(packet_path, packet)
-    _, digest = write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path)
+    _, digest = write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path, inputs)
     return digest
 
 
@@ -451,6 +474,11 @@ def main(argv=None):
     k1.add_argument("--subject", action="append", default=None, required=True,
                     help="C-15 subject path root (repeatable), e.g. --subject src --subject tests")
     k1.add_argument("--map", default=os.path.join(".chaos", "path-class-map.json"))
+    # A missing map is fail-closed, not degrade-to-empty: without classes M2 can never fire, so
+    # the scan would certify sensitive-surface work as 'fired: none' at HIGH confidence.
+    k1.add_argument("--no-map", action="store_true",
+                    help="declare explicitly that this repository has no sensitive path classes "
+                         "(M2 can never fire); recorded in scan-inputs.json")
     k1.add_argument("--posture", action="append", default=[],
                     help="posture doc path (repeatable)")
 
@@ -495,11 +523,21 @@ def main(argv=None):
     args = ap.parse_args(argv)
     try:
         if args.cmd == "k1":
+            if args.no_map:
+                map_file = None
+            else:
+                if not os.path.isfile(args.map):
+                    raise ScanError(
+                        "no path-class map at %r. M2 cannot fire without one, so every change "
+                        "on a sensitive surface would scan as 'fired: none' at HIGH confidence. "
+                        "Point --map at the repository's map, or pass --no-map to declare "
+                        "explicitly that this repository has no sensitive classes." % args.map)
+                map_file = args.map
             inputs = {
                 "intent": args.intent, "scope": args.scope,
                 "declaredTriggers": [t.strip() for t in args.declared.split(",") if t.strip()],
                 "mode": args.mode, "selfReview": None,
-                "subjectPaths": args.subject, "mapFile": args.map,
+                "subjectPaths": args.subject, "mapFile": map_file, "noMap": bool(args.no_map),
                 "postureFiles": args.posture, "lastCheckpoint": None,
             }
             os.makedirs(paths(args.change_dir)["scan"], exist_ok=True)

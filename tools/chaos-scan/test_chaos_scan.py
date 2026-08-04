@@ -74,6 +74,37 @@ class TestScan(unittest.TestCase):
         with open(p, encoding="utf-8") as f:
             return f.read()
 
+    def test_missing_map_fails_closed_instead_of_scanning_everything_as_immaterial(self):
+        """Without a map M2 can NEVER fire, so a change on a sensitive surface scans as
+        'fired: none' at HIGH confidence. That certifies material work as immaterial —
+        the D4/D5 class, worst variant. It must refuse rather than degrade to empty."""
+        code = S.main(["k1", "--change-dir", self.change, "--intent", "Add a field.",
+                       "--scope", "scope: src/App/Domain/", "--subject", "src",
+                       "--map", os.path.join(self.td, "does-not-exist.json")])
+        self.assertEqual(code, 2)
+        self.assertFalse(os.path.isfile(os.path.join(self.change, "scan-inputs.json")))
+
+    def test_no_map_is_an_explicit_recorded_choice(self):
+        code = S.main(["k1", "--change-dir", self.change, "--intent", "Add a field.",
+                       "--scope", "scope: src/App/Domain/", "--subject", "src", "--no-map"])
+        self.assertEqual(code, 0)
+        with open(os.path.join(self.change, "scan-inputs.json"), encoding="utf-8") as f:
+            self.assertTrue(json.load(f)["noMap"])
+
+    def test_no_map_digest_never_leaves_fired_none_unqualified(self):
+        """'fired: none' must not be readable as 'nothing sensitive was touched'."""
+        S.main(["k1", "--change-dir", self.change, "--intent", "Add a field.",
+                "--scope", "scope: src/App/Domain/", "--subject", "src", "--no-map"])
+        d = self._digest(1)
+        self.assertIn("fired: none", d)
+        self.assertIn("M2 cannot fire", d)
+
+    def test_a_map_that_moved_after_k1_is_an_error_not_a_silent_empty(self):
+        self.assertEqual(self._k1(), 0)
+        os.remove(self.map_path)
+        with self.assertRaises(S.ScanError):
+            S.load_map(S.load_inputs(self.change))
+
     def test_k1_zero_trigger(self):
         self.assertEqual(self._k1(), 0)
         d = self._digest(1)

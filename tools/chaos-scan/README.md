@@ -9,7 +9,7 @@ Prediction: cost-bar doc §5c, frozen before this build. Stdlib only, own tests;
 
 | Subcommand | Does |
 |---|---|
-| `k1 --intent --scope --subject ... [--declared] [--mode] [--posture]...` | captures `scan-inputs.json`, classifies at intent |
+| `k1 --intent --scope --subject ... [--declared] [--mode] [--posture]...` | captures `scan-inputs.json`, classifies at intent. **Needs `--map` (default `.chaos/path-class-map.json`) or an explicit `--no-map`** |
 | `rescan` | `git add -N` + C-15-scoped diff (persisted under `scan/`), K3 scan |
 | `k2` | ledger rescan after an answered decision (scan-only M4) |
 | `k4 --self-review <verdict>` | self-review checkpoint |
@@ -21,6 +21,16 @@ firings with verbatim cites, demoted candidates with reasons, the stop duty, the
 `adjudicationDue`. When due, the sanitized packet (`scan/packet-<seq>.json`, the
 corpus-validated blindness contract) is what the orchestrator judges at ceiling per the
 pinned `adjudication-prompt.md`.
+
+## The path-class map is not optional
+
+M2 is decided entirely by the map, so **without one M2 can never fire** and a change on a
+sensitive surface scans as `fired: none` at **HIGH confidence** — material work certified as
+immaterial. `k1` therefore **fails closed (exit 2)** when the map is absent, and a map that is
+named in `scan-inputs.json` but has since moved is an error rather than a degrade-to-empty.
+Running without classes is possible but must be *said*: `--no-map` records the choice and every
+verdict digest then carries a note that `fired: none` does not mean nothing sensitive was
+touched. Same rule as `--mode` and `--self-review` (D4/D5).
 
 ## Status
 
