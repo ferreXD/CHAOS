@@ -155,6 +155,11 @@ Filled in as the run proceeds; never back-dated.
 
 - 2026-08-04 — kit authored; §3/§4 frozen **before** any test ran. Workspace aligned
   (`2bca328`), path-class map added and pre-flighted, baseline 34/34 green.
+- 2026-08-04 — **plain (denominator) arm defined**: `D:/Proyectos/CHAOS/demo-plain` created
+  from `demo-light` @ `15de0a9` with all governance wiring removed; definition, content
+  edits, measurement procedure and frozen plain-arm predictions in
+  [`plain-workspace.md`](plain-workspace.md). 34/34 green, zero CHAOS references. No plain
+  arm has run.
 
 ## 9. Toolkit changes between T1 run 1 and the re-run
 
