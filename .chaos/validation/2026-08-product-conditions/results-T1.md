@@ -90,17 +90,56 @@ Consequence worth stating plainly: **band A may be close to unreachable for any 
 one real question.** In the harness only B3 (title max length, zero questions) ever reached it.
 That is a finding about the graduated bar, not about this task.
 
-## 6. The good news, and it is genuinely large
+## 6. L1 executed at floor tier — and **Route B failed its first real test**
 
-**L1 executed at floor tier for the first time in this program.** `chaos:run` delegated the
-implementation unit to `chaos-mechanical-executor` (`model: haiku`) — a 223-second subagent run —
-and **quality held: 42/42 tests, up from 34.**
+> **Correction (creator, same day).** The first version of this section claimed "quality held:
+> 42/42" and called this evidence that floor-tier implementation is safe. That was wrong. It read
+> the *final* test count and attributed it to the floor tier. The 42/42 was produced by the
+> **ceiling repairing the floor tier's defective output.** The creator caught it from the chat
+> log. Corrected below rather than quietly edited.
 
-Every previous run reported `ceiling:1 mid:0 floor:0` because a workflow arm cannot spawn a
-subagent. Here the tier band both banded *and acted*. **This is the first real evidence that
-floor-tier implementation is safe on this workload**, and it partially reopens the L1 closure
-(`a27f485`), which rested on Route B being untested and accepted as such. One positive data point
-is not vindication, but it is no longer zero.
+**What happened, in order:**
+
+1. `scan.py tier` banded the unit **T0 via Route B**, and its own cite named the risk:
+   `maps 1:1 onto pinned statement(s) C-001..C-007; NO pre-existing validator — post-conditions
+   are the only check`.
+2. `chaos-mechanical-executor` (`model: haiku`) ran for 223 s and returned **`Status: COMPLETE`,
+   `Attempts: 1`, "All 41 passing", "0 errors, 0 warnings"** — a confident clean claim.
+3. The orchestrator refused to take it: *"Verifying the T0 unit myself — the executor's report is
+   a claim, not evidence."*
+4. On review it found a **contract violation**: the guard used `Enum.TryParse`, which accepts
+   comma-separated lists, so `?priority=Low,High` returned **200** where the pinned statement
+   requires **400**. It confirmed the defect with a test before touching anything.
+5. It escalated — `scan.py tier --escalate T0` → **T1**, budget 1 of 2 spent — then applied the
+   fix at ceiling under the overhead guard (L1-D7), and also rewrote "the stale doc comment and
+   the weak tests".
+6. **42/42 green** only after that repair.
+
+**The floor tier shipped a defect and certified it green.** The structural reason is exactly what
+the tier cite warned about: **Route B has no pre-existing validator, so the executor writes both
+the implementation and the tests that check it.** Its 41/41 was true and meaningless — it graded
+its own homework, and the case it got wrong is the case it never wrote a test for. *A self-written
+validator is not a validator.*
+
+**This is decisive against Route B, not for it.** The unit violated `C-003`, one of the very
+pinned statements that authorized it to run at floor tier in the first place. L1-D11's rule,
+carried forward verbatim through every kit, is that a correctness failure on a cheap tier
+**closes that route rather than being tuned**.
+
+**What did work — the safety net, at every layer:**
+
+- the **grader invariant** (post-condition review is never below ceiling) caught it;
+- the **escalation ladder** (L1-D17) climbed exactly one rung and spent exactly one budget unit;
+- the **overhead guard** (L1-D7) fixed inline rather than re-delegating a diagnosed one-line change.
+
+**And it cost time rather than saving it.** The T0 attempt ran 10.2 → 13.9 min, review and
+confirmation to 15.2, escalation and repair to 17.1 — **~6.9 minutes for a unit the ceiling then
+had to redo**, of which the discarded floor-tier attempt was 3.7. On a 23.7-minute run the
+delegation was a net loss of roughly four minutes plus the near-miss.
+
+**Consequence for the L1 closure (`a27f485`):** it stands, and now rests on better evidence than
+the 3.1% price ceiling. Route B's safety is no longer "untested and accepted as such" — it has
+been tested once, under product conditions, and it **failed**.
 
 ## 7. What this establishes
 
@@ -110,8 +149,12 @@ is not vindication, but it is no longer zero.
    a false-positive M5.
 3. **A parser bug manufactures governance** and inflated this very measurement.
 4. **The fixed entry cost is the target**: 39% of the run happened before any code.
-5. **L1 works in production** and floor-tier output was correct.
-6. Quality never wavered: 42/42.
+5. **L1 delegates in production — and Route B failed its first real test.** The floor tier shipped
+   a contract violation and reported it green; the ceiling caught it, escalated one rung, and
+   repaired it. The safety net works. The delegation cost ~4 net minutes and should not have
+   happened. **Close Route B** per L1-D11.
+6. **Quality held only because the grader invariant held.** 42/42 is the state *after* the
+   ceiling's repair, not evidence about floor-tier output. The distinction is the whole finding.
 
 ## 8. Caveats
 
