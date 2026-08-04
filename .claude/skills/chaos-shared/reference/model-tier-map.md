@@ -57,7 +57,23 @@ default and the fallback** — a unit reaches a cheaper tier only by passing eve
 |---|---|---|
 | **T2** | ceiling (you) | anything else — and every judgement step, always |
 | **T1** | mid | no fired-trigger surface · no sensitive class at all · no evidence for a statement coupled to a fired surface · budget intact |
-| **T0** | floor | all of T1, **plus** file-level paths, under 8 declared files, **plus** Route **A** (an acceptance check exists and currently FAILS — turn it green) or Route **B** (maps 1:1 onto pinned contract statements) |
+| **T0** | floor | all of T1, **plus** file-level paths, under 8 declared files, **plus** Route **A** — an executable acceptance check that already FAILS; turn it green |
+
+> **Route B is closed (creator, 2026-08-04).** It banded a unit T0 when the unit mapped 1:1 onto
+> pinned contract statements, with no pre-existing validator. Its first real test failed: the
+> floor tier implemented a `?priority=` guard with `Enum.TryParse`, which accepts comma-separated
+> lists, so `?priority=Low,High` returned 200 where the pinned statement required 400 — reported
+> as `COMPLETE`, 1 attempt, 41/41 green. **"Suite green" counted tests the executor itself wrote**,
+> so it authored both the implementation and the evidence for it, and one misreading produced
+> both. A self-written validator is not a validator; a stronger model lowers the probability
+> without closing the hole. Route A survives precisely because its check **pre-exists the unit and
+> cannot be authored by the executor**. Applied per L1-D11's pre-registered rule: a correctness
+> failure on a cheap tier closes that route rather than being tuned.
+>
+> **Consequence, stated rather than buried:** Route A has never fired in any measured run, because
+> it needs a failing check to pre-exist and the collapsed loop writes tests and code in one unit.
+> **T0 is therefore dormant in practice** until the loop is restructured so a ceiling-authored
+> failing acceptance check precedes the implementation unit.
 
 **After every cheap-tier unit, verify:** full test suite green, build clean, the actual diff
 inside the declared files, and the rescan attributes no new firing. On any failure:

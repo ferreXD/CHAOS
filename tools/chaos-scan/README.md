@@ -52,7 +52,18 @@ Gates, in order: budget intact → no path in a class carrying a **fired** trigg
 no path in **any** sensitive class (prospective; stops unit 1 walking into auth pre-scan) →
 no evidence for a contract statement **coupled** to a fired surface (keyword match via
 `SURFACE_KEYWORDS`). That establishes **T1**. **T0** additionally needs file-level paths,
-fewer than 8 declared files, and either Route **A** (the acceptance check is run here and must
-**fail**) or Route **B** (every `--covers` statement carries a pinned assertion — a quoted
-identifier, HTTP status, method, or explicit numeric bound). `--escalate` climbs one rung
-(T0→T1→T2), spends one of the budget of 2, and latches to ceiling once spent.
+fewer than 8 declared files, and Route **A** — the acceptance check is run here and must
+**fail**. `--escalate` climbs one rung (T0→T1→T2), spends one of the budget of 2, and latches
+to ceiling once spent.
+
+**Route B is closed (2026-08-04).** It reached T0 on pinned contract statements alone, with no
+pre-existing validator. Its first real test failed: the floor tier shipped a contract violation
+and reported `COMPLETE`, 41/41 green — because "suite green" counted tests the executor itself
+wrote, so one misreading of the spec produced both the code and the evidence for it. **A
+self-written validator is not a validator.** Route A survives because its check pre-exists the
+unit and cannot be authored by the executor. `--covers` is still required and still live: gate 3
+uses it to send evidence coupled to a fired surface straight to ceiling.
+
+**Consequence, not hidden:** Route A has never fired in any measured run — it needs a failing
+check to pre-exist, and the collapsed loop writes tests and code in one unit — so **T0 is
+dormant in practice** until the loop puts a ceiling-authored acceptance check first.

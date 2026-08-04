@@ -271,15 +271,35 @@ class TestScan(unittest.TestCase):
         self.assertEqual(passing["tier"], "T1")            # already green => nothing to do
         self.assertIn("passes already", passing["t0Blocked"])
 
-    def test_tier_t0_route_b_needs_pinned_statements(self):
+    def test_route_b_is_closed_even_for_perfectly_pinned_statements(self):
+        """Closed 2026-08-04 after its first real test failed: the floor tier shipped a
+        contract violation and certified it green, because it wrote the tests that checked
+        it. A perfectly pinned statement is exactly the case that used to reach T0 — it must
+        not any more, or the closure is cosmetic."""
         self._k1()
         self._contract([{"id": "C-001", "text": "`GET /widgets/summary` returns 200."},
                         {"id": "C-002", "text": "It should feel responsive."}])
-        good = self._tier("src/App/Dto/Widget.cs", covers=["C-001"])
-        self.assertEqual((good["tier"], good["route"]), ("T0", "B"))
+        pinned = self._tier("src/App/Dto/Widget.cs", covers=["C-001"])
+        self.assertEqual(pinned["tier"], "T1")
+        self.assertNotIn("route", pinned)
+        self.assertIn("route B is closed", pinned["t0Blocked"])
         vague = self._tier("src/App/Dto/Widget.cs", covers=["C-002"])
         self.assertEqual(vague["tier"], "T1")
-        self.assertIn("no pinned assertion", vague["t0Blocked"])
+
+    def test_route_a_still_reaches_t0(self):
+        """Route A is deliberately untouched: its acceptance check pre-exists the unit and
+        cannot be authored by the executor — the property Route B lacked."""
+        self._k1()
+        v = self._tier("src/App/Dto/Widget.cs", acceptance_exit=1)
+        self.assertEqual((v["tier"], v["route"]), ("T0", "A"))
+
+    def test_covers_still_drives_the_coupled_evidence_gate(self):
+        """--covers is not dead: gate 3 still uses it to send coupled evidence to ceiling."""
+        self._k1(declared="sensitive-surface:data-store")
+        self._contract([{"id": "C-001", "text": "the data-store migration keeps `Id` stable"}])
+        v = self._tier("src/App/Dto/Widget.cs", covers=["C-001"])
+        self.assertEqual(v["tier"], "T2")
+        self.assertEqual(v["gate"], "coupled-evidence")
 
     def test_tier_t0_needs_file_level_paths_and_small_radius(self):
         self._k1()
