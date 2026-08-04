@@ -98,6 +98,46 @@ Agent/Task tool, so it cannot nest another one. A main session does. Therefore:
   working says nothing about whether a floor-tier model implements pinned statements
   *correctly*; only a run where T0 units actually execute at floor can answer that.
 
+### 3.2 What L1 would have saved — the counterfactual (2026-08-04)
+
+Since the band produced correct verdicts but could not act on them, L1's **price** effect was
+priced from run 2's own transcripts rather than by spending another 2-hour run
+(`harness/counterfactual-price.py`, rates supplied at run time: ceiling $25/MTok output,
+mid $15, floor $5).
+
+| arm | impl tier | output tok | impl tok | impl share | actual | counterfactual | saving |
+|---|---|---:|---:|---:|---:|---:|---:|
+| P1 | T2 | 70,327 | 9,319 | 13.3% | $1.7582 | $1.7582 | 0% |
+| P2 | T2 | 84,787 | 9,253 | 10.9% | $2.1197 | $2.1197 | 0% |
+| P3 | T2 | 63,446 | 13,390 | 21.1% | $1.5861 | $1.5861 | 0% |
+| B1 | **T0** | 39,845 | 3,084 | 7.7% | $0.9961 | $0.9344 | **6.2%** |
+| B2 | **T0** | 66,284 | 5,983 | 9.0% | $1.6571 | $1.5374 | **7.2%** |
+| B3 | **T0** | 34,658 | 4,901 | 14.1% | $0.8665 | $0.7684 | **11.3%** |
+| **Total** | | | | | **$8.9837** | **$8.7043** | **3.1%** |
+
+**L1's ceiling on this workload is ~3% blended cost.** Not 10–25%, not −25…−45% on band A —
+**3.1% across all six arms, and 6–11% even on the arms where every implementation unit banded
+T0.** Against the frozen prediction, this is a decisive miss.
+
+The reason is structural, and it is the design working as intended rather than failing:
+**implementation is only 7.7–21.1% of a governed arm's output tokens.** Everything else —
+classification, adjudication, stops, ledger, judgement prose, verify — is ceiling-locked by
+the grader invariant (L1-D12), and the mechanical residue L1 was originally scoped to went to
+tools when L3/L4 landed (L1-D3, §8.6 of the design). The lever ends up optimizing the one
+slice of the loop that is already small.
+
+**Caveats, stated rather than buried:** this assumes a floor-tier model emits comparable token
+volume for the same unit, and it bounds **price only** — it says nothing about whether
+floor-tier output would be *correct*. But that second caveat now cuts against running the
+trial rather than for it: a quality experiment is worth its cost when the upside justifies the
+risk, and a 3.1% ceiling does not justify an oracle regression.
+
+**Recommendation: stop work on L1.** Keep the tier band — it is built, correct, cheap to carry,
+and it will matter more on workloads where implementation dominates governance (larger
+changes, longer work loops). But do not fix the harness for it, do not run the floor-tier
+quality trial, and do not spend another 12-arm run on it. Route B's safety stays untested and
+that is now an acceptable outcome, because nothing should be delegated to it on this evidence.
+
 ## 4. L2/L3/L4 diagnostics
 
 | | Stage D | Run 1 | Run 2 |
