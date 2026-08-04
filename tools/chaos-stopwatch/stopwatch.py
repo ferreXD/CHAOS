@@ -56,9 +56,17 @@ DEFAULT_NAMES = [k + s for k in ("P1", "P2", "P3", "B1", "B2", "B3") for s in ("
 
 # Records that are user-shaped but are not a human taking a turn. Splitting a segment on one
 # of these would silently delete real machine time from the gated number.
+#
+# NOTE `<command-name>` is deliberately NOT here. A slash command is the runtime's rendering of
+# something the user typed — `/chaos-run "..."` arrives as
+# `<command-name>/chaos-run</command-name><command-args>...</command-args>` — so it IS a turn.
+# Treating it as an injection was a real defect: the invocation would not open a segment, and
+# the human's thinking time BEFORE it would be charged to the tool as machine time. That is the
+# opposite of the conservative direction this module promises, and it only shows up under
+# product conditions, which is the one case the bar is about.
+# `<local-command-stdout>` is the command's OUTPUT and stays excluded.
 _WRAPPER_RE = re.compile(
-    r"^\s*<(?:local-command-[a-z]+|command-name|command-message|command-args"
-    r"|ide_[a-z_]+|system-reminder)\b", re.I)
+    r"^\s*<(?:local-command-[a-z]+|ide_[a-z_]+|system-reminder)\b", re.I)
 
 
 class DataError(Exception):
