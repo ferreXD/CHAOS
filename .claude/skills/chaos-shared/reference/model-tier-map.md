@@ -27,14 +27,48 @@ mid is passed explicitly at spawn time.
 
 ## Assignments
 
-**Floor (delegate to the mechanical executor; it never decides):**
+**Floor / T0 (delegate to the mechanical executor; it never decides):**
 
 - Render repair loop (fix record **facts** per `render.py --check` errors)
 - Mechanical audit repairs (re-run the `chaos-record` emitter, re-render — never stops)
-- Harness telemetry assembly (measurement arms only)
+- **Mechanical implementation units** — see the band below (L1-D16)
 
 (`TRG-*` transcription moved down-ladder to `chaos-scan` itself — L3-D6, tool beats cheap
-model. This supersedes the original L1-D4 floor assignment; registered in §5e.)
+model. Harness telemetry is **not** delegable: the arm's schema-validated return value must
+come from the arm. Both supersede parts of the original L1-D4 floor assignment; registered
+in §5e.)
+
+## The unit band — T0 / T1 / T2 (L1 §8; ask the tool, do not judge it yourself)
+
+**L1-D11's "easy gate" is superseded** — it was change-scoped and latched on the first firing,
+so it measured **inert** (0 delegations on 6/6 arms). The band applies **per work unit** and
+is recomputed every unit:
+
+```bash
+python tools/chaos-scan/scan.py tier --change-dir <dir> \
+    --unit-path <file> [--unit-path <file>...] \
+    [--covers C-001,C-002] [--acceptance-check "<cmd that must already FAIL>"]
+```
+
+It returns `T0` | `T1` | `T2` with the **deciding gate** and a citation. **T2 (ceiling) is the
+default and the fallback** — a unit reaches a cheaper tier only by passing every gate.
+
+| Band | Runs at | Reached when |
+|---|---|---|
+| **T2** | ceiling (you) | anything else — and every judgement step, always |
+| **T1** | mid | no fired-trigger surface · no sensitive class at all · no evidence for a statement coupled to a fired surface · budget intact |
+| **T0** | floor | all of T1, **plus** file-level paths, under 8 declared files, **plus** Route **A** (an acceptance check exists and currently FAILS — turn it green) or Route **B** (maps 1:1 onto pinned contract statements) |
+
+**After every cheap-tier unit, verify:** full test suite green, build clean, the actual diff
+inside the declared files, and the rescan attributes no new firing. On any failure:
+
+```bash
+python tools/chaos-scan/scan.py tier --change-dir <dir> --escalate T0|T1
+```
+
+which climbs **one rung** (T0→T1→T2), spends one of the budget of **2**, and latches
+implementation to ceiling once spent. Escalation is never a stop and never a governance event
+— note it in the final response.
 
 **Ceiling — the grader invariant (never below ceiling, never modulated):**
 

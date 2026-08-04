@@ -40,7 +40,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "chaos-classify"))
 from classify import (  # noqa: E402
-    MATERIALITY, DECLARED_NAMES, DIM_KEYS, classify, sanitized_packet,
+    MATERIALITY, DECLARED_NAMES, DIM_KEYS, SURFACE_KEYWORDS, classify, match_path,
+    sanitized_packet,
 )
 
 TRIGGER_NAMES = {v: k for k, v in DECLARED_NAMES.items()}
@@ -251,6 +252,175 @@ def run_checkpoint(change_dir, checkpoint, inputs, adjudication=None, run_id=Non
     return digest
 
 
+# --- tier banding (L1 §8: T0/T1/T2) ------------------------------------------------------
+
+TIER_BUDGET = 2                    # L1-D14: escalations allowed before implementation latches
+X1_REVIEW1_FILES = 8               # L1 §8.6: a T0 unit sits below the X1 review1 threshold
+# A contract statement counts as PINNED when its text carries a machine-checkable assertion.
+# Documented operationalization, not a silent heuristic (house style): a quoted identifier, an
+# HTTP status code, an HTTP method, or an explicit numeric bound.
+PINNED_RES = (re.compile(r"`[^`]+`"), re.compile(r"\b[1-5]\d\d\b"),
+              re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b"),
+              re.compile(r"\b(exactly|at most|at least|max|maximum|min|minimum)\s+\d+", re.I))
+
+
+def _is_file_path(path):
+    """File-level means a named file, not a directory. NOTE: classify.vague_scope answers a
+    different question (LOW-signal scope: no files AND everything depth <= 2), so a deep
+    directory passes it — reusing it here silently admitted `src/App/Dto/` as 'specified'."""
+    p = path.replace("\\", "/").rstrip()
+    return not p.endswith("/") and "." in p.rsplit("/", 1)[-1]
+
+
+def _tier_state(state):
+    return {"spent": state.get("tierBudgetSpent", 0),
+            "latched": bool(state.get("tierLatched", False))}
+
+
+def _classes_for_paths(paths, map_data, class_names):
+    """Which of the named classes any of these paths falls into -> [(class, surface, path)]."""
+    hits = []
+    for cname in class_names:
+        cdef = map_data.get("classes", {}).get(cname, {})
+        for p in paths:
+            if any(match_path(pat, p) for pat in cdef.get("paths", [])):
+                hits.append((cname, cdef.get("surface"), p))
+    return hits
+
+
+def _coupled_statements(covers, contract, fired_surfaces):
+    """Gate 3: a statement is COUPLED when its text matches the keyword set of a surface that
+    has fired (reusing classify.SURFACE_KEYWORDS, the same map MR-3 uses for stop
+    satisfaction) — the P1 lesson: tests encoding a fired surface's contract are not routine."""
+    coupled = []
+    by_id = {s["id"]: s for s in (contract or {}).get("statements", [])}
+    for sid in covers:
+        text = (by_id.get(sid, {}).get("text") or "").lower()
+        for surface in fired_surfaces:
+            for word in SURFACE_KEYWORDS.get(surface, []):
+                if word in text:
+                    coupled.append((sid, surface, word))
+                    break
+    return coupled
+
+
+def compute_tier(change_dir, unit_paths, covers=None, acceptance_exit=None, map_data=None):
+    """Deterministic tier verdict for one work unit (L1-D15): T0 | T1 | T2 + the deciding gate.
+
+    T2 is the DEFAULT and the fallback — a unit reaches a cheaper tier only by passing every
+    gate. Nothing here is a model judgement; every input is evidence already on disk."""
+    p = paths(change_dir)
+    state = _load_json(p["state"]) if os.path.isfile(p["state"]) else {}
+    map_data = map_data if map_data is not None else load_map(load_inputs(change_dir))
+    covers = covers or []
+    unit_paths = [u.replace("\\", "/") for u in unit_paths]
+    budget = _tier_state(state)
+    fired = state.get("fired", [])
+    fired_surfaces = {f.get("surface") for f in fired if f.get("surface")}
+    sensitive = map_data.get("m2Classes", [])
+
+    def verdict(tier, gate, cite, route=None):
+        out = {"tier": tier, "gate": gate, "cite": cite,
+               "budgetSpent": budget["spent"], "budgetTotal": TIER_BUDGET,
+               "unitPaths": unit_paths}
+        if route:
+            out["route"] = route
+        return out
+
+    # --- gate 4 first: a latched run is ceiling regardless of anything else
+    if budget["latched"] or budget["spent"] >= TIER_BUDGET:
+        return verdict("T2", "budget", "escalation budget spent (%d/%d) — implementation is "
+                                       "ceiling for the rest of this run"
+                       % (budget["spent"], TIER_BUDGET))
+    if not unit_paths:
+        return verdict("T2", "declared-paths", "no unit paths declared — a unit with no "
+                                               "declared surface cannot be banded")
+
+    # --- gate 1: retrospective surface-disjoint (a FIRED trigger's surface)
+    fired_classes = [c for c in map_data.get("classes", {})
+                     if map_data["classes"][c].get("surface") in fired_surfaces]
+    hit = _classes_for_paths(unit_paths, map_data, fired_classes)
+    if hit:
+        cname, surface, path = hit[0]
+        return verdict("T2", "fired-surface",
+                       "%s is in class %s (surface %s), which carries a fired trigger"
+                       % (path, cname, surface))
+
+    # --- gate 2: prospective surface-disjoint (ANY sensitive class, fired or not)
+    hit = _classes_for_paths(unit_paths, map_data, sensitive)
+    if hit:
+        cname, surface, path = hit[0]
+        return verdict("T2", "sensitive-surface",
+                       "%s is in sensitive class %s (surface %s) — ceiling even before it fires"
+                       % (path, cname, surface))
+
+    # --- gate 3: no coupled evidence
+    contract_path = os.path.join(change_dir, "records", "contract.json")
+    contract = _load_json(contract_path) if os.path.isfile(contract_path) else {}
+    coupled = _coupled_statements(covers, contract, fired_surfaces)
+    if coupled:
+        sid, surface, word = coupled[0]
+        return verdict("T2", "coupled-evidence",
+                       "%s reads on the fired surface %s (keyword %r) — evidence for a fired "
+                       "surface's contract is not routine work" % (sid, surface, word))
+
+    # --- T1 established. Now: does it also clear the narrower T0 bar? (L1-D16)
+    t1 = verdict("T1", "all-T1-gates",
+                 "no fired surface, no sensitive class, no coupled evidence, budget %d/%d"
+                 % (budget["spent"], TIER_BUDGET))
+    not_files = [u for u in unit_paths if not _is_file_path(u)]
+    if not_files:
+        t1["t0Blocked"] = ("declared path(s) are not file-level: %s — a directory is not a "
+                           "specification" % ", ".join(not_files))
+        return t1
+    if len(unit_paths) >= X1_REVIEW1_FILES:
+        t1["t0Blocked"] = ("%d declared files meets the X1 review1 threshold (%d)"
+                           % (len(unit_paths), X1_REVIEW1_FILES))
+        return t1
+    # Route A — an executable acceptance check exists AND currently FAILS.
+    if acceptance_exit is not None:
+        if acceptance_exit != 0:
+            return verdict("T0", "route-A", "acceptance check exists and fails (exit %d) — it "
+                                            "defines done and validates the result"
+                           % acceptance_exit, route="A")
+        t1["t0Blocked"] = ("acceptance check passes already (exit 0) — nothing for T0 to turn "
+                           "green")
+        return t1
+    # Route B — the unit maps onto pinned contract statements (no pre-existing validator).
+    if covers:
+        by_id = {s["id"]: s for s in contract.get("statements", [])}
+        missing = [c for c in covers if c not in by_id]
+        if missing:
+            t1["t0Blocked"] = "unknown contract statement(s): %s" % ", ".join(missing)
+            return t1
+        unpinned = [c for c in covers
+                    if not any(rx.search(by_id[c].get("text") or "") for rx in PINNED_RES)]
+        if unpinned:
+            t1["t0Blocked"] = ("statement(s) carry no pinned assertion: %s"
+                               % ", ".join(unpinned))
+            return t1
+        return verdict("T0", "route-B",
+                       "maps 1:1 onto pinned statement(s) %s; NO pre-existing validator — "
+                       "post-conditions are the only check" % ", ".join(covers), route="B")
+    t1["t0Blocked"] = "no acceptance check and no --covers: nothing establishes 'well specified'"
+    return t1
+
+
+def record_escalation(change_dir, from_tier):
+    """L1-D17: a failed unit climbs ONE rung and spends one unit of the shared budget."""
+    p = paths(change_dir)
+    state = _load_json(p["state"]) if os.path.isfile(p["state"]) else {}
+    spent = state.get("tierBudgetSpent", 0) + 1
+    state["tierBudgetSpent"] = spent
+    nxt = {"T0": "T1", "T1": "T2"}.get(from_tier, "T2")
+    if spent >= TIER_BUDGET:
+        state["tierLatched"] = True
+        nxt = "T2"
+    _write_json(p["state"], state)
+    return {"escalatedFrom": from_tier, "redoAt": nxt, "budgetSpent": spent,
+            "budgetTotal": TIER_BUDGET, "latched": bool(state.get("tierLatched"))}
+
+
 def validate_raises(raises):
     for r in raises:
         if r.get("trigger") not in MATERIALITY:
@@ -304,6 +474,18 @@ def main(argv=None):
     common(mg)
     mg.add_argument("--raises", required=True, help='JSON file: {"raises": [...]}')
 
+    tr = sub.add_parser("tier", help="band ONE work unit: T0 | T1 | T2 (L1 §8, deterministic)")
+    common(tr)
+    tr.add_argument("--unit-path", action="append", default=[], dest="unit_path",
+                    help="a file this unit will touch (repeatable; file-level for T0)")
+    tr.add_argument("--covers", default="",
+                    help="comma list of contract statement ids this unit delivers evidence for")
+    tr.add_argument("--acceptance-check", default=None,
+                    help="Route A: a command that must ALREADY FAIL (it defines done). It is "
+                         "run here; a passing check does not qualify.")
+    tr.add_argument("--escalate", default=None, choices=["T0", "T1"],
+                    help="record a failed unit at this tier: climbs one rung, spends budget")
+
     us = sub.add_parser("update-scope", help="update scope/subjects citing a decision")
     common(us)
     us.add_argument("--scope", default=None)
@@ -343,6 +525,20 @@ def main(argv=None):
             validate_raises(adj.get("raises", []))
             print(run_checkpoint(args.change_dir, last, inputs, adjudication=adj,
                                  run_id=args.run))
+        elif args.cmd == "tier":
+            if args.escalate:
+                json.dump(record_escalation(args.change_dir, args.escalate), sys.stdout, indent=1)
+                print()
+                return 0
+            acceptance_exit = None
+            if args.acceptance_check:
+                acceptance_exit = subprocess.run(args.acceptance_check, shell=True,
+                                                 capture_output=True, text=True).returncode
+            v = compute_tier(args.change_dir, args.unit_path,
+                             [c.strip() for c in args.covers.split(",") if c.strip()],
+                             acceptance_exit)
+            json.dump(v, sys.stdout, indent=1)
+            print()
         elif args.cmd == "update-scope":
             inputs = load_inputs(args.change_dir)
             if not (args.decision or "").strip():

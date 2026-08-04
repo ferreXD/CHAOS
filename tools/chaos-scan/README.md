@@ -26,3 +26,23 @@ pinned `adjudication-prompt.md`.
 
 - 2026-08-03 — built (L3): 11 unit tests against real git fixtures. Consumed by
   `chaos-run/SKILL.md`; `TRG-*` writer-rule amendment recorded in `record-emission.md`.
+
+## Tier banding (L1 §8)
+
+`scan.py tier` bands ONE work unit deterministically — tier selection is a tool verdict, never
+a model judgement (L1-D15). **T2 (ceiling) is the default and the fallback.**
+
+```text
+python tools/chaos-scan/scan.py tier --change-dir <dir> --unit-path <file>... \
+    [--covers C-001,C-002] [--acceptance-check "<cmd that must already FAIL>"]
+python tools/chaos-scan/scan.py tier --change-dir <dir> --escalate T0|T1
+```
+
+Gates, in order: budget intact → no path in a class carrying a **fired** trigger's surface →
+no path in **any** sensitive class (prospective; stops unit 1 walking into auth pre-scan) →
+no evidence for a contract statement **coupled** to a fired surface (keyword match via
+`SURFACE_KEYWORDS`). That establishes **T1**. **T0** additionally needs file-level paths,
+fewer than 8 declared files, and either Route **A** (the acceptance check is run here and must
+**fail**) or Route **B** (every `--covers` statement carries a pinned assertion — a quoted
+identifier, HTTP status, method, or explicit numeric bound). `--escalate` climbs one rung
+(T0→T1→T2), spends one of the budget of 2, and latches to ceiling once spent.

@@ -97,17 +97,26 @@ lean on adjudication, record the gap.
 **Tiering (L1, `chaos-shared/reference/model-tier-map.md`):** your session model is the
 **ceiling** — never spawn a subagent on a stronger model than your own; a demanding change
 on a low ceiling proceeds at ceiling and records a `confidenceLimiter`, never upgrades.
-Delegate exactly two mechanical steps to the `chaos-mechanical-executor` subagent (floor
-tier) — the render repair loop and mechanical audit repairs (`TRG-*` transcription moved
-down-ladder to `chaos-scan` itself, L3-D6).
-It never decides; after two failed validator attempts it returns `ESCALATE` and you finish
-the step yourself. Implementation runs at ceiling by default; while the **easy gate** is
-open (zero triggers fired, no preset floor) you MAY delegate implementation units at mid
-tier — the gate closes for the rest of the run on any firing, an X2, or two failed test
-cycles, and a mid-tier unit that hits a failure signal is redone at ceiling. Classifier,
-adjudication, stops, and ledger answers are **never** below ceiling. Apply the overhead
-guard (inline beats a delegation that costs more than the step) and note every escalation
-in the final response.
+Delegate the render repair loop and mechanical audit repairs to the
+`chaos-mechanical-executor` subagent (floor); it never decides, and after two failed
+validator attempts it returns `ESCALATE` and you finish the step yourself.
+
+**Every implementation unit is banded by the tool — never by your own judgement:**
+
+```bash
+python tools/chaos-scan/scan.py tier --change-dir .chaos/changes/<id> \
+    --unit-path <file> [--unit-path <file>...] \
+    [--covers C-001,C-002] [--acceptance-check "<cmd that must already FAIL>"]
+```
+
+`T2` → implement it yourself. `T1` → delegate to a general-purpose subagent at
+`model: 'sonnet'`. `T0` → delegate to `chaos-mechanical-executor` (floor) with the unit's
+contract and stop conditions. **After any T0/T1 unit verify**: full suite green, build clean,
+diff inside the declared files, and the next rescan attributes no new firing. On failure run
+`scan.py tier --escalate T0|T1` (climbs one rung, spends one of the budget of 2) and redo the
+unit at the returned tier. Classifier, adjudication, stops, ledger answers, judgement prose,
+OpenSpec and verify are **never** below ceiling. Apply the overhead guard (inline beats a
+delegation that costs more than the step) and report every escalation.
 
 ### 0 · Open
 

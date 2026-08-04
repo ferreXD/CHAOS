@@ -194,6 +194,95 @@ class TestScan(unittest.TestCase):
     def test_rescan_without_k1_fails_cleanly(self):
         self.assertEqual(S.main(["rescan", "--change-dir", self.change]), 2)
 
+    # --- tier banding (L1 §8) ------------------------------------------------------------
+
+    def _contract(self, statements):
+        self._write(".chaos/changes/demo/records/contract.json", json.dumps({
+            "schemaVersion": 1, "recordType": "contract", "changeId": "demo",
+            "sourceCommand": "chaos:run", "run": "RUN-t",
+            "recordedAt": "2026-01-01T00:00:00Z", "statements": statements}))
+
+    def _tier(self, *paths, **kw):
+        return S.compute_tier(self.change, list(paths), kw.get("covers"),
+                              kw.get("acceptance_exit"), MAP)
+
+    def test_tier_t2_on_fired_surface(self):
+        """Gate 1: a unit touching a class whose surface has FIRED is ceiling."""
+        self._k1(declared="sensitive-surface:data-store")   # fires M2, surface data-store
+        v = self._tier("src/App/Domain/Store.cs")
+        self.assertEqual(v["tier"], "T2")
+        self.assertEqual(v["gate"], "fired-surface")
+
+    def test_tier_t2_on_sensitive_surface_before_it_fires(self):
+        """Gate 2 (prospective): the FIRST unit cannot walk into auth pre-scan."""
+        self._k1()
+        v = self._tier("src/App/Config/appsettings.json")
+        self.assertEqual((v["tier"], v["gate"]), ("T2", "sensitive-surface"))
+
+    def test_tier_t2_on_coupled_evidence(self):
+        """Gate 3: a test encoding a FIRED surface's contract is not routine (the P1 lesson)."""
+        self._k1(declared="sensitive-surface:data-store")
+        self._contract([{"id": "C-001", "text": "The store persists a soft delete marker."}])
+        v = self._tier("tests/T/StoreTests.cs", covers=["C-001"])
+        self.assertEqual((v["tier"], v["gate"]), ("T2", "coupled-evidence"))
+
+    def test_tier_t1_when_disjoint(self):
+        self._k1(declared="sensitive-surface:data-store")
+        v = self._tier("src/App/Dto/Widget.cs", "tests/T/WidgetDtoTests.cs")
+        self.assertEqual(v["tier"], "T1")
+        self.assertIn("t0Blocked", v)          # T1 but no T0 route offered
+
+    def test_tier_t0_route_a_requires_a_FAILING_check(self):
+        self._k1()
+        v = self._tier("src/App/Dto/Widget.cs", acceptance_exit=1)
+        self.assertEqual((v["tier"], v["route"]), ("T0", "A"))
+        passing = self._tier("src/App/Dto/Widget.cs", acceptance_exit=0)
+        self.assertEqual(passing["tier"], "T1")            # already green => nothing to do
+        self.assertIn("passes already", passing["t0Blocked"])
+
+    def test_tier_t0_route_b_needs_pinned_statements(self):
+        self._k1()
+        self._contract([{"id": "C-001", "text": "`GET /widgets/summary` returns 200."},
+                        {"id": "C-002", "text": "It should feel responsive."}])
+        good = self._tier("src/App/Dto/Widget.cs", covers=["C-001"])
+        self.assertEqual((good["tier"], good["route"]), ("T0", "B"))
+        vague = self._tier("src/App/Dto/Widget.cs", covers=["C-002"])
+        self.assertEqual(vague["tier"], "T1")
+        self.assertIn("no pinned assertion", vague["t0Blocked"])
+
+    def test_tier_t0_needs_file_level_paths_and_small_radius(self):
+        self._k1()
+        d = self._tier("src/App/Dto/", acceptance_exit=1)
+        self.assertEqual(d["tier"], "T1")
+        self.assertIn("file-level", d["t0Blocked"])
+        many = self._tier(*["src/App/Dto/F%d.cs" % i for i in range(8)], acceptance_exit=1)
+        self.assertEqual(many["tier"], "T1")
+        self.assertIn("X1 review1", many["t0Blocked"])
+
+    def test_tier_escalates_one_rung_then_latches(self):
+        self._k1()
+        self.assertEqual(self._tier("src/App/Dto/W.cs", acceptance_exit=1)["tier"], "T0")
+        first = S.record_escalation(self.change, "T0")
+        self.assertEqual((first["redoAt"], first["budgetSpent"], first["latched"]),
+                         ("T1", 1, False))
+        # still bandable after one escalation
+        self.assertEqual(self._tier("src/App/Dto/W.cs", acceptance_exit=1)["tier"], "T0")
+        second = S.record_escalation(self.change, "T1")
+        self.assertEqual((second["redoAt"], second["latched"]), ("T2", True))
+        latched = self._tier("src/App/Dto/W.cs", acceptance_exit=1)
+        self.assertEqual((latched["tier"], latched["gate"]), ("T2", "budget"))
+
+    def test_tier_t2_without_declared_paths(self):
+        self._k1()
+        self.assertEqual(self._tier()["gate"], "declared-paths")
+
+    def test_tier_cli(self):
+        self._k1()
+        rc = S.main(["tier", "--change-dir", self.change,
+                     "--unit-path", "src/App/Dto/W.cs",
+                     "--acceptance-check", "%s -c \"import sys; sys.exit(1)\"" % sys.executable])
+        self.assertEqual(rc, 0)
+
     def test_run_id_stamped_on_trg(self):
         self.assertEqual(S.main(["k1", "--change-dir", self.change, "--intent", "x",
                                  "--scope", "scope: src/", "--subject", "src",
