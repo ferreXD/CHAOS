@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "filter-tasks-by-priority",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-6f447e",
+  "recordedAt": "2026-08-04T12:31:46Z",
+  "groups": ["Endpoint", "Invariants", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Endpoint",
+      "text": "`GET /tasks?priority=<recognised value>` returns HTTP 200 with a JSON array containing exactly those tasks whose `Priority` equals that value, preserving the creation order `store.All()` already guarantees."
+    },
+    {
+      "id": "C-002",
+      "group": "Endpoint",
+      "text": "`GET /tasks` with no `priority` query parameter returns HTTP 200 and every task in the store — behaviour identical to today's."
+    },
+    {
+      "id": "C-003",
+      "group": "Endpoint",
+      "text": "`GET /tasks?priority=<unrecognised value>` returns HTTP 400 and no task data, using the same error body shape the endpoint group already uses for validation failures (`{ \"error\": \"…\" }`)."
+    },
+    {
+      "id": "C-004",
+      "group": "Endpoint",
+      "text": "Value matching is case-insensitive: `?priority=high`, `?priority=High` and `?priority=HIGH` are all the recognised `High` value — consistent with how `JsonStringEnumConverter` already accepts enum names in request bodies. (Set by the S1 answer; see RUN-DEC-001.)"
+    },
+    {
+      "id": "C-005",
+      "group": "Endpoint",
+      "text": "A present-but-empty value (`?priority=`) is an unrecognised value and returns HTTP 400, not the unfiltered list. (Set by the S1 answer; see RUN-DEC-001.)"
+    },
+    {
+      "id": "C-006",
+      "group": "Invariants",
+      "text": "Filtering is applied in the endpoint layer over the result of `store.All()`. `Domain/TaskStore.cs` and `Domain/TaskItem.cs` are byte-unchanged, preserving the domain→HTTP boundary direction (R-004) and the architecture's \"filtering belongs at the endpoint/query boundary, not in the store's public shape\" posture."
+    },
+    {
+      "id": "C-007",
+      "group": "Non-regression",
+      "text": "All existing `/tasks` behaviour is unchanged — authentication, rate limiting, the other CRUD routes and the seeded data all still behave as before; the 34-test baseline stays green and `dotnet build` stays clean (R-003)."
+    }
+  ]
+}

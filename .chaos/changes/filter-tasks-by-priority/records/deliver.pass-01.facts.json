@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "filter-tasks-by-priority",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-6f447e",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T12:50:18Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The OpenSpec delta spec carries a scenario — 'Filtering by a priority that matches no task' — with no automated test. The seeded singleton store always holds at least one task of every priority, and changing the seed is outside the approved scope, so the empty-result path cannot be exercised over HTTP without making the suite order-dependent. Covered by inspection only; see the C-001 whyNotTest."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The T0 (mechanical-tier) implementation of this unit was verified and REJECTED at post-condition review: it accepted `?priority=Low,High` with a 200. The unit was escalated T0 -> T1 (1 of 2 budget spent) and redone at ceiling under the overhead guard. The delivered code is the redone version; a regression test pins the defect."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "`chaos-record`'s build/test log parser produced empty facts against this machine's Spanish-locale dotnet output ('0 Advertencia(s)', '0 Errores', 'Superado: 42'). The values recorded here are the observed results of the runs whose logs were passed to the emitter, not estimates. Todo candidate: make the parser locale-tolerant."
+    }
+  ],
+  "verdictRationale": "Every contract statement is delivered and covered, build and tests are green (42/42, up from a 34-test baseline), the diff never left the approved scope, and both material decisions are answered, consumed and recorded. The one non-test coverage row (C-006) is structural and carries its whyNotTest.",
+  "commentary": "The substantive engineering finding of this run is RK-1 turning out to be wider than framed. The frame anticipated that `Enum.TryParse` accepts numeric strings; it also ORs comma-separated names together for enums that are not [Flags], so `?priority=Low,High` parses to `High` (0|2) and `Enum.IsDefined` then confirms it as declared. A digit-prefix guard plus `Enum.IsDefined` — the T0 implementation — passes every test that was asked for and still violates C-003. The delivered code matches the declared names explicitly instead, which closes the whole class rather than the two instances that had tests. Note this also fixes repeated parameters for free: `?priority=High&priority=Low` binds as the single string 'High,Low' and is now correctly a 400.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 42,
+      "total": 42,
+      "note": "34 baseline tests unchanged and green + 8 added for the priority filter contract"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_high_priority_filter_returns_only_high_priority_tasks",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_medium_priority_filter_returns_only_medium_priority_tasks",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_priority_filter_returns_all_tasks"
+        ],
+        "whyNotTest": "Partially. The matching/ordering half is tested directly. The delta spec's 'recognised priority that matches no task -> 200 + empty array' scenario is NOT tested: the seeded singleton store always holds a task of every priority, and reseeding or deleting to create the empty case would either leave the approved scope or make the suite order-dependent. That branch is covered by inspection — the handler returns Results.Ok on the filtered list unconditionally, so an empty match yields 200 with [] and cannot yield 404."
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_priority_filter_returns_all_tasks",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_returns_the_seeded_tasks"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_unrecognized_priority_returns_bad_request",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_numeric_priority_string_returns_bad_request",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_comma_separated_priority_returns_bad_request"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_case_insensitive_priority_filter"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_empty_priority_parameter_returns_bad_request"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — filtering applied over store.All() inside the endpoint handler",
+          "git status — Domain/TaskStore.cs and Domain/TaskItem.cs not in the diff"
+        ],
+        "whyNotTest": "A structural claim about which files changed, not a runtime behaviour: the evidence is the diff itself. A test asserting 'TaskStore was not edited' would assert the test suite rather than the system. The behavioural half — that the other CRUD routes still work through the untouched store — is carried by the 34 baseline tests under C-007."
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "dotnet test — 42 passed / 0 failed, including all 34 pre-existing tests unmodified",
+          "dotnet build — 0 warnings, 0 errors"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 42/42, 0 failed; the 34 baseline tests are unmodified and green; build clean"
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "no Domain/** file changed; filtering runs at the endpoint boundary over store.All(); no domain type references an HTTP-layer type"
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "TaskState/TaskPriority naming untouched; no TaskStatus introduced; the new helper is typed on TaskPriority"
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "M5 scope-spill fired at the first K3 rescan against the K1 scope string. The delivered diff never left the approved scope — the scope had been supplied as annotated prose the scan's path matcher does not read as a path list. Confirmed by the human, then re-baselined to a plain path list via `scan.py update-scope`; the trigger itself stays fired (the classifier is monotone).",
+        "decision": "RUN-DEC-002"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "the C-15-scoped diff covers exactly the two paths approved at S1 (TaskEndpoints.cs 35+/5-, TaskEndpointsTests.cs 109+/0-); M5 fired on the scope string's prose form, not on the diff, and was human-confirmed as NO_DRIFT under RUN-DEC-002"
+    }
+  }
+}

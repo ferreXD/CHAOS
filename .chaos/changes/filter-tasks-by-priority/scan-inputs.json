@@ -1,0 +1,19 @@
+{
+ "intent": "Add an optional ?priority= query filter to GET /tasks, accepting Low, Medium or High. Omitting the parameter keeps today's behaviour of returning everything. An unrecognised value is a 400. Keep the filtering in the endpoint layer over the existing store.All() result - do not change TaskStore.",
+ "scope": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+ "declaredTriggers": [],
+ "mode": null,
+ "selfReview": "clean",
+ "subjectPaths": [
+  "src",
+  "tests"
+ ],
+ "mapFile": ".chaos/path-class-map.json",
+ "noMap": false,
+ "postureFiles": [
+  ".chaos/architecture.md",
+  ".chaos/context.md"
+ ],
+ "lastCheckpoint": "K4",
+ "scopeUpdatedBy": "RUN-DEC-002"
+}
