@@ -38,21 +38,18 @@ never **what is owed**:
 
 ## Required references — the digest, then (only on failure) the sources
 
-Reading protocol (L2, design `docs/design/2026-08-03-l2-corpus-amortization.md`): run
+Reading protocol (L2, design `docs/design/2026-08-03-l2-corpus-amortization.md`): the
+staleness check runs **inside `loop frame`** (below) — do not invoke
+`digest.py --check` separately. The frame packet's first line reports which branch you
+are on:
 
-```bash
-python tools/chaos-digest/digest.py --check
-```
-
-**before reading any change-specific file**.
-
-- **Exit 0** → read `.claude/skills/chaos-shared/reference/governance-digest.md` **now, once,
+- **FRESH** → read `.claude/skills/chaos-shared/reference/governance-digest.md` **now, once,
   in one step**. It carries everything in the fallback list below — the pinned classifier and
   adjudication contracts embedded **verbatim**, the rest compiled. Do **not** open the source
   references, and never re-read a file already in context this session.
-- **Any other exit** → the digest is stale or missing. Never read a stale digest for content:
-  fall back to the full source list below, record the degradation in the frame facts, and
-  recommend `chaos:sync` at close.
+- **STALE/MISSING** → never read a stale digest for content: fall back to the full source
+  list below, record the degradation in the frame judgement, and recommend `chaos:sync` at
+  close.
 
 Fallback source list (used ONLY when the check fails):
 
@@ -69,28 +66,40 @@ Fallback source list (used ONLY when the check fails):
   mechanics inside the work loop)
 - `.claude/skills/chaos-resume/reference/resume-capsule-contract.md` (capsule schema)
 
-Record authoring in either path: start from the `chaos-record` emitter (facts derived,
-judgement fields yours), pattern-match `tools/chaos-render/examples/` for the filled shape,
-validate with `render.py --check` — never read the schemas.
+Record authoring in either path: records are emitted and their judgement fields filled by
+the loop composites from **your input file** (facts derived by the tool, judgement authored
+by you — the tool only moves your bytes and fails closed on anything empty).
+Pattern-match `tools/chaos-render/examples/` for the filled shape — never read the schemas.
 
 ## The loop
 
 Floors: parse the preset flag as a **floor vector** (design §8; no flag = zero floors). Floors
 only raise; classification is the inference. Pass `mode` into every classifier payload.
 
-Classifier invocation, all steps (L3 — the protocol is a tool; `chaos-scan` owns diff
-scoping, payload assembly, the two-call sequence, and `TRG-*` transcription):
+Command surface (option 1, `docs/design/2026-08-04-wall-clock-lever-plan.md`): the two
+dense clusters run through the **`chaos-loop` composites** — framing is `loop frame` →
+`loop frame-commit`, the close is `loop close` → `loop close-commit`. Each composite pair
+is: ONE tool call returning a consolidated packet, ONE deliberation authoring a single
+input file, ONE commit call. The composites import the granular tools and change the call
+surface only — every verdict, packet, TRG-* event and record is still persisted
+identically (artifact parity is enforced by `tools/chaos-loop/test_chaos_loop.py`).
+
+**Inside the work loop** the granular classifier commands remain the surface (L3 —
+`chaos-scan` owns diff scoping, payload assembly, the two-call sequence, and `TRG-*`
+transcription):
 
 ```bash
-python tools/chaos-scan/scan.py <k1|rescan|k2|k4|merge> --change-dir .chaos/changes/<id> [--run <runId>]
+python tools/chaos-scan/scan.py <rescan|k2|merge> --change-dir .chaos/changes/<id> [--run <runId>]
 ```
 
-Each call prints a **verdict digest** (also persisted at `scan/verdict-<seq>.md`) carrying
-the firings with verbatim cites, demoted candidates, the stop duty, the vector, and whether
-adjudication is due. Read the digest, not raw JSON. When it says `adjudication: DUE`, judge
-the named `scan/packet-<seq>.json` yourself **at ceiling** per the pinned contract
-(raise-only, cites mandatory) and apply via `merge --raises <file>` — it fails closed on any
-cite-less raise. `TRG-*` ledger events are appended by the tool (writer rule 2 as amended:
+Each scan — composite-wrapped or granular — prints a **verdict digest** (also persisted at
+`scan/verdict-<seq>.md`) carrying the firings with verbatim cites, demoted candidates, the
+stop duty, the vector, and whether adjudication is due. Read the digest, not raw JSON.
+When a granular call says `adjudication: DUE`, judge the named `scan/packet-<seq>.json`
+yourself **at ceiling** per the pinned contract (raise-only, cites mandatory) and apply via
+`merge --raises <file>` — it fails closed on any cite-less raise. (At the frame, the raises
+travel in the `frame-commit` input file instead — same contract, same fail-closed
+validation.) `TRG-*` ledger events are appended by the tool (writer rule 2 as amended:
 decision entries stay yours). Absent path-class map ⇒ path-class scans are blind: say so,
 lean on adjudication, record the gap.
 
@@ -134,16 +143,25 @@ delegation that costs more than the step) and report every escalation.
 initialize `.chaos/changes/<change-id>/` per `change-artifacts-layout.md`. Capture the intent
 **verbatim** in the frame facts.
 
-### 1 · Classify at intent (K1), author what it owes, then S1
+### 1 · Frame: one packet, one deliberation, one commit, then S1
 
 ```bash
-python tools/chaos-scan/scan.py k1 --change-dir .chaos/changes/<id> --run <runId> \
+python tools/chaos-loop/loop.py frame --change-dir .chaos/changes/<id> --run <runId> \
   --intent "<verbatim>" --scope "<predicted scope, incl. planned NEW paths or M5 false-fires later>" \
   --subject src --subject tests [--declared ...] [--mode <preset>] [--posture <doc>]...
 ```
 
-This captures `scan-inputs.json` (subjects = the C-15 diff roots; scope changes later only
-via `scan.py update-scope --decision <RUN-DEC-*>`). Adjudicate if the digest says so, merge.
+This runs the digest staleness check and the K1 scan, captures `scan-inputs.json`
+(subjects = the C-15 diff roots; scope changes later only via
+`scan.py update-scope --decision <RUN-DEC-*>`), and returns **one frame packet**: digest
+freshness, the K1 verdict digest, the adjudication packet path when due (the first K1 call
+always is), and the artifacts the vector owes before S1.
+
+**Then deliberate ONCE** and author a single JSON input file carrying everything the frame
+owes (the packet prints the exact shape): your adjudication **raises** (judged at ceiling,
+raise-only, cites mandatory; `[]` records that you judged and raised nothing), the
+**contract statements** (judgement — yours end-to-end), and the **frame record judgement**
+(verdict, assessment, rationale, sourceManifest/risk/traceability facts).
 
 **OpenSpec authoring timing (creator rule, 2026-08-03):** artifacts owed by a classification
 are authored **when the obligation fires, always before the surface they govern is
@@ -152,15 +170,21 @@ run the full hard invocation gate NOW; `openspec 0` → skip, the contract lives
 §Contract (record the skip in the frame facts). The human approves intent + classification +
 the contract artifact **together, in one stop**.
 
-**S1 — the frame approval stop (always; the run's one unconditional stop, C-11).** Author
-`records/contract.json` (statements are judgement — yours end-to-end), start the frame
-record from the emitter (`python tools/chaos-record/record.py frame --change-dir <dir>
---run <runId> --title "..."` — envelope, intent verbatim, classified OpenSpec depth derived)
-and fill its judgement fields, render `--write`, then surface
+```bash
+python tools/chaos-loop/loop.py frame-commit --change-dir <dir> --run <runId> \
+  --input <file> --title "<change title>"
+```
+
+merges the raises (fails closed on any cite-less raise), writes `records/contract.json`,
+emits the frame record and fills your judgement into it (fails closed on anything empty; it
+can never touch a derived fact), renders `--write`, and prints the **S1 presentation**.
+
+**S1 — the frame approval stop (always; the run's one unconditional stop, C-11).** Surface
 exactly one runtime decision with `approves-change: true`, folding every K1-fired question
-into its presentation with `folds: <n>` declared on the ledger entry. **Write the resume
-capsule at stop creation** (rule below), then STOP (`mustStop`). Never proceed on a
-recommendation the human has not answered.
+into its presentation with `folds: <n>` declared on the ledger entry. The decision, the
+`RUN-DEC-*` ledger entry, and the **resume capsule at stop creation** (rule below) stay
+yours — no tool authors them. Then STOP (`mustStop`). Never proceed on a recommendation the
+human has not answered.
 
 ### 2 · Work loop (per task-sized unit)
 
@@ -192,57 +216,61 @@ Repeat until the contract is delivered:
    questions via `folds:`). New obligations from an M4 firing apply before further
    implementation.
 
-### 3 · Self-review (mechanical, never stops)
+### 3 · Close: self-review verdict, one packet, one deliberation, one commit
 
 Inline self-review of the delivered work (scope sane / rules mapped / contract testable /
-decisions complete). Then `scan.py k4 --change-dir <dir> --self-review <verdict>`. An X2 firing raises
-`review → 2` and `verify → 1` mechanically (C-3): route to an independent review pass — never
-a stop.
-
-### 4 · In-loop verify (vector-driven)
-
-If the vector's `verify` ≥ 1: run it NOW, inside the run — `verify 1` = trigger-attributed
-safeguard checks (the firing's surface says which: auth → credential/enforcement checks;
-data-store → persistence/migration checks; contract-dependency → contract checks);
-`verify 2` = full verify orchestration. Start the record from the emitter — it re-runs the
-checks itself (the independent re-run, L4-D4):
-`python tools/chaos-record/record.py verify --change-dir <dir> --run <runId> --run-checks
-[--openspec-validate-cmd "..."]` — then fill `archiveReadiness`, `traceability`, `findings`
-and the envelope judgement. A failing
-verify **re-enters the work loop** with the failure as new evidence (the next K3 scan sees the
-repair diff). At `verify 0` nothing runs — and that is the correct, measured outcome.
-
-### 5 · Obligation audit (a gate, not a stop)
-
-Start the deliver record from the emitter (L4 — facts derived, judgement yours):
-`python tools/chaos-record/record.py deliver --change-dir <dir> --run <runId>
---build-log <file> --test-log <file> [--rule R-...]...` — it derives build/tests/files/
-scopeDrift and scaffolds coverage rows (one per contract statement) and rules; you fill
-`covered`/`evidence`/`whyNotTest`, deviations with `RUN-DEC-*` refs, and the envelope
-judgement. Then assert:
+decisions complete) — form the constrained verdict `clean|fail`, then:
 
 ```bash
-python tools/chaos-classify/audit.py --state .chaos/changes/<id>/classification-state.json \
-  --ledger .chaos/changes/<id>/decision-events.md --change-dir .chaos/changes/<id> \
-  [--openspec-dir openspec/changes/<id>] [--adr-dir <dir>]
-python tools/chaos-render/render.py <id> --check
+python tools/chaos-loop/loop.py close --change-dir .chaos/changes/<id> --run <runId> \
+  --self-review clean|fail --build-log <file> --test-log <file> \
+  [--rule R-...]... [--openspec-dir openspec/changes/<id>] [--adr-dir <dir>]
 ```
 
-The audit recomputes the owed vector from state and asserts: every stop answered, every
-placed stop surfaced, owed ADR exists, owed OpenSpec depth exists, owed verify record exists,
-frame + deliver records present, vector ≥ floors. **A failure names the owed artifact: repair
-it (author the artifact, surface the unanswered stop) and re-assert** — mechanical repair
-classes are delegable per the tier map; a failure naming a stop is governance and stays
-yours. The audit never
-authors anything, and the run cannot close while it fails. It is deterministic and ~free — a
-checklist, not a model pass.
+This runs, in order, **failing closed at each step**:
 
-### 6 · Close
+- **The final rescan (K3).** If it fires anything, demands or absorbs a stop, or finds new
+  surface, close **aborts** — that is new evidence: re-enter the work loop (§2) and run
+  `loop close` again when it is delivered.
+- **K4** with your verdict. `fail` ⇒ X2 fires, raising `review → 2` and `verify → 1`
+  mechanically (C-3), and close aborts: route to the independent review pass — never a stop.
+- **The verify record, when the vector's `verify` ≥ 1** — emitted with the independent
+  re-run (L4-D4: the tool re-executes build/tests/openspec itself). `verify 1` =
+  trigger-attributed safeguard checks (the firing's surface says which: auth →
+  credential/enforcement; data-store → persistence/migration; contract-dependency →
+  contract checks); `verify 2` = full verify orchestration. A failing re-run **re-enters
+  the work loop** with the failure as new evidence — never close-commit over a red check.
+  At `verify 0` nothing runs — and that is the correct, measured outcome.
+- **The deliver record** — build/tests/files/scopeDrift derived from your logs, coverage
+  rows scaffolded one per contract statement.
+- **The advisory obligation audit** — any failure is named in the packet so you repair it
+  BEFORE the commit call (author the owed artifact, surface the unanswered stop);
+  mechanical repair classes are delegable per the tier map, a failure naming a stop is
+  governance and stays yours.
 
-Render `--write` (`change.md` §Delivery, `lifecycle.md`, frontmatter — all mechanical).
-**S4 — verify sign-off:** only when the stops floor ≥ 2 (`--strict` preset), surface the
-sign-off decision before terminalizing. `chaos_complete_command`. Recommend `chaos:verify`
-only as the optional extra pass; recommend `chaos:archive` when ready.
+**Then deliberate ONCE** and author a single JSON input file (the packet prints the exact
+shape): deliver judgement (verdict, assessment, rationale), every coverage row
+(`covered`/`evidence`/`whyNotTest` — non-test evidence always carries `whyNotTest`),
+scaffolded rules, deviations with `RUN-DEC-*` refs, scope-drift judgement when M5 fired,
+and the verify judgement (`archiveReadiness`, `traceability`, `findings`) when that record
+exists.
+
+```bash
+python tools/chaos-loop/loop.py close-commit --change-dir <dir> --run <runId> --input <file> \
+  [--openspec-dir openspec/changes/<id>] [--adr-dir <dir>]
+```
+
+fills your judgement into the records (fails closed on empty fields, missing coverage rows,
+or any attempt to overwrite a derived fact), then asserts the **obligation audit as the
+hard gate**: every stop answered, every placed stop surfaced, owed ADR/OpenSpec/verify
+artifacts exist, frame + deliver records present, vector ≥ floors. The audit recomputes the
+owed vector from state, never authors anything, and the run cannot close while it fails —
+deterministic and ~free, a checklist, not a model pass. On pass it renders `--write`
+(`change.md` §Delivery, `lifecycle.md`, frontmatter — all mechanical) and prints the close
+summary. **S4 — verify sign-off:** only when the stops floor ≥ 2 (`--strict` preset; the
+summary flags it), surface the sign-off decision before terminalizing.
+`chaos_complete_command`. Recommend `chaos:verify` only as the optional extra pass;
+recommend `chaos:archive` when ready.
 
 ## Stop points (the complete set)
 
