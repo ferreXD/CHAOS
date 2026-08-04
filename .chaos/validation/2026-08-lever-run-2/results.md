@@ -77,6 +77,27 @@ it will change that. Measuring L1 requires one of: arms that can spawn subagents
 that performs the tier delegation itself (the script spawning the tiered agent, not the arm);
 or measurement outside a workflow entirely.
 
+### 3.1 The delegation path itself is fine — verified, not assumed (2026-08-04)
+
+**This is a limitation of the measurement apparatus, not of the product**, and the distinction
+matters enough to have been checked rather than reasoned about. Spawning
+`chaos-mechanical-executor` from a **main session** — the way a real `chaos:run` invoked from
+chat or CLI would — works end to end: the agent launched, ran as
+**`claude-haiku-4-5-20251001`** (the pinned floor tier), executed its named validator
+(`digest.py --check`, exit 0) and returned the required contract response shape, in 12 k tokens
+and 19 s.
+
+The asymmetry is structural: a measurement **arm is itself a subagent**, and a subagent has no
+Agent/Task tool, so it cannot nest another one. A main session does. Therefore:
+
+- **A real `chaos:run` tiers normally.** Nothing in §3 says otherwise, and nothing here should
+  be read as "the tier band does not work in practice."
+- **Only the harness is blind to it.** Every L1 number in runs 1 and 2 is structurally zero
+  because of where the arms sit in the agent tree, not because the band failed to route.
+- **Route B's safety is still untested** — that conclusion is unchanged. The delegation path
+  working says nothing about whether a floor-tier model implements pinned statements
+  *correctly*; only a run where T0 units actually execute at floor can answer that.
+
 ## 4. L2/L3/L4 diagnostics
 
 | | Stage D | Run 1 | Run 2 |
@@ -98,7 +119,8 @@ smallest cost center (10.3%), exonerated a fourth time.
    That work was necessary and is done.
 2. **The tier band is correct and opens** — 5 T0 verdicts where run 1 had 0, with every
    refusal correctly cited, including the coupling gate.
-3. **L1 remains unmeasured**, now for a harness reason rather than a design reason. Route B's
+3. **L1 remains unmeasured**, for a harness reason rather than a design or product reason —
+   the delegation path itself was **verified working** from a main session (§3.1). Route B's
    safety is untested and must not be assumed.
 4. **The cost case did not close.** Governed output fell 6.8% against a required 10%; the
    headline ratio improvement is mostly denominator movement.
@@ -109,7 +131,8 @@ smallest cost center (10.3%), exonerated a fourth time.
 
 1. **Fix the harness before re-measuring L1, or stop claiming L1 can be measured.** Preferred:
    the workflow script performs the tier delegation itself, so the tiered model actually runs.
-   Until then every L1 number is structurally zero.
+   Until then every L1 number is structurally zero. **Note this is a harness change only** —
+   the product path is verified (§3.1), so nothing about `chaos:run` needs to move.
 2. **Do not re-run for cost alone.** Two runs now say the residual is not where the levers
    aimed: machinery is back to 49.6% while artifacts sit at 10.3%.
 3. **Re-base the bar** (the §7 question, still open with the creator). At plain-arm variance of
