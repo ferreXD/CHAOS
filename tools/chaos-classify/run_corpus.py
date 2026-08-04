@@ -51,6 +51,23 @@ def main(argv=None):
     ap.add_argument("--report", default=None)
     args = ap.parse_args(argv)
 
+    # Full mode scores the SEMANTIC layer too, which only exists if the model's raises are
+    # supplied. Without them every adjudication-expected firing reads as a materiality
+    # UNDER-detection and the report looks exactly like a classifier regression — five FAIL
+    # blocks, no hint that an input is missing. That misreading has already cost one wrong
+    # bug report, so this fails closed rather than scoring against a corpus half-supplied.
+    # Same rule as D4/D5: an input that changes the verdict is never allowed to default
+    # silently.
+    if not args.scan_only and not args.emit_packets and not args.adjudication:
+        default_adj = os.path.join(args.corpus, "evidence-adjudication-results.json")
+        hint = ("\n  full  : run_corpus.py --adjudication %s"
+                % default_adj) if os.path.isfile(default_adj) else ""
+        sys.stderr.write(
+            "error: full mode scores adjudication raises and none were supplied.\n"
+            "Pick the mode you actually mean:%s\n"
+            "  scan  : run_corpus.py --scan-only   (deterministic layer only)\n" % hint)
+        return 2
+
     seeds_dir = os.path.join(args.corpus, "seeds")
     map_data = json.load(open(os.path.join(args.corpus, "assets", "path-class-map.json"),
                               encoding="utf-8"))

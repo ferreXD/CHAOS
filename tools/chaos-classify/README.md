@@ -35,6 +35,14 @@ python -m unittest discover -s tools/chaos-classify            # unit suite
 
 Single seed: `python tools/chaos-classify/classify.py <seed.md> [--adjudication FILE]`.
 
+**Run it with no arguments and it exits 2 by design.** Full mode scores the semantic layer, so
+without `--adjudication` every adjudication-expected firing reads as a materiality
+under-detection and the report looks exactly like a classifier regression — five FAIL blocks
+with no hint that an input is missing. It fails closed instead, naming both valid invocations.
+The checked-in evidence for the full bar is
+[`evidence-adjudication-results.json`](../../.chaos/validation/2026-08-stage-c-classifier/evidence-adjudication-results.json);
+against it the corpus is **9/9 with 11/11 semantic hits**.
+
 ## Wiring adapter (step 4 — commands call this)
 
 ```text

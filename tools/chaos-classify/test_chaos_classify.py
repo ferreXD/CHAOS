@@ -437,5 +437,39 @@ class TestContinuousMode(unittest.TestCase):
         self.assertEqual(state["seenPaths"], ["src/App/F.cs"])
 
 
+class TestCorpusHarnessFailsClosed(unittest.TestCase):
+    """Full mode without --adjudication once produced five FAIL blocks that read as a
+    classifier regression. It was a missing input. The guard must not rot back."""
+
+    def _run(self, argv):
+        import io
+        import contextlib
+        import run_corpus
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = run_corpus.main(argv)
+        return code, err.getvalue()
+
+    def test_full_mode_without_adjudication_exits_2_not_1(self):
+        """Exit 2 (usage) must be distinguishable from exit 1 (real corpus failure)."""
+        code, err = self._run([])
+        self.assertEqual(code, 2)
+        self.assertIn("none were supplied", err)
+
+    def test_the_error_names_both_valid_invocations(self):
+        _, err = self._run([])
+        self.assertIn("--adjudication", err)
+        self.assertIn("--scan-only", err)
+
+    def test_scan_only_needs_no_adjudication(self):
+        self.assertEqual(self._run(["--scan-only"])[0], 0)
+
+    def test_full_mode_passes_with_the_checked_in_adjudication_evidence(self):
+        import run_corpus
+        adj = os.path.join(run_corpus.DEFAULT_CORPUS, "evidence-adjudication-results.json")
+        self.assertTrue(os.path.isfile(adj), "corpus adjudication evidence is missing")
+        self.assertEqual(self._run(["--adjudication", adj])[0], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
