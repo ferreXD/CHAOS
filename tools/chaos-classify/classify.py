@@ -136,7 +136,16 @@ def parse_scope(text):
     pred = PRED_FILES_RE.search(line)
     predicted = int(pred.group(1)) if pred else None
     cleaned = re.sub(r"\([^)]*\)", "", line)
-    entries = [e.strip() for e in cleaned.split(",") if e.strip()]
+    # Split on commas AND whitespace. Commas alone were a silent-governance defect: a
+    # space-separated declaration — "src/A/File.cs tests/B/FileTests.cs", which is what an agent
+    # naturally writes — collapsed into ONE entry that matched no file, so every touched path
+    # read as scope spill and M5 fired on a perfectly correct declaration. Measured live in T1
+    # of the product-conditions run: the two files M5 cited as out-of-scope were verbatim the two
+    # files declared, and it cost an unowed stop, an unowed decision and a re-scope tail.
+    # Trade-off, stated: a path containing a literal space can no longer be written bare. It is
+    # still expressible — comma-separate it — and the failure mode if someone forgets is a
+    # visible M5, the same signal, on a far rarer input.
+    entries = [e.strip() for e in re.split(r"[,\s]+", cleaned) if e.strip()]
     return {"entries": entries, "predicted_files": predicted}
 
 

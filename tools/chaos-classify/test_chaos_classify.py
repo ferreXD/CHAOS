@@ -44,6 +44,25 @@ class TestPrimitives(unittest.TestCase):
         self.assertEqual(s["entries"], ["src/App/Sec/", "tests/T/", "README.md"])
         self.assertEqual(s["predicted_files"], 9)
 
+    def test_space_separated_scope_is_a_list_not_one_entry(self):
+        """The T1 defect: commas-only splitting collapsed a space-separated declaration into a
+        single entry that matched nothing, so every touched file read as spill and M5 fired on a
+        correct declaration. Verbatim the scope line that triggered it."""
+        s = C.parse_scope("src/TaskTracker.Api/Endpoints/TaskEndpoints.cs "
+                          "tests/TaskTracker.Tests/TaskEndpointsTests.cs")
+        self.assertEqual(s["entries"], ["src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+                                        "tests/TaskTracker.Tests/TaskEndpointsTests.cs"])
+
+    def test_declared_files_match_their_own_scope_entries(self):
+        """The property that actually failed: a file named in the scope must not read as spill."""
+        for line in ("src/App/F.cs tests/T/FTests.cs",          # space-separated
+                     "src/App/F.cs, tests/T/FTests.cs",         # comma-separated
+                     "src/App/F.cs,tests/T/FTests.cs"):         # comma, no space
+            entries = C.parse_scope(line)["entries"]
+            self.assertEqual(len(entries), 2, line)
+            self.assertTrue(any(C.match_scope_entry("src/App/F.cs", e) for e in entries), line)
+            self.assertTrue(any(C.match_scope_entry("tests/T/FTests.cs", e) for e in entries), line)
+
     def test_rename_shape(self):
         sym = "\n".join("%d\t%d\tf%d.cs" % (i + 2, i + 2, i) for i in range(8))
         self.assertTrue(C.rename_shaped(C.parse_numstat(sym), MAP["renameShapeGuard"]))
