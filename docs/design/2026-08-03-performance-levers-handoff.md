@@ -201,6 +201,16 @@ expectation moves** — but confirm that yourself before touching code (§6).
 
 ## 7. The metric question — settle it before the next run
 
+> **SETTLED 2026-08-04 (creator): accepted.** The re-base is recorded in
+> [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md), which preserves the superseded
+> metric (M1) and its complete measured series. One deviation from the recommendation below:
+> **blended cost gates; wall time is reported but does not pass or fail a run**, because time is
+> still arm-self-reported and too noisy at n=3 (rebase doc §3.2, §5 O3). The bar *values* in the
+> new unit remain open (§5 O1) — nothing may be claimed against M2 until they are frozen.
+>
+> Note the timestamps: this recommendation is commit `8cb8543`, **2026-08-03 19:27** — 14 hours
+> before lever run 2 was pre-registered and 16 before its result existed.
+
 Every number in this program is **output tokens**. The goal ("~3× baseline") was never
 operationalized as money or wall time. **L1 and L2 are largely invisible to the token metric** —
 tiering changes price per token, caching changes input, and the existing bar counts neither.

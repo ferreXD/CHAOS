@@ -294,6 +294,13 @@ The held-out **oracles** (`AuthOracleTests.cs`, `SoftDeleteOracleTests.cs`,
 - Arms run **sequentially** so `budget.spent()` output-token deltas attribute to one arm.
 - Tokens are an **output-only proxy** (no input tokens; no token infra — IL-PF10). Time is
   **arm-self-reported** (`date +%s`), not an independent stopwatch. Keep both caveats on any re-run.
+- **Metric label (2026-08-04).** Every row above, through *D1–D5 repairs + tier band*, is measured
+  under metric **M1 = output-token ratio vs the within-session plain arm**. M1 was retired on
+  2026-08-04 in favour of **M2 = blended cost**; see
+  [`docs/design/2026-08-04-metric-rebase.md`](../../../../../docs/design/2026-08-04-metric-rebase.md),
+  which preserves M1's definition, its bars, and this series. **Rows are not comparable across
+  metrics — label the metric on every future row**, and keep reporting the output-token columns
+  regardless, since they are what keeps the M1 series readable.
 
 ## Re-run — all four performance levers together (2026-08-04, model claude-opus-5[1m])
 

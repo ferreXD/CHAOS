@@ -19,6 +19,14 @@
 
 ## 1. The denominator — locked (creator, 2026-08-03)
 
+> **PARTIALLY SUPERSEDED 2026-08-04** by
+> [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md). The unit changed from output
+> tokens to **blended cost**; only the clause "on output tokens" below is retired. **Everything
+> else in this section still holds** — the within-session plain-arm denominator, re-running plain
+> arms every session, ratio-only cross-model comparison. This section remains the definition of
+> record for metric **M1**, under which every row through lever run 2 was measured; it is left
+> unedited on purpose.
+
 **Ratios are measured against the within-session plain arm, on output tokens, same model.**
 
 This is the hardest available denominator and it is locked *before* optimizing, deliberately. It
@@ -38,6 +46,13 @@ Consequences of the lock:
   *generated* output, not on total inference cost.
 
 ## 2. The bar is graduated, not flat (creator, 2026-08-03)
+
+> **TARGET COLUMN SUPERSEDED 2026-08-04** by
+> [`2026-08-04-metric-rebase.md`](2026-08-04-metric-rebase.md). **The banding itself survives the
+> re-base unchanged** — bands are still set by the classifier's own verdict and pass/fail is still
+> on the band aggregate Σ. Only the **≤2.0× / ≤3.0× / ≤4.0× values** are retired, because they are
+> denominated in output tokens; their replacements are open (rebase doc §5, O1). The table below
+> is the M1 bar of record: **no measured row ever passed it** (rebase doc §1.4).
 
 A flat target would quietly abandon progressive rigor's core promise — that a change the system
 itself certifies as trivial should cost near-nothing. The bar is therefore banded by **the
