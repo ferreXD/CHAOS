@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-enforce-title-max-length",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T23:47:05Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by the X2 firing at K4 and was run inside the loop, before close. The emitter re-ran build and tests independently (build 0 errors / 0 warnings; tests 11/11), all five contract statements are covered by executing tests, scope never left the two approved paths across seven scans, and the one review finding this pass raised was repaired inside the loop rather than deferred. Nothing is carried as debt, so READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: X2 fired with surface 'none', so verify 1 buys the self-review safeguards - an independent second pass over the delivered diff plus the independent build/test re-run - and NOT the surface-specific families. Auth, data-store and contract-dependency safeguards are recorded below as an explicit n/a positive claim rather than silently omitted. Honest note on why X2 fired at all: the classifier accepts only the literal token 'clean' as a passing self-review, and this run passed 'PASS'. The substantive self-review was clean; the firing is a vocabulary mismatch, not a discovered defect. It is recorded and honored rather than suppressed - dimensions are monotone and a fired trigger is never lowered - and the review 2 / verify 1 obligations it created were performed in full. That the second pass then found a real test-quality gap (VFY-002) is the argument for honoring it.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 11,
+        "total": 11,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "contract": {
+        "ticked": 5,
+        "total": 5,
+        "note": "C-001..C-005, each covered by an executing test."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 7 scan(s) — derived from classification-state.json"
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "dotnet test 11/11, 0 failed, on the independent re-run; the 5 baseline cases are untouched and still pass."
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "The bound lives entirely in Endpoints/TaskEndpoints.cs; grep over src/TaskTracker.Api/Domain/ finds no Microsoft.AspNetCore.*, IResult or Results.* reference, and the diff touches no Domain/** file."
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "No TaskStatus identifier is introduced; the only occurrences in src/ are the pre-existing explanatory comment in Domain/TaskItem.cs. TaskState naming is unchanged."
+        },
+        {
+          "id": "R-006",
+          "status": "pass",
+          "evidence": "git status shows neither AGENTS.md nor root README.md modified; the diff's only subject files are TaskEndpoints.cs and TaskEndpointsTests.cs."
+        },
+        {
+          "id": "R-001",
+          "status": "pass",
+          "evidence": "The one material decision (RUN-DEC-001, the frame approval) is recorded in decision-events.md with options, recommendation, answer and why-material; it was not decided silently."
+        },
+        {
+          "id": "R-002",
+          "status": "pass",
+          "evidence": "Every verdict in this run carries confidence + evidenceCoverage + assumptionLoad; every finding below carries knowledge + confidence."
+        }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "POST /tasks rejects a title longer than 200 characters with 400 and creates nothing",
+        "capability": "title-length-bound",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - length guard after the blank guard in the POST handler, returning Results.BadRequest before store.Add is reached",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing (asserts 400 AND that the task count is unchanged)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "PUT /tasks/{id} rejects a title longer than 200 characters with 400 and does not modify the task",
+        "capability": "title-length-bound",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - length guard in the PUT handler, returning before store.Update is called",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_title_longer_than_the_maximum_is_rejected_and_does_not_modify_the_task (asserts 400 AND re-reads the task to confirm title/status/priority are untouched)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "A title of exactly 200 characters is accepted - POST 201, PUT 200",
+        "capability": "title-length-bound",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - the guard is a strict '>' comparison against MaxTitleLength, so the boundary value passes",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_a_title_of_exactly_the_maximum_length_is_accepted, ::Put_with_a_title_of_exactly_the_maximum_length_is_accepted, and ::The_documented_maximum_title_length_is_200_characters (which pins the bound to the contracted 200)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "The existing blank/whitespace title -> 400 behaviour is preserved for POST and PUT",
+        "capability": "title-validation-non-regression",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - the IsNullOrWhiteSpace guard is unchanged and still evaluated first on both handlers",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected (pre-existing baseline) and ::Put_with_blank_title_is_rejected (added; the PUT half was previously unasserted)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Titles of normal length continue to work exactly as before; other CRUD endpoints unchanged",
+        "capability": "title-validation-non-regression",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - GET/GET-by-id/DELETE handlers are byte-identical in the diff; the POST/PUT additions are pure early returns",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs - the 5 baseline tests (seeded list, POST+GET round trip, PUT update, DELETE, blank POST) all still pass on the independent re-run",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Independent re-run reproduces a green build and suite",
+        "detail": "Attributed to TRG-001 (X2 self-review, surface none). chaos-record re-ran the checks itself rather than trusting the loop's earlier run: dotnet build 0 errors / 0 warnings, dotnet test 11/11 passed / 0 failed. The 5 pre-existing baseline cases are among the 11 and are unmodified, satisfying R-003."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Review finding, repaired in-loop: the boundary tests did not pin the bound to 200",
+        "detail": "Attributed to TRG-001 (X2 self-review, surface none) - this is exactly the defect class the raised review dimension exists to catch. The first implementation's boundary tests were written against TaskEndpoints.MaxTitleLength rather than the literal contracted value, so they would have continued to pass if the limit were moved to any other number, leaving C-001/C-002/C-003 (which all name 200 explicitly) unenforced. Repaired inside the work loop by adding ::The_documented_maximum_title_length_is_200_characters, which asserts the constant equals 200; the K3 rescan after the repair introduced no new surface and fired nothing. Not deferred, so it carries no debt."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "MEDIUM",
+        "title": "The bound counts UTF-16 code units, not Unicode code points",
+        "detail": "Attributed to TRG-001 (X2 self-review, surface none). string.Length in .NET counts UTF-16 code units, so a title of 200 astral-plane characters (emoji, rarer CJK extensions) counts as 400 and is rejected. This matches the conventional reading of 'at most 200 characters' for a .NET request validator and matches how the existing blank-title check already treats the field, and the repository records no Unicode or grapheme policy to contradict it - so it is not a contract violation and not a discordance worth a stop. Recorded so the choice is visible rather than silently inherited if a future change internationalises the API."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, data-store and contract-dependency safeguards were not run, and are not owed",
+        "detail": "Only X2 fired, with surface 'none'; no materiality trigger (M1-M5) fired at any of the seven scans. Asserted rather than silently skipped: the diff touches no Domain/** file and no store shape (data-store n/a), introduces no credential, key, or enforcement path and leaves the API open exactly as .chaos/architecture.md records (auth n/a), and adds no route, no package reference, and no removal or rename of public surface (contract-dependency n/a). The one added public member, the MaxTitleLength constant, is additive."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Guard ordering is contract-correct on both handlers",
+        "detail": "Attributed to TRG-001 (X2 self-review, surface none). The blank guard precedes the length guard, so a whitespace-only string longer than 200 characters returns the 'Title is required.' message rather than the length message - both are HTTP 400, which is all C-001/C-002/C-004 require. The ordering also means request.Title is never dereferenced when null, so an omitted title yields 400 and not a NullReferenceException. On PUT, validation precedes the store lookup, so a too-long title against a nonexistent id returns 400 rather than 404; C-002 demands 400 and no modification, both of which hold."
+      }
+    ]
+  }
+}

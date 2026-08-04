@@ -1,0 +1,16 @@
+{
+ "intent": "Task 3 - Optimistic concurrency on task updates. PUT /tasks/{id} currently overwrites a task unconditionally, so a client working from a stale copy can silently clobber someone else's update (lost-update race). Add optimistic concurrency control. Contract (implement exactly this - behaviour is checked against it): Add an integer version to the task, serialized as version. New and seeded tasks start at version 1. Every successful PUT /tasks/{id} increments the task's version by 1 (1 -> 2 -> 3 ...). UpdateTaskRequest gains an optional integer field expectedVersion: when expectedVersion is provided and does not equal the task's current version, the update must be rejected with HTTP 409 Conflict and the task must be left unchanged (no field updated, version not bumped); when expectedVersion is provided and matches, the update succeeds (200) and the version increments; when expectedVersion is omitted (null), the update proceeds unconditionally (backward-compatible last-writer-wins) and the version increments. POST /tasks returns a task with version = 1. Constraints: Keep dotnet build and dotnet test green - the existing PUT test omits expectedVersion and must keep working. Do not change unrelated behaviour of the other CRUD endpoints. Work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests).",
+ "scope": "scope: src/TaskTracker.Api/Domain/TaskItem.cs, src/TaskTracker.Api/Domain/TaskStore.cs, src/TaskTracker.Api/Contracts/TaskRequests.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+ "declaredTriggers": [],
+ "mode": null,
+ "selfReview": "PASS \u2014 scope confined to the 5 declared subject files with no unrelated CRUD behaviour touched; R-003 green (14/14 tests, build 0 warnings/0 errors), R-004 verified (Domain has no Microsoft.AspNetCore/IResult/Results/HttpContext reference), R-005 verified (no TaskStatus reintroduction), R-006 verified (no protected file in the diff); contract statements C-001..C-013 all mapped to test or code evidence, including a 10-writer contention test for the atomicity statement C-010; RUN-DEC-001 resolved, ADR and OpenSpec delta authored at the firing and strictly validated.",
+ "subjectPaths": [
+  "src",
+  "tests"
+ ],
+ "mapFile": ".chaos\\path-class-map.json",
+ "postureFiles": [
+  ".chaos/architecture.md"
+ ],
+ "lastCheckpoint": "K4"
+}

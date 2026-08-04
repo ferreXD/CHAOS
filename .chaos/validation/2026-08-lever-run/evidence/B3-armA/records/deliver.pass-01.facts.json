@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-enforce-title-max-length",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T23:49:48Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "APPLIED rather than PARTIALLY_APPLIED: all five contract statements are implemented and each is covered by an executing test, the build carries 0 errors and 0 warnings, the suite is 11/11 with the 5 baseline cases unmodified among them, and the diff never left the two paths approved at S1 across seven scans. Nothing was deferred, waived or left behind a decision, so there are no deviations to carry.",
+  "commentary": "One work unit plus one in-loop repair. The unit added a shared MaxTitleLength constant and an early-return guard to the POST and PUT handlers; the repair, raised by the independent review pass the X2 firing bought, added a test pinning the bound to the contracted literal 200 (see VFY-002 in the verify record). The bound is deliberately request-validation only: it lives in Endpoints/TaskEndpoints.cs, and Domain/** is untouched, so the store still accepts any title from any future caller and R-004's direction is preserved. Coverage below is test evidence on every statement, so no whyNotTest justification is owed anywhere.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 11,
+      "total": 11
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing - posts a 201-character title, asserts HTTP 400, and re-reads GET /tasks to assert the task count is unchanged, so 'must not create a task' is asserted and not merely implied",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - POST handler length guard, returning before store.Add"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_title_longer_than_the_maximum_is_rejected_and_does_not_modify_the_task - asserts HTTP 400, then re-reads the task and asserts title, status and priority are all unchanged",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - PUT handler length guard, returning before store.Update"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_a_title_of_exactly_the_maximum_length_is_accepted - asserts 201 and that the echoed title is 200 characters",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_a_title_of_exactly_the_maximum_length_is_accepted - asserts 200 OK and re-reads the stored title",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::The_documented_maximum_title_length_is_200_characters - pins the bound to the contracted literal 200"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected - pre-existing baseline case, unmodified",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_blank_title_is_rejected - added by this change; the PUT half of the pre-existing behaviour was previously unasserted, so preservation is now actually checked on both routes"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs - the 5 baseline tests (seeded list, POST+GET round trip, PUT update, DELETE, blank POST) are unmodified and all pass in the 11/11 run",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - the GET, GET-by-id and DELETE handlers are byte-identical in the diff; the POST/PUT additions are pure early returns ahead of unchanged code"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 11/11, 0 failed; dotnet build 0 errors / 0 warnings. The 5 pre-existing baseline cases are unmodified and among the passes, so the green baseline is preserved, not replaced."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "The bound is implemented entirely in src/TaskTracker.Api/Endpoints/TaskEndpoints.cs. The diff touches no Domain/** file, and grep over src/TaskTracker.Api/Domain/ finds no Microsoft.AspNetCore.*, IResult or Results.* reference - the domain-must-not-depend-on-HTTP direction is unchanged."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "No TaskStatus identifier is introduced anywhere in the diff; the enum remains TaskState. The only TaskStatus occurrences under src/ are the pre-existing comment in Domain/TaskItem.cs explaining why the name is avoided."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "Neither AGENTS.md nor root README.md appears in the diff or in git status as modified. No protected-file patch was proposed or applied."
+      },
+      {
+        "id": "R-001",
+        "status": "pass",
+        "evidence": "The single material decision - where the bound lives and at what rigor - was surfaced as RUN-DEC-001 with options, a marked recommendation, why-material and a folds count, not decided silently in prose. Documented arm deviation: no live human was reachable, so it is resolved in-arm with a recorded maintainer-style rationale (see the frame record commentary)."
+      },
+      {
+        "id": "R-002",
+        "status": "pass",
+        "evidence": "Every verdict in this change carries confidence + evidenceCoverage + assumptionLoad; the frame record's confidenceLimiters and the verify record's five findings each carry a knowledge type and a confidence level."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 7 scan(s) — derived from classification-state.json"
+    }
+  }
+}

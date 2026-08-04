@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T22:06:40Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "APPLIED, not PARTIALLY_APPLIED: all eleven contract statements are delivered and covered, the build is clean (0 warnings, 0 errors), the full suite is green at 28/28, the final diff paths are exactly the approved scope, and nothing was deferred or stubbed. Confidence HIGH because every coverage claim names an executed test or an inspected diff; evidence coverage COMPLETE because the only statement without an asserting test (C-011) is a rules/tooling claim whose evidence is tool output plus diff inspection, recorded with whyNotTest rather than waved through; assumption load LOW because the one live assumption - that the committed default key is acceptable for a demo - is inherited verbatim from the task contract and is recorded, bounded and flagged in VFY-003.",
+  "commentary": "Two things about this delivery are worth stating plainly.\n\n**The approved mechanism did not survive contact with the tests.** RUN-DEC-001 approved an ADR that placed enforcement in an `IEndpointFilter` on the `/tasks` group. Four tests then showed that minimal-API parameter binding runs before the filter pipeline, so an unauthenticated `POST` or `PUT` with no body returned 400 before the key was ever inspected - a direct violation of C-007. Rather than quietly re-engineering around an accepted decision, that contradiction was surfaced as RUN-DEC-002 and the ADR's mechanism clause was amended in place with the falsifying evidence recorded. The deviation below carries that decision id. This is the one place in the run where governance did real work: the defect was invisible from the happy path, and the ordering clause in the contract is what made it a failure rather than a design preference.\n\n**Two deliberate non-actions.** `src/TaskTracker.Api/appsettings.json` was predicted in scope but left untouched on purpose: writing `ApiKey` there would mean the documented default path (C-005) never executes in practice or in the tests. And the pre-existing CRUD tests were changed in exactly one respect - the client they build now sends the header - so that C-010's non-regression claim rests on genuinely unmodified assertions.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 28,
+      "total": 28
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Every_task_route_rejects_a_missing_key (theory over all five /tasks routes)",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Every_task_route_rejects_an_incorrect_key (theory over all five /tasks routes)",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs - the five CRUD tests prove the same routes succeed once the key is supplied",
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs - MapGroup(\"/tasks\").RequireApiKey()"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Every_task_route_rejects_a_missing_key",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Rejected_list_request_returns_no_task_data - the 401 body carries no task data"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Every_task_route_rejects_an_incorrect_key",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Key_comparison_is_exact - wrong casing, trailing whitespace and an empty value are each rejected"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Configured_key_overrides_the_default - the configured value is accepted and the built-in default is then rejected"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Default_key_is_accepted_when_configuration_is_not_set (appsettings.json deliberately carries no ApiKey)",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Empty_configured_key_falls_back_to_the_default - an empty configured value falls back instead of matching a missing header"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_request_for_a_missing_task_returns_401_not_404 - the same id returns 404 with the key, proving the 401 pre-empted a real 404"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_post_with_a_blank_title_returns_401_not_400",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_put_with_a_blank_title_returns_401_not_400",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs - the no-body POST/PUT cases inside the all-routes theories, which originally exposed the binding-order defect behind RUN-DEC-002"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_post_creates_no_task",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_delete_does_not_remove_the_task",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Unauthenticated_put_does_not_update_the_task - each re-reads through an authenticated client to prove the store is unchanged",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Rejected_list_request_returns_no_task_data"
+        ]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Root_health_endpoint_stays_public",
+          "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs::Root_health_endpoint_ignores_an_incorrect_key"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs - all five baseline tests pass with their assertions untouched; the only edit is that the client now supplies the key"
+        ]
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "dotnet build - 0 warnings, 0 errors; dotnet test - 28/28, 0 failed (R-003)",
+          "src/TaskTracker.Api/Domain/ - unmodified in git status; a grep for AspNetCore/ApiKey across the folder returns 0 matches (R-004)",
+          "src/TaskTracker.Api/Domain/TaskItem.cs - the only two TaskStatus occurrences in src/ and tests/ are pre-existing doc comments in this untouched file (R-005)",
+          "AGENTS.md and root README.md - unmodified in git status (R-006)"
+        ],
+        "whyNotTest": "This statement is about tooling output and rule compliance, not runtime behaviour, so no test in the suite can assert it: a test cannot observe its own build's warning count, and R-004/R-005/R-006 are properties of the diff rather than of the running system. The evidence is therefore tool output plus targeted diff inspection, with each command and its result named in the refs so the claim is reproducible. Left as honest non-test evidence rather than dressed up with a proxy assertion."
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-001",
+        "status": "pass",
+        "evidence": "Both material questions were surfaced as ledger entries at the moment they arose - RUN-DEC-001 (posture crossing, folds 3) before any code was written, RUN-DEC-002 (enforcement placement) the moment the tests contradicted the accepted ADR - rather than decided silently in prose. Resolved in-arm under the documented no-live-human deviation recorded in the frame record's commentary."
+      },
+      {
+        "id": "R-002",
+        "status": "pass",
+        "evidence": "Every verdict in this run (frame READY_FOR_REVIEW, deliver APPLIED, verify READY) carries confidence, evidenceCoverage and assumptionLoad; every verify finding and every ledger entry carries knowledge type and confidence; the frame record's confidenceLimiters label the one live ASSUMPTION explicitly."
+      },
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet build: 0 warnings, 0 errors. dotnet test: 28 passed / 28 total, 0 failed - re-run independently by the verify emitter with the same result. The five pre-existing tests keep their original assertions; only the client they use now supplies the key."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "No file under src/TaskTracker.Api/Domain/ is modified (git status), and a grep for AspNetCore/ApiKey across that folder returns 0 matches. Enforcement lives in src/TaskTracker.Api/Auth/ plus the wiring in Program.cs and TaskEndpoints.cs; the domain gained no knowledge of authentication, so the domain->HTTP direction is preserved."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "No new TaskStatus identifier was introduced. The only two occurrences across src/ and tests/ are pre-existing doc-comment lines in the untouched Domain/TaskItem.cs explaining why the enum is named TaskState."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "AGENTS.md and root README.md are unmodified in git status. Neither was edited nor proposed for edit; nothing in this change required touching a protected file."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Auth/ApiKeyAuthentication.cs",
+        "change": "added"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Program.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/ApiKeyAuthenticationTests.cs",
+        "change": "added"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "Enforcement was delivered as routing-aware middleware gated on endpoint metadata, not as the `IEndpointFilter` recorded in the ADR that RUN-DEC-001 approved, and the auth source file's path changed from the predicted `Auth/ApiKeyEndpointFilter.cs` to `Auth/ApiKeyAuthentication.cs`. Falsified by evidence rather than preference: minimal-API parameter binding completes before the endpoint-filter pipeline runs, so `POST /tasks` and `PUT /tasks/{id}` with an absent body returned 400 before the filter ever inspected the key - four failing tests and a direct violation of C-007. The contradiction with the accepted ADR was surfaced as a stop rather than resolved silently, the ADR's Decision clause 1 was amended in place to record middleware-after-routing and why both the filter and a path-matching alternative were rejected, and the scope change was authorized in advance by the same decision and applied via `scan.py update-scope --decision RUN-DEC-002` - which is why M5 never fired.",
+        "decision": "RUN-DEC-002"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 10 scan(s) — derived from classification-state.json"
+    }
+  }
+}

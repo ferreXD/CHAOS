@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-task-count-b1a",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T23:15:01Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed and was run inside the loop, attributed to the surfaces that actually fired (M2 data-store, M3 contract-dependency, M4 process, X2 review). The L4 emitter re-ran build and tests independently of the work loop: build 0 warnings / 0 errors, tests 10/10, openspec strict validation PASS. Every contract statement C-001..C-005 is covered by an executing test, the route delta is confirmed purely additive, and the M2 data-store firing is confirmed to have no persistence-model substance behind it. Nothing is deferred and no debt is carried, so READY rather than READY_WITH_DEBT.",
+  "commentary": "Attribution discipline: verify 1 buys safeguards for the surfaces that fired, and safeguards NOT owed are recorded as explicit n/a positive claims rather than silent omissions (VFY-005). Two findings are honest process notes rather than product defects: VFY-004 records that the X2 firing came from a self-review verdict-vocabulary mismatch rather than a substantive review failure — the firing is carried and review 2 was discharged with a real independent pass, never suppressed; VFY-006 records the accepted O(n) cost and the title-vs-contract wording gap. The independent review pass owed by review 2 was performed by me at ceiling: the run's delegation budget permits only the floor mechanical executor and (while the easy gate is open) a mid-tier implementer, and the easy gate closed at scan 1, so no separate reviewer agent was available to route to.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 10,
+        "total": 10,
+        "note": "independent re-run by chaos-record (L4-D4); 5 pre-existing baseline tests plus 5 new count/health tests"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": true,
+        "note": "ran: openspec validate task-count --strict. isComplete:true is expected at classified depth 2 — the full set (proposal, design, specs delta, tasks) is owed and present."
+      },
+      "contract": {
+        "ticked": 5,
+        "total": 5,
+        "note": "C-001..C-005, each covered by an executing integration test"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 7 scan(s) — derived from classification-state.json; diff paths are exactly two of the K1-declared scope paths"
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 10/10, 0 failed; the 5 baseline tests are untouched and still pass" },
+        { "id": "R-004", "status": "pass", "evidence": "the diff touches no Domain/** file; the count is computed at the endpoint boundary, so domain code references no ASP.NET type" },
+        { "id": "R-005", "status": "pass", "evidence": "no enum or contract renaming in the diff; TaskState naming is untouched and no TaskStatus is introduced" },
+        { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are absent from the diff — neither was edited" },
+        { "id": "R-001", "status": "pass", "evidence": "the one material question set is recorded as RUN-DEC-001 with options, recommendation and answer; resolved-in-arm per the run's documented no-live-human deviation" },
+        { "id": "R-002", "status": "pass", "evidence": "every finding and verdict in this record and the frame record carries knowledge type and confidence" }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Count Tasks — GET /tasks/count returns 200 with { \"count\": <integer> }",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — group.MapGet(\"/count\", ...) returning Results.Ok(new { count = store.All().Count })",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Get_tasks_count_returns_200_with_an_integer_count",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — count agrees with the item count of GET /tasks at the same moment",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — count derived from the same TaskStore.All() projection GET /tasks serializes",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Count_equals_the_number_of_tasks_returned_by_get_tasks",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — POST /tasks (201) increases count by exactly 1",
+        "capability": "task-api",
+        "implementation": "no code change required: the count reads the live store projection, so a create is reflected on the next read",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Creating_a_task_increases_the_count_by_exactly_one",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — DELETE /tasks/{id} (204) decreases count by exactly 1",
+        "capability": "task-api",
+        "implementation": "no code change required: the count reads the live store projection, so a delete is reflected on the next read",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Deleting_a_task_decreases_the_count_by_exactly_one",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Count Tasks — GET / and existing /tasks CRUD behaviour are unchanged",
+        "capability": "task-api",
+        "implementation": "additive route registration only; no existing route body, status code or payload shape is modified",
+        "test": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Root_health_endpoint_is_unchanged plus the 5 untouched TaskEndpointsTests",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the route delta is purely additive",
+        "detail": "Attributed to TRG-003 (M3 contract-surface, breaking false). The scan's own cite reads \"route delta: added ['GET /count'] (additive)\" and the diff shows exactly one added route registration — nothing removed, renamed or tombstoned. No existing client can break on this change."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Data-store check: no persistence-model change stands behind the M2 firing",
+        "detail": "Attributed to TRG-001 (M2 sensitive-surface, data-store). M2 fired at K1 purely because the predicted scope line named Domain/TaskStore.cs. The delivered diff touches no Domain/** file at all: the count is computed at the endpoint boundary from the existing TaskStore.All() projection. The store's public shape, its seeding, and its non-durable in-memory character are unchanged, so the architecture's persistence non-goal is not approached. The firing is carried in the record, not retracted."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Invariant safeguard: count cannot drift from the task list",
+        "detail": "Attributed to TRG-003 (M3 contract-surface). The central contract invariant C-002 is structural, not merely tested: the endpoint reads the same TaskStore.All() projection that GET /tasks serializes, so no second source of truth exists that could diverge. The design explicitly rejected a maintained counter for this reason (design.md D2)."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The X2 firing is a verdict-vocabulary artefact, not a review failure",
+        "detail": "Attributed to TRG-004 (X2, surface none), whose cite reads \"self-review verdict 'PASS' != clean\". The scan expects the literal token 'clean'; the loop instructions specify only --self-review <verdict> without naming the accepted vocabulary, so the token 'PASS' fired X2 mechanically. The substantive self-review found no defect. The firing was NOT suppressed and no dimension was lowered: review stands raised to 2 and the independent review pass it owes was performed at ceiling, re-checking scope drift, all six applicable rules, contract coverage and decision completeness — recorded in this record's rules and traceability blocks. Reported as a toolkit finding: the accepted self-review vocabulary should be documented or the token set widened."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth and deploy safeguards were not run, and are not owed",
+        "detail": "No auth, integration or deploy-ops surface fired at any of the 7 scans, so credential-enforcement and deployment safeguards are N/A — asserted rather than silently skipped. The diff introduces no authentication, touches no secret or config key, adds no package reference, and changes no deployment material. This matches the change's stated intent and the architecture's auth non-goal."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "HIGH",
+        "title": "Accepted trade-offs: O(n) count and the 'active' vs 'total' wording gap",
+        "detail": "Two accepted, recorded trade-offs rather than defects. (1) store.All() materializes and sorts the full list to return one integer — O(n) where an O(1) counter would do; accepted because the store is a single-instance in-memory demo store and the invariant's correctness outweighs the allocation (design.md, Risks). (2) The task is titled 'Active-task count endpoint' while its contract defines count as the TOTAL number of tasks, equal to unfiltered GET /tasks. The explicit contract governs and the delta spec records 'total' unambiguously, so no later reader has to guess; a filtered count remains available as a separate, decision-bearing change."
+      },
+      {
+        "id": "VFY-007",
+        "severity": "MINOR",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Toolkit defect: the renderer does not recognise the RUN-DEC-* prefix, so this change's decision is invisible in the rendered artifacts",
+        "detail": "Not attributed to a trigger — found during the verification pass. tools/chaos-render/render.py lines 60 and 64 enumerate the decision-entry prefixes as (PROP|REV|APPLY|APP|VFY|VER|CR|SYNC|ARC|RETRO)-DEC-\\d{3}|ESC-\\d{3}. RUN is absent. The chaos-run skill mandates that every material answer be a RUN-DEC-* ledger entry, so a chaos:run change's decisions match nothing: the rendered change.md Decision-event audit reads '0 entries' and lifecycle.current.decisions renders null, while the same ledger read by tools/chaos-classify/audit.py correctly reports '1 entry, all resolved' and 'stops.placed-have-entries: 1 ledger entry vs 1 placed stop(s)'. Two governance tools therefore disagree about whether this change has any decisions. Per the digest, this prefix list is the canonical scan rule governing lifecycle.current.decisions, the chaos:archive closure matrix and sync reconciliation, so the gap reaches beyond cosmetics. NOT worked around here: renaming the entry to a recognised prefix would violate the chaos-run contract, and hand-editing the rendered file would violate writer rule 1, so the ledger and the records are left correct and the renderer's prefix list is reported as the thing to fix. Impact on this change is presentational only — the audit gate, which is the authority on obligations, passed with the entry counted."
+      }
+    ]
+  }
+}

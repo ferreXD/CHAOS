@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-occ-a1",
+  "recordedAt": "2026-08-04T00:00:00Z",
+  "groups": ["Task shape", "Update semantics", "Conflict semantics", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Task shape",
+      "text": "Every task representation carries an integer `version`, serialized as `version`."
+    },
+    {
+      "id": "C-002",
+      "group": "Task shape",
+      "text": "`POST /tasks` returns HTTP 201 with a task whose `version` is 1."
+    },
+    {
+      "id": "C-003",
+      "group": "Task shape",
+      "text": "Tasks seeded into the store at startup start at `version` 1."
+    },
+    {
+      "id": "C-004",
+      "group": "Update semantics",
+      "text": "Every successful `PUT /tasks/{id}` increments the task's `version` by exactly 1 (1 -> 2 -> 3 ...)."
+    },
+    {
+      "id": "C-005",
+      "group": "Update semantics",
+      "text": "`UpdateTaskRequest` accepts an optional integer field `expectedVersion`; omitting it is valid."
+    },
+    {
+      "id": "C-006",
+      "group": "Update semantics",
+      "text": "When `expectedVersion` is omitted (null), the update proceeds unconditionally (backward-compatible last-writer-wins) and returns HTTP 200 with the version incremented."
+    },
+    {
+      "id": "C-007",
+      "group": "Update semantics",
+      "text": "When `expectedVersion` is provided and equals the task's current `version`, the update succeeds with HTTP 200 and the version increments."
+    },
+    {
+      "id": "C-008",
+      "group": "Conflict semantics",
+      "text": "When `expectedVersion` is provided and does not equal the task's current `version`, the update is rejected with HTTP 409 Conflict."
+    },
+    {
+      "id": "C-009",
+      "group": "Conflict semantics",
+      "text": "A rejected (409) update leaves the task entirely unchanged: no field is updated and the version is not bumped."
+    },
+    {
+      "id": "C-010",
+      "group": "Conflict semantics",
+      "text": "The version comparison and the version increment are performed atomically inside `TaskStore`, so two concurrent writers cannot both succeed from the same observed version (ADR 2026-08-04-optimistic-concurrency-in-the-store)."
+    },
+    {
+      "id": "C-011",
+      "group": "Non-regression",
+      "text": "The existing PUT integration test, which omits `expectedVersion`, keeps passing unchanged; `dotnet build` and `dotnet test` stay green (R-003)."
+    },
+    {
+      "id": "C-012",
+      "group": "Non-regression",
+      "text": "`GET /tasks`, `GET /tasks/{id}`, `DELETE /tasks/{id}`, the blank-title 400 validation, and the 404-on-unknown-id behaviour of PUT are unchanged."
+    },
+    {
+      "id": "C-013",
+      "group": "Non-regression",
+      "text": "The domain layer gains no dependency on the HTTP layer (R-004) and `TaskState` naming is preserved (R-005)."
+    }
+  ]
+}

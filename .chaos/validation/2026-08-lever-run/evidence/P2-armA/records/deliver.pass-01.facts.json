@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-soft-delete-tasks",
+  "mode": "standard",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T22:34:30Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "APPLIED, not PARTIALLY_APPLIED: all 13 contract statements are delivered and evidenced, nothing was deferred, and the four changed files are exactly the four declared in scope at K1. The two behaviours the task contract left unspecified were not guessed - they were surfaced as RUN-DEC-002 and resolved on a non-regression argument before being coded. Confidence is HIGH because every claim is backed by an executed check rather than by reading: build and tests were re-run independently by the verify emitter, and the rule checks are greps whose output is quoted.",
+  "commentary": "Two things in this delivery are worth a reviewer's attention rather than being buried in the coverage table.\n\nFirst, the shape of the test change. The pre-existing `Delete_removes_a_task` asserted the old semantics, and rewriting it is exactly where a regression could hide. It was re-expressed, not weakened: both original assertions (204 on delete, 404 on a subsequent GET by id) survive verbatim, and the test only gained a retention assertion. Every other pre-existing test is byte-identical apart from the shared TaskDto record gaining its `DeletedAt` member.\n\nSecond, `PUT` deliberately changed behaviour for soft-deleted ids even though the task said not to change unrelated CRUD behaviour. That is recorded as a deviation below, but the reasoning is that it is the option which does NOT change observable behaviour: before this change a deleted row was evicted, so `PUT` against that id already returned 404. Leaving `Update` alone would have been the change - it would have made a hidden task editable.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 11,
+      "total": 11
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::An_active_task_serializes_deleted_at_as_null",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_soft_deletes_a_task_and_hides_it"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_soft_deletes_a_task_and_hides_it"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_soft_deletes_a_task_and_hides_it"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_unknown_id_returns_not_found"
+        ]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_hides_soft_deleted_tasks_by_default_and_includes_them_on_request"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_hides_soft_deleted_tasks_by_default_and_includes_them_on_request"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_soft_deletes_a_task_and_hides_it"
+        ]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Seeded_tasks_are_active_after_startup"
+        ]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "dotnet build: 0 errors, 0 warnings",
+          "dotnet test: 11/11 passed, 0 failed - the 5 pre-existing tests among them",
+          "independently re-run by chaos-record verify --run-checks"
+        ]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_creates_a_task_and_get_by_id_returns_it",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected"
+        ]
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Domain/ - grep for Microsoft.AspNetCore, IResult, Results., HttpContext returns no match (R-004)",
+          "src/TaskTracker.Api/Domain/TaskItem.cs - the TaskState enum is untouched by the diff; the only TaskStatus occurrence is the pre-existing comment explaining the naming (R-005)"
+        ],
+        "whyNotTest": "R-004 and R-005 are static structural constraints, not runtime behaviour: a passing HTTP test cannot distinguish a domain that references ASP.NET types from one that does not, and no xUnit assertion would fail if the enum were renamed - the build would simply break elsewhere. The checkable violation criteria in .chaos/rules/index.md are themselves phrased as source-inspection criteria ('Domain code references Microsoft.AspNetCore.*', 'Reintroducing TaskStatus'), so grep over the changed tree is the evidence the rule asks for, and its output is quoted in the verify record's rules block. An architecture-fitness test would be the durable answer and is recorded as a todo candidate."
+      },
+      {
+        "statement": "C-012",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_of_an_already_soft_deleted_task_returns_not_found_and_keeps_the_original_stamp",
+          "src/TaskTracker.Api/Domain/TaskStore.cs::SoftDelete - the CAS retry loop keeps the guarantee true under concurrent deletes as well (see VFY-003)"
+        ]
+      },
+      {
+        "statement": "C-013",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_on_a_soft_deleted_task_returns_not_found_and_leaves_it_unmodified",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task - the active-task path is unchanged"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 11/11, 0 failed; the 5 pre-existing tests all pass. The one renamed test (Delete_removes_a_task -> Delete_soft_deletes_a_task_and_hides_it) kept both of its original assertions and only added one, so the baseline is a strict subset of what is asserted now."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore, IResult, Results. and HttpContext returns no match. TaskStore.cs uses System.Collections.Concurrent and LINQ only; the endpoints depend on the domain, never the reverse."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "grep for TaskStatus across src/ and tests/ matches only the pre-existing explanatory comment in TaskItem.cs; the work-item enum remains TaskState and is not touched by this diff."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "git status shows AGENTS.md and root README.md unmodified. No protected file was edited, previewed or otherwise written by this run."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "Soft-delete state lives in the domain model and the store's public shape (`TaskItem.DeletedAt`, `TaskStore.All(includeDeleted)`/`Get`/`SoftDelete`), crossing the architecture posture line that says new behaviour belongs at the endpoint/query boundary. The posture's own 'unless a decision says otherwise' escape is what authorizes it; the reasoning is in the change's ADR.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "`TaskStore.Remove` was deleted rather than kept alongside `SoftDelete`, so hard deletion is no longer reachable from any code path. Accepted consequence: the store grows monotonically for the process lifetime and there is no purge path.",
+        "decision": "RUN-DEC-001"
+      },
+      {
+        "summary": "`PUT /tasks/{id}` changed behaviour for soft-deleted ids (now 404, previously it would have edited the hidden row), despite the task's instruction not to change unrelated CRUD behaviour. Judged not unrelated: it is a direct consequence of introducing soft delete, and 404 is the outcome that PREVIOUSLY held, because the row used to be evicted.",
+        "decision": "RUN-DEC-002"
+      },
+      {
+        "summary": "`DELETE /tasks/{id}` on an already soft-deleted task returns 404 rather than an idempotent 204. Same non-regression argument: a second delete returned 404 before this change.",
+        "decision": "RUN-DEC-002"
+      },
+      {
+        "summary": "DECLARED PROTOCOL DEVIATION - the human stop is mechanized. No live human was available in this measurement run, so both decisions were recorded in the ledger and resolved in the same pass with documented maintainer-style rationales, status RESOLVED-IN-ARM, tagged 'resolved-in-arm (no live human; lever-run mechanized run)'. Answering the approves-change decision constituted the approval. Declared in the frame record's commentary; nothing else in the loop was relaxed.",
+        "decision": "RUN-DEC-001"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 12 scan(s) - derived from classification-state.json. The four modified files are exactly the four predicted at K1; no file was created or deleted in the governed subject, and no path outside src/TaskTracker.Api and tests/TaskTracker.Tests was touched."
+    }
+  },
+  "todoCandidates": [
+    {
+      "title": "Give TaskStore.Update the same compare-and-swap discipline SoftDelete now has",
+      "note": "Update still does a non-atomic read-modify-write (TryGetValue then indexer assignment). That is pre-existing behaviour and out of this change's scope, but it is now the only writer in the store without CAS."
+    },
+    {
+      "title": "Add an architecture-fitness test asserting Domain/** references no ASP.NET type",
+      "note": "R-004 and R-005 are currently evidenced by grep at review time (see C-011's whyNotTest). A fitness test would make the constraint fail the build instead of relying on a reviewer running the right grep."
+    },
+    {
+      "title": "Fold the ADR's posture amendment into .chaos/architecture.md via chaos:sync",
+      "note": "RUN-DEC-001 carries sync-action CREATE_ADR + UPDATE_CHAOS_RULES. Until the boundary-model and data-access sections are amended, the next change will classify against posture this change has already superseded and will re-cross it blind."
+    },
+    {
+      "title": "Consider a restore/purge path for soft-deleted tasks",
+      "note": "There is deliberately no HTTP way to un-delete a task or to reclaim storage. Both were judged out of scope; a retention policy would be its own change."
+    }
+  ]
+}

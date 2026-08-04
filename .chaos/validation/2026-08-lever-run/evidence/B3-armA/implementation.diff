@@ -1,0 +1,151 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 612f44c..77d473b 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -13,6 +13,13 @@ namespace TaskTracker.Api.Endpoints;
+ /// </remarks>
+ public static class TaskEndpoints
+ {
++    /// <summary>
++    /// Maximum accepted length of a task <c>Title</c>, in characters. Titles of exactly this
++    /// length are accepted; anything longer is rejected with <c>400 Bad Request</c>. Request
++    /// validation only — the domain and the store are unaware of this bound (R-004).
++    /// </summary>
++    public const int MaxTitleLength = 200;
++
+     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
+     {
+         var group = app.MapGroup("/tasks");
+@@ -30,6 +37,10 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
++            if (request.Title.Length > MaxTitleLength)
++                return Results.BadRequest(
++                    new { error = $"Title must be at most {MaxTitleLength} characters." });
++
+             var task = store.Add(request.Title, request.Status, request.Priority);
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+@@ -40,6 +51,10 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
++            if (request.Title.Length > MaxTitleLength)
++                return Results.BadRequest(
++                    new { error = $"Title must be at most {MaxTitleLength} characters." });
++
+             return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
+                 ? Results.Ok(updated)
+                 : Results.NotFound();
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index d2870e9..b9835e6 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,106 @@ public class TaskEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Put_with_blank_title_is_rejected()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Keep me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title = "   ", status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Keep me", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++    }
++
++    [Fact]
++    public async Task Post_with_title_longer_than_the_maximum_is_rejected_and_creates_nothing()
++    {
++        var client = _factory.CreateClient();
++        var before = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = new string('x', MaxTitleLength + 1), status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++
++        var after = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.Equal(before!.Count, after!.Count);
++    }
++
++    [Fact]
++    public async Task Post_with_a_title_of_exactly_the_maximum_length_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var title = new string('y', MaxTitleLength);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(title, created!.Title);
++        Assert.Equal(MaxTitleLength, created.Title.Length);
++    }
++
++    [Fact]
++    public async Task Put_with_title_longer_than_the_maximum_is_rejected_and_does_not_modify_the_task()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Original", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}",
++            new { title = new string('z', MaxTitleLength + 1), status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Original", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++        Assert.Equal("Low", fetched.Priority);
++    }
++
++    [Fact]
++    public async Task Put_with_a_title_of_exactly_the_maximum_length_is_accepted()
++    {
++        var client = _factory.CreateClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Short", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var title = new string('w', MaxTitleLength);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title, status = "Done", priority = "Medium" });
++
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(title, fetched!.Title);
++        Assert.Equal(MaxTitleLength, fetched.Title.Length);
++    }
++
++    [Fact]
++    public void The_documented_maximum_title_length_is_200_characters()
++    {
++        // Pins the contracted bound itself. The boundary tests above are written against the
++        // endpoint's constant for readability; without this assertion they would keep passing
++        // if the limit were silently moved away from the contracted 200.
++        Assert.Equal(200, TaskTracker.Api.Endpoints.TaskEndpoints.MaxTitleLength);
++    }
++
++    /// <summary>The bound under test, taken from the endpoint definition rather than duplicated.</summary>
++    private const int MaxTitleLength = TaskTracker.Api.Endpoints.TaskEndpoints.MaxTitleLength;
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     private record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

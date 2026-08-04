@@ -90,6 +90,32 @@ def read_arm(path):
     return buckets, per_path
 
 
+def ordered_transcripts(transcript_dir):
+    """Arm order is the journal's agent-START order (arms run sequentially), NOT the sorted
+    filename order — transcript files are named by hash, so sorting them shuffles the arms.
+    Getting this wrong assigns governed reads to plain arms and silently invents a finding."""
+    journal = os.path.join(transcript_dir, "journal.jsonl")
+    order = []
+    if os.path.isfile(journal):
+        with open(journal, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                except ValueError:
+                    continue
+                if rec.get("type") != "started":
+                    continue
+                aid = rec.get("agentId") or rec.get("id")
+                if aid and aid not in order:
+                    order.append(aid)
+    files = [n for n in os.listdir(transcript_dir)
+             if n.startswith("agent-") and n.endswith(".jsonl")]
+    by_id = {n[len("agent-"):-len(".jsonl")]: n for n in files}
+    ordered = [by_id[a] for a in order if a in by_id]
+    ordered += sorted(n for n in files if n not in ordered)   # any stragglers, deterministically
+    return ordered
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="read volume + fixed-corpus share (L2 diagnostic)")
     ap.add_argument("transcript_dir")
@@ -98,8 +124,7 @@ def main(argv=None):
     ap.add_argument("--top", type=int, default=8, help="largest reads to list per arm")
     args = ap.parse_args(argv)
 
-    files = sorted(f for f in os.listdir(args.transcript_dir)
-                   if f.startswith("agent-") and f.endswith(".jsonl"))
+    files = ordered_transcripts(args.transcript_dir)
     if not files:
         sys.exit("no agent-*.jsonl transcripts under %s" % args.transcript_dir)
     names = (args.names.split(",") if args.names else DEFAULT_NAMES)[:len(files)]

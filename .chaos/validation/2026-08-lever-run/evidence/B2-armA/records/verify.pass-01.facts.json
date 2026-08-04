@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status-b2a",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T23:31:54Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 became owed when X2 fired at K4 and was run inside the loop, attributed to the surfaces that actually fired: process (M4 decision-density) and the X2-driven independent review pass. Build and tests were re-run independently by the emitter — 0 errors, 13/13 — all six contract statements carry evidence, the OpenSpec delta validates strict, and the independent review found no defect above ADVISORY. Nothing is deferred and no debt is created by this change, so READY rather than READY_WITH_DEBT: the one outstanding item, the unimplemented priority/AND half of requirement 'List Tasks', predates this change and is carried by APP-DEC-002 as pre-existing accepted risk, not as debt this run incurred.",
+  "commentary": "Attribution discipline: verify 1 buys safeguards for the surfaces that fired, not a general sweep. M4 fired on surface 'process' and X2 on surface 'none', so the safeguards run here are decision-completeness and an independent review of the delivered diff. Auth, data-store and contract-dependency safeguards were NOT owed — recorded below as explicit n/a positive claims (VFY-004), never as silent omission. Honest note on X2 itself: the self-review found no defect, but the checkpoint was called with the verdict token 'pass' where the tool's vocabulary expects 'clean', and it correctly read anything else as a fail. The firing was left standing and its consequences (review 2, verify 1) were paid in full rather than re-run away — dimensions are monotone and a firing is never suppressed. That is why this record exists at all, and the independent review it bought is real work, not a formality.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 13,
+        "total": 13,
+        "note": "independent re-run by chaos-record (L4-D4); 5 baseline tests preserved, 8 added"
+      },
+      "contract": {
+        "ticked": 6,
+        "total": 6,
+        "note": "C-001..C-006, each covered; C-005 carries code evidence with whyNotTest, the other five are test-covered"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "`openspec validate filter-tasks-by-status --strict` → \"Change 'filter-tasks-by-status' is valid\". isComplete:false is EXPECTED at classified depth 1: the CLI measures the full artifact set (proposal/design/tasks), which a depth-1 change does not owe."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 7 scan(s) — derived from classification-state.json; the diff paths are exactly two of the three predicted scope paths"
+      },
+      "rules": [
+        { "id": "R-001", "status": "pass", "evidence": "Both material questions were surfaced as ledger entries (APP-DEC-001 approves-change, APP-DEC-002 discordance) and neither was decided silently; resolution is the documented in-arm maintainer rationale declared in the frame commentary." },
+        { "id": "R-002", "status": "pass", "evidence": "Every verdict in this run carries confidence + evidenceCoverage + assumptionLoad; every finding and ledger entry carries a knowledge type and confidence." },
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 13/13, 0 failed, on the emitter's independent re-run; the 5 baseline tests are unmodified and still pass." },
+        { "id": "R-004", "status": "pass", "evidence": "The diff touches no file under Domain/**; filtering is applied in the endpoint lambda over store.All(), so TaskStore's public shape is unchanged and the domain references no ASP.NET type." },
+        { "id": "R-005", "status": "pass", "evidence": "TaskState is consumed, never renamed; no TaskStatus identifier is introduced anywhere in the diff." },
+        { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are absent from the diff — no protected file was written, silently or otherwise." }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "List Tasks — status filter (delta spec: Filter by status)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — MapGet(\"/\") filters store.All() by the parsed TaskState",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_filtered_by_status_returns_only_that_status (3 cases: Open, InProgress, Done)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks — status matching is case-insensitive (delta spec scenario added by this change)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — TryParseState uses Enum.TryParse(ignoreCase: true)",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Status_filter_is_case_insensitive",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks — unfiltered default returns every task",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — a null status short-circuits to store.All()",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_status_returns_every_task and the untouched baseline Get_tasks_returns_the_seeded_tasks",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks — an unrecognized status value is rejected with 400 (incl. the numeric-value scenario added by this change)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — TryParseState rejects non-letter-initial, comma-combined and undefined values; the handler returns Results.BadRequest with an error object",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Unrecognised_status_value_is_rejected (3 cases: Bogus, 0, Open,Done)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks — priority filter and AND-combination",
+        "capability": "task-api",
+        "implementation": "not implemented; pre-existing gap, out of this change's approved contract",
+        "test": "none",
+        "status": "MISSING",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Process safeguard: both material decisions are complete, and the delivered diff stays inside what they authorized",
+        "detail": "Attributed to TRG-001 (M4 decision-density, surface process). The ledger holds exactly two decision entries under the §2 scan rule; both are resolved, both carry folds (3 and 2), a why-material line and a sync-action. The delivered diff matches APP-DEC-002 option A precisely: status filtering only, no priority code, and no edit that narrows openspec/specs/task-api/spec.md."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Independent review pass (review 2): the parser is stricter than a bare Enum.TryParse, by test-proven necessity",
+        "detail": "Attributed to TRG-002 (X2, review→2). The first test cycle failed on '?status=Open,Done': Enum.TryParse OR-combines a comma list into Open|Done == Done, a value Enum.IsDefined then accepts, so a malformed value silently returned the Done bucket with HTTP 200. The guard now rejects comma-bearing and non-letter-initial input before parsing, and the case is pinned by an InlineData row. Reviewed with fresh eyes against the final diff: ordering is preserved (Where over the already-ordered store.All()), no other endpoint is touched, and the 400 body follows the endpoint's existing { error = ... } convention."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "Deliberate reading: an empty '?status=' is treated as an unrecognized value, not as an absent parameter",
+        "detail": "Attributed to TRG-002 (independent review). 'GET /tasks?status=' binds to the empty string rather than null, so it returns 400 while 'GET /tasks' returns every task. The contract states the no-parameter case and the unrecognized-value case but not the present-but-empty case; the empty string is not one of the three TaskState names, so it is rejected. Recorded as a judgement call rather than a silent behaviour, since a caller could reasonably have expected the unfiltered list."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, data-store and contract-dependency safeguards were not run, and are not owed",
+        "detail": "Only surfaces 'process' (M4) and 'none' (X2) fired across 7 scans; M1, M2, M3, M5, X1 and X3 never fired. Asserted, not skipped silently: the diff touches no Domain/** file, no credential or config key, no dependency manifest (no .csproj change), and adds no route registration — GET /tasks already existed and its unfiltered behaviour is byte-for-byte preserved."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Residual: the priority/AND half of requirement 'List Tasks' remains unimplemented — pre-existing, not incurred here",
+        "detail": "Attributed to TRG-001 (process) via APP-DEC-002, sync-action RECORD_ACCEPTED_RISK. openspec/specs/task-api/spec.md required status+priority AND-combined filtering before this change began, with no filtering implemented at all. This run closes the status half and leaves the requirement's priority clauses intact in both the main spec and the delta. A follow-up change is owed; archiveReadiness is READY because this run introduced no gap of its own."
+      }
+    ]
+  }
+}

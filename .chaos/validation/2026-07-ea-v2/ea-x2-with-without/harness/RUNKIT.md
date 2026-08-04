@@ -294,3 +294,52 @@ The held-out **oracles** (`AuthOracleTests.cs`, `SoftDeleteOracleTests.cs`,
 - Arms run **sequentially** so `budget.spent()` output-token deltas attribute to one arm.
 - Tokens are an **output-only proxy** (no input tokens; no token infra — IL-PF10). Time is
   **arm-self-reported** (`date +%s`), not an independent stopwatch. Keep both caveats on any re-run.
+
+## Re-run — all four performance levers together (2026-08-04, model claude-opus-5[1m])
+
+Governed arm runs the **post-lever toolkit**: L1 model tiering under the ceiling rule, L2
+governance digest, L3 `chaos-scan` (the scan protocol as a tool), L4 `chaos-record` (facts
+derived, judgement kept). Same frozen tasks, same held-out oracles, **plain-arm prompts
+byte-identical** (lifted programmatically; sha256 `d28ced5572833c47` / `799be1dd6fefc2a5` /
+`d058e37b89ffaa89` — unchanged from Stage D). Harness:
+`../../../2026-08-lever-run/harness/lever-arms.workflow.js`; full scorecard, fidelity table,
+defect analysis and per-lever scoring in that kit's `results.md`. One 12-arm workflow, both
+tiers, one session.
+
+| Pair | task | lever time | plain time | time ratio | lever out-tok | plain out-tok | tok ratio | oracle |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| P1 | auth gate | 1,348 s | 124 s | 10.87× | 86,674 | 10,220 | 8.48× | clean |
+| P2 | soft-delete | 1,391 s | 229 s | 6.07× | 85,479 | 14,066 | 6.08× | clean |
+| P3 | concurrency | 959 s | 106 s | 9.05× | 66,115 | 8,741 | 7.56× | clean |
+| **Σ frozen-3** | | **3,698 s** | **459 s** | **8.06×** | **238,268** | **33,027** | **7.21×** | 19/19 both |
+| B1 | task-count | 872 s | 99 s | 8.81× | 54,398 | 6,682 | 8.14× | clean |
+| B2 | filter-by-status | 850 s | 98 s | 8.67× | 58,493 | 6,991 | 8.37× | clean |
+| B3 | title-max-length | 701 s | 77 s | 9.10× | 47,335 | 5,694 | 8.31× | clean |
+| **Σ light-3** | | **2,423 s** | **274 s** | **8.84×** | **160,226** | **19,367** | **8.27×** | 16/16 both |
+
+**Sixth cost hypothesis falsified, and this one regressed.** By the classifier's own banding:
+**band A 8.34× / band B 7.37×** against bars of ≤2.0× / ≤3.0×, versus Stage D's 4.81× / 5.51×.
+Governed absolute **+45.7%**; the denominator did not drift (plain arms +1.9% vs Stage D).
+Pre-registered predictions (band A 2.5–4.0×, band B 3.0–4.5×) missed in the wrong direction.
+
+**Most of the regression is attributable to three defects in the levers' own build, not to the
+levers' design.** (D1) `render.py` does not know the `RUN-DEC-*` prefix its own skills mandate —
+it parsed **zero** decisions from conformant ledgers and blocked close on **6/6 arms**;
+(D2) `record.py` emits `mode: null` with no preset, which the record schema's closed enum
+rejects; (D3) `scan.py k4 --self-review` takes free text and fires X2 for anything but literal
+`clean` — every arm passed `pass`/`PASS`, so **X2 fired 6/6**, buying an independent review pass
+and a verify pass no arm owed. D3 is a usability defect that manufactures governance.
+
+**The structural targets did move**, measured with one instrument across both runs: reasoning
+share of governed output **61% → 52.6%**, classification machinery **48.3% → 43.2%**,
+fixed-corpus read volume **~122k → ~64.5k chars/arm (−47%)**. L2's ≤40k prediction still missed.
+
+**L1 never engaged: `ceiling:1 mid:0 floor:0` on 6/6, 12 invocations all `claude-opus-5`,
+100% of tokens at ceiling** (transcript-derived count agrees exactly with self-report). The
+L1-D11 easy gate requires *zero triggers fired*, which never holds past the first scan — the
+gate is **inert as specified** and its predictions are unscored, not falsified.
+
+**Quality held: 0 oracle failures on 12/12**, audit exit 0 on 6/6 plus 6/6 independent
+out-of-band replays, `judgementAutoFilled` false on 6/6 (L4's honesty guard held in the wild),
+0 hand-written rendered artifacts. **Fidelity moved**: X2 on 6/6 (D3-caused), B2 fired M4 where
+none was registered, B1 reached `openspec 2`. **C-15 held again — B3 clean.**

@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "soft-delete-tasks",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-soft-delete-tasks",
+  "mode": "standard",
+  "verdict": "READY",
+  "at": "2026-08-03T22:33:04Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by the data-store firings and was run inside the loop, attributed to that surface: the persistence-semantics and backward-compatibility safeguards are the ones that actually ran. Build and tests were re-run independently by the emitter (11/11, 0 errors, 0 warnings) and the delta spec re-validated strict. Every one of the 13 contract statements has evidence, 12 of them executable. READY rather than READY_WITH_DEBT because the one real residual the review pass found - delete losing the atomicity the superseded `TryRemove` had - was repaired inside the loop rather than recorded as debt.",
+  "commentary": "Attribution discipline: verify 1 buys safeguards for the surface that fired, and the surface here was data-store (TRG-001 M2, TRG-002 M1). Auth and deploy-ops safeguards were NOT run and are NOT owed - recorded below as an explicit n/a positive claim rather than a silent omission.\n\nThe verify pass is a re-emission. A first pass was emitted, then aborted and its partial deleted when the independent review pass found the atomicity regression; the repair re-entered the work loop (work unit 4), scan 12 saw the repair diff, and this record was emitted against the repaired tree. Per the record protocol an aborted pass writes no record, so there is one verify pass on disk, not two.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 11,
+        "total": 11,
+        "note": "independent re-run by chaos-record (L4-D4); 5 pre-existing baseline tests plus 6 added by this change"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "ran: openspec validate soft-delete-tasks --strict => 'Change soft-delete-tasks is valid'. isComplete is not asserted here: at classified depth 1 only the delta spec is owed, so the CLI's full-set completeness reads false by design and is not a degradation."
+      },
+      "contract": {
+        "ticked": 13,
+        "total": 13,
+        "note": "C-001..C-013 all covered. 12 carry executable evidence; only C-011 (R-004/R-005 boundary and naming) is code/doc evidence, justified in the deliver record's whyNotTest."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 12 scan(s) - derived from classification-state.json. The four changed files are exactly the four declared at K1; no new file was created in the governed subject."
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "dotnet test 11/11, 0 failed, independently re-run. The 5 pre-existing tests all still pass; the one whose name changed (Delete_removes_a_task -> Delete_soft_deletes_a_task_and_hides_it) kept both original assertions (204 on delete, 404 on subsequent GET by id) and only gained a retention assertion, so the baseline's guarantees are a strict subset of the new test's." },
+        { "id": "R-004", "status": "pass", "evidence": "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore, IResult, Results. and HttpContext returns no match; TaskStore.cs uses only System.Collections.Concurrent and LINQ. The dependency arrow endpoints -> domain is unchanged." },
+        { "id": "R-005", "status": "pass", "evidence": "grep for TaskStatus across src/ and tests/ matches only the pre-existing doc comment in TaskItem.cs explaining why TaskState is used instead; the enum is untouched by this change." },
+        { "id": "R-006", "status": "pass", "evidence": "git status shows AGENTS.md and root README.md unmodified; no protected file was read-modified-written by this run." }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Task Representation Carries A Deletion Timestamp - deletedAt is null for active tasks, ISO-8601 when deleted",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskItem.cs - DateTimeOffset? DeletedAt = null on the record",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::An_active_task_serializes_deleted_at_as_null (asserts the raw wire form contains \"deletedAt\":null, so the property is emitted rather than omitted)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Seeded tasks remain active after startup (backward-compatible migration)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskItem.cs - DeletedAt defaults to null, so the four unchanged AddAt seed calls produce active tasks with no migration step",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Seeded_tasks_are_active_after_startup",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Delete Task Is A Soft Delete - 204, stamped, retained, 404 for unknown ids",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs::SoftDelete + src/TaskTracker.Api/Endpoints/TaskEndpoints.cs DELETE mapping; TaskStore.Remove is gone, so no code path evicts a row any more",
+        "test": "TaskEndpointsTests::Delete_soft_deletes_a_task_and_hides_it, ::Delete_unknown_id_returns_not_found",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Deleting an already soft-deleted task is not found and keeps the original stamp (RUN-DEC-002)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs::SoftDelete - the guard returns null when DeletedAt is already set, and the CAS retry loop keeps that true under concurrency",
+        "test": "TaskEndpointsTests::Delete_of_an_already_soft_deleted_task_returns_not_found_and_keeps_the_original_stamp",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "List Tasks - active by default, all tasks with includeDeleted=true",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs::All(bool includeDeleted = false) + the GET /tasks mapping binding bool? includeDeleted from the query string",
+        "test": "TaskEndpointsTests::Get_tasks_hides_soft_deleted_tasks_by_default_and_includes_them_on_request (also asserts the global invariant that every task in the default list has a null deletedAt)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Retrieve Task By Id Hides Soft-Deleted Tasks - 404 for a soft-deleted id",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs::Get returns null unless DeletedAt is null; the endpoint maps null to NotFound",
+        "test": "TaskEndpointsTests::Delete_soft_deletes_a_task_and_hides_it (the GET-after-delete assertion, carried over unchanged from the pre-change baseline test)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Update Task Hides Soft-Deleted Tasks - PUT returns 404 and does not modify (RUN-DEC-002)",
+        "capability": "task-api",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs::Update - the DeletedAt guard makes a soft-deleted row unwritable through the HTTP surface",
+        "test": "TaskEndpointsTests::Put_on_a_soft_deleted_task_returns_not_found_and_leaves_it_unmodified (asserts both the 404 and that title/status are unchanged)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Other CRUD behaviour is unchanged (C-010)",
+        "capability": "task-api",
+        "implementation": "POST /tasks and the blank-title 400 validation are untouched in the diff; PUT changes only its treatment of soft-deleted ids, which reproduces the pre-change outcome (the row used to be evicted, so PUT already returned 404)",
+        "test": "TaskEndpointsTests::Post_creates_a_task_and_get_by_id_returns_it, ::Put_updates_an_existing_task, ::Post_with_blank_title_is_rejected - all three carried over unmodified and passing",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Data-store safeguard: deletion is retentive - no code path evicts a row any longer",
+        "detail": "Attributed to TRG-001 (M2 sensitive-surface, data-store) and TRG-002 (M1 posture-crossing, data-store) - the firings that bought verify 1. Checked directly: TaskStore.Remove and its TryRemove call are gone from the diff, grep for '.Remove(' across src/ and tests/ returns no match, and the ConcurrentDictionary is now only ever written through Add/Update/SoftDelete, all of which retain the key. The retention claim is also asserted end-to-end by Delete_soft_deletes_a_task_and_hides_it via ?includeDeleted=true."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Backward-compatibility safeguard: no migration step exists or is needed",
+        "detail": "Attributed to TRG-001 (M2, data-store). The store is an in-memory ConcurrentDictionary rebuilt at every process start, and DeletedAt is a nullable positional parameter defaulted to null, so the four seed calls in the TaskStore constructor are unchanged and produce active rows. There is no on-disk schema, so 'backward-compatible migration' is satisfied by the nullable default rather than by a migration script. Asserted by Seeded_tasks_are_active_after_startup. Recorded as a bounded claim: were durable persistence introduced later (an architecture non-goal today), that column would need a real nullable-with-default migration."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Repaired in-loop: soft delete regained the atomicity the superseded hard delete had",
+        "detail": "Found by the independent review pass that review 2 owed after TRG-004 (X2). The first implementation of SoftDelete did a read-modify-write (TryGetValue, then indexer assignment), whereas the Remove it supersedes used the atomic TryRemove. Under concurrent DELETEs both callers could observe DeletedAt == null, both return 204, and the later write overwrite the earlier stamp - violating C-012 (repeat delete returns 404 and preserves the original stamp). Repaired as work unit 4 with a compare-and-swap retry loop over ConcurrentDictionary.TryUpdate, so the stamp is only written onto the exact instance whose DeletedAt was observed null. Scan 12 saw the repair diff and fired nothing new. Note the sibling Update method retains the same pre-existing non-atomic shape; that is untouched pre-existing behaviour, out of this change's scope, and is carried as a todo candidate rather than silently widened into this change."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "X2 attribution: the trigger fired on a verdict-token mismatch, not on a failed self-review",
+        "detail": "TRG-004 records X2 with the cite \"self-review verdict 'PASS' != clean\". The K4 checkpoint compares the supplied verdict against the literal token 'clean'; the run supplied 'PASS', which is a vocabulary mismatch. The substantive self-review found no defects. The firing was NOT suppressed or re-run with a friendlier token - dimensions are monotone and suppressing a firing is forbidden - so review rose to 2 and an independent review pass was genuinely performed. That pass is what produced VFY-003, so the mechanically-raised dimension paid for itself."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, deploy-ops and integration safeguards were not run and are not owed",
+        "detail": "No trigger named those surfaces - the only surfaces that fired are data-store (TRG-001, TRG-002) and process (TRG-003, M4 decision-density). Asserted rather than silently skipped: the diff touches no credential, key or config material, adds no dependency to either csproj, changes no deployment or CI file, and introduces no external integration. The architecture's 'Authentication / authorization posture: none' is unchanged by this run."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "Unspecified-but-conventional: a non-boolean includeDeleted value yields 400",
+        "detail": "?includeDeleted=banana fails minimal-API parameter binding and returns 400 Bad Request. Neither the task contract nor the delta spec states this. It was NOT surfaced as a stop because the repository already answers it: openspec/specs/task-api/spec.md requires that an unrecognized filter value SHALL result in 400 Bad Request, and the framework's default reproduces that convention for the new parameter. Recorded here so the agreement is evidenced rather than assumed."
+      }
+    ]
+  }
+}

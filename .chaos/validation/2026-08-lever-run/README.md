@@ -169,3 +169,19 @@ Filled in as the run proceeds; never back-dated.
   `record.py deliver` (facts derived, judgement empty, `scopeDrift` correctly left empty because
   M5 had fired). Smoke artifacts reverted; subject paths verified pristine; digest still fresh.
   **This commit is the pre-registration: it lands before any arm runs.**
+- 2026-08-04 — 12 arms ran to completion: 125 min, 0 agent errors, 1.27 M subagent tokens.
+- 2026-08-04 — scored all 12 arms against the held-out oracles: **0 failures on 12/12**
+  (37/37 · 16/16 · 19/19 · 15/15 · 19/19 · 16/16). Quality gate holds ⇒ the cost reading is
+  valid. Evidence archived; obligation audit independently replayed out of band: **exit 0 on
+  6/6**.
+- 2026-08-04 — analysis instrument corrected **before** any number was reported from it:
+  `read-volume.py` ordered transcripts by filename hash instead of journal start order, which
+  assigned governed reads to plain arms. Fixed and re-run. Separately, a kit-local copy of
+  `decompose-output.py` adds `run scan tool (L3)` / `run record tool (L4)` labels (the Stage-D
+  copy bucketed them as "scan prep"); it **reproduces Stage D's original 48.3%/12.1% exactly**,
+  so the cross-run comparison is instrument-clean.
+- 2026-08-04 — results written ([`results.md`](results.md)); dated row appended to the EA-X2
+  `RUNKIT.md` (append-only, no prior row touched). **Sixth cost hypothesis falsified — and this
+  one regressed** (band A 8.34×, band B 7.37×, governed absolute +45.7%), with most of the
+  regression attributed to three defects in the levers' own build (D1–D3 in `results.md` §2) and
+  **L1 measured as inert** (0 delegations on 6/6).

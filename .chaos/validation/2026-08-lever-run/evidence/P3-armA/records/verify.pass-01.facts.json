@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-occ-a1",
+  "mode": "light",
+  "verdict": "READY",
+  "at": "2026-08-03T22:57:21Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by the data-store firings (TRG-001 M2, TRG-002 M1) and again mechanically by TRG-004 (X2), and it ran inside the loop. Build and tests were re-run independently by the emitter — 0 errors, 0 warnings, 14/14 — and the OpenSpec delta re-validated strictly. The safeguards the fired surface actually demands are persistence-semantics checks, and all four hold: version initialises to 1 on the store's single construction path, the compare-and-swap is atomic, a rejected update mutates nothing, and no durability or migration surface was introduced. Nothing is deferred and no debt is carried, so this is READY rather than READY_WITH_DEBT.",
+  "commentary": "Two things a reader should not have to dig for. First, the X2 firing (TRG-004) is an artefact of my own wording, not a failed review: the detector is a literal string comparison against `clean`, and I passed a prose PASS verdict instead. I did not re-run K4 to make it disappear — firings dedupe and dimensions are monotone, so the honest response is to pay what it raised. review 2 routed to an independent review pass, which I performed at ceiling; its results are VFY-004 and VFY-005 below, and it found no defect. The lesson is recorded rather than laundered. Second, on attribution discipline: the surfaces that fired are data-store and process, so credential and deploy safeguards are genuinely not owed here — VFY-006 asserts that as a positive claim rather than leaving it a silent omission. The one thing I would flag to a maintainer is VFY-003, an unbounded compare-and-swap retry loop that is correct and appropriate at this scale but would deserve a bound if the store ever became genuinely hot.",
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 14,
+        "total": 14,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "openspec": {
+        "validation": "PASS",
+        "isComplete": false,
+        "note": "ran: openspec validate optimistic-concurrency-updates --strict — PASS. isComplete:false is the EXPECTED reading at classified depth 1: the CLI measures the full spec-driven set (applyRequires: [tasks]), which this change does not owe. Observed directly from `openspec status --change optimistic-concurrency-updates --json`; the emitter left it null because it does not parse the status output."
+      },
+      "contract": {
+        "ticked": 13,
+        "total": 13,
+        "note": "C-001..C-013 all covered: eleven by integration tests over the real HTTP surface, two (C-010 atomicity argument, C-013 rule compliance) by test plus direct code inspection. See the deliver record's coverage rows for the per-statement evidence."
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 8 scan(s) — derived from classification-state.json"
+      },
+      "rules": [
+        { "id": "R-003", "status": "pass", "evidence": "Independent re-run: dotnet test 14/14, 0 failed; dotnet build 0 errors, 0 warnings. The five baseline tests are untouched in body and still pass, including the PUT test that omits expectedVersion." },
+        { "id": "R-004", "status": "pass", "evidence": "Grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore, IResult, Results., HttpContext returns no match. The new UpdateOutcome/UpdateResult types are plain domain types; the 409/404/200 mapping lives in Endpoints/TaskEndpoints.cs." },
+        { "id": "R-005", "status": "pass", "evidence": "Grep for TaskStatus over src/ and tests/ matches only the pre-existing explanatory doc comment in Domain/TaskItem.cs; no enum was renamed and TaskState is intact." },
+        { "id": "R-006", "status": "pass", "evidence": "git diff --name-only over AGENTS.md and README.md is empty; no protected file appears in the change." },
+        { "id": "R-001", "status": "pass", "evidence": "The one material question (the store-shape posture crossing) was surfaced as RUN-DEC-001 with four folded questions and resolved explicitly, not decided silently in prose. Deviation: resolved in-arm, no live human — recorded in the frame record's commentary." },
+        { "id": "R-002", "status": "pass", "evidence": "Every verdict in this run carries confidence/evidenceCoverage/assumptionLoad; every finding below carries a knowledge type and confidence." }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Task Version Field — every task carries an integer `version`; created and seeded tasks start at 1",
+        "capability": "task-api (openspec delta, ADDED Requirement)",
+        "implementation": "src/TaskTracker.Api/Domain/TaskItem.cs — `int Version` component; src/TaskTracker.Api/Domain/TaskStore.cs — AddAt is the single construction path and passes Version: 1, so seeded and created tasks are initialised identically by construction rather than by convention",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_returns_a_task_at_version_1, ::Seeded_tasks_start_at_version_1",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Optimistic Concurrency On Task Update — omitted expectedVersion updates unconditionally; matching succeeds; mismatched is rejected with 409 and changes nothing; every success increments the version",
+        "capability": "task-api (openspec delta, ADDED Requirement)",
+        "implementation": "src/TaskTracker.Api/Domain/TaskStore.cs — Update() compares expectedVersion against the read snapshot and commits via ConcurrentDictionary.TryUpdate against that same snapshot; src/TaskTracker.Api/Contracts/TaskRequests.cs — optional `int? ExpectedVersion = null`; src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — maps UpdateOutcome to 200/409/404",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_without_expected_version_succeeds_and_increments_the_version, ::Put_with_a_matching_expected_version_succeeds_and_increments_the_version, ::Put_with_a_stale_expected_version_is_rejected_with_409, ::A_rejected_update_leaves_the_task_completely_unchanged, ::Successive_successful_updates_increment_the_version_monotonically, ::Concurrent_updates_from_the_same_version_let_exactly_one_writer_win",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Unrelated CRUD Behaviour Is Preserved — GET/DELETE, title validation and 404-on-unknown-id are unchanged",
+        "capability": "task-api (openspec delta, ADDED Requirement)",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — only the PUT handler body changed; the GET, POST and DELETE registrations are byte-identical, and the Title guard runs before the concurrency check exactly as before",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_returns_the_seeded_tasks, ::Post_creates_a_task_and_get_by_id_returns_it, ::Put_updates_an_existing_task, ::Delete_removes_a_task, ::Post_with_blank_title_is_rejected (all five unmodified) and ::Put_against_an_unknown_id_is_still_404",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Persistence-semantics safeguard: the version token initialises to 1 on every path, by construction",
+        "detail": "Attributed to TRG-001 (M2 sensitive-surface, data-store) and TRG-002 (M1 posture-crossing, data-store). TaskStore has exactly one construction path for a TaskItem — the private AddAt helper — and both the four seed calls and the public Add() route through it. Version: 1 is therefore not repeated at each call site where a seed could drift out of step with a create; there is structurally no second path to get wrong. Confirmed by ::Post_returns_a_task_at_version_1 and ::Seeded_tasks_start_at_version_1."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Persistence-semantics safeguard: the compare-and-swap is atomic and a rejected update mutates nothing",
+        "detail": "Attributed to TRG-002 (M1, data-store) — this is the safeguard the ADR's crossing was authorized for. Update() commits with ConcurrentDictionary.TryUpdate(id, updated, existing), where `existing` is the exact snapshot whose version was validated; because TaskItem is a record with value equality and Version is part of that value, any concurrent write invalidates the comparand and the CAS fails rather than clobbering. The conflict branch returns before any dictionary write, so a 409 cannot leave a partial mutation. Verified behaviourally, not just by reading: ::Concurrent_updates_from_the_same_version_let_exactly_one_writer_win fires ten simultaneous writers all holding version 1 and asserts exactly one 200, nine 409s and a final version of 2 — the check-then-write implementation this change rejected would fail that assertion. ::A_rejected_update_leaves_the_task_completely_unchanged compares the whole record before and after a rejected update."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "INFERENCE",
+        "confidence": "MEDIUM",
+        "title": "The compare-and-swap retry loop is unbounded",
+        "detail": "Attributed to TRG-002 (M1, data-store). When expectedVersion is null the update is unconditional, so a lost CAS re-reads and retries; there is no attempt cap and no backoff. This is correct — the loop only spins while some other writer is making progress, so it cannot deadlock or livelock in the lock-free sense — and it is appropriate for a process-lifetime in-memory demo store where contention on a single task id is negligible. Recorded as a maintainer-facing note rather than a defect: if this store ever became genuinely hot, or were replaced by a backing store where a retry costs I/O, the loop should gain a bounded attempt count that surfaces as a 409 or 503. Not debt against this change's contract — C-004/C-009/C-010 all hold as written."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "The X2 firing was a verdict-string artefact, not a failed self-review",
+        "detail": "Attributed to TRG-004 (X2 self-review-fail, surface none). The K4 detector is a literal equality test against the token `clean`; I supplied a prose PASS verdict, so it fired. The firing was honoured rather than undone — no re-run of K4 was attempted to launder it, dimensions stayed monotone, and review rose 1 -> 2 with verify held at 1. Process note for the toolkit, not for this change: a passing self-review expressed in prose is indistinguishable from a failing one to this detector, which makes X2 easy to trip accidentally and correspondingly noisy as a signal."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Independent review pass (owed by review 2) found no defect",
+        "detail": "Attributed to TRG-004 (X2), which raises review to 2 and routes to an independent pass. Performed at ceiling over the full diff. Checked and clear: the Title guard still precedes the concurrency check so blank-title input remains 400 rather than 409; the version is server-managed and cannot be set through either request record (CreateTaskRequest is unchanged and UpdateTaskRequest exposes only expectedVersion); the ExpectedVersion parameter is optional with a null default so existing clients and the untouched baseline PUT test bind correctly; the 404 branch is reached before any version comparison, so an unknown id cannot be reported as a conflict. One judgement call worth surfacing: the 409 response body is not specified by the task contract, so I followed the repository's existing error convention — an object with an `error` message — and added expectedVersion and currentVersion so a client can resync without a second GET. That is additive to an error path no existing test or spec pins, and no contract statement constrains it."
+      },
+      {
+        "id": "VFY-006",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, deploy and durability safeguards were not run and are not owed",
+        "detail": "The fired surfaces are data-store (TRG-001, TRG-002) and process (TRG-003 M4 decision-density); no auth, integration or deploy-ops surface fired at any of the 8 scans. Asserted rather than silently skipped: the diff touches no credential, key or config material, adds no dependency to either .csproj, and introduces no durability — the version counter is in-memory process-lifetime state exactly like the rest of TaskStore, so the architecture's persistence non-goal is untouched and there is no migration to check. The store remains a singleton ConcurrentDictionary; the horizontal-scale non-goal is likewise unaffected, though a reader should note that optimistic concurrency is precisely the mechanism that would still be correct if that non-goal were ever revisited."
+      }
+    ]
+  }
+}

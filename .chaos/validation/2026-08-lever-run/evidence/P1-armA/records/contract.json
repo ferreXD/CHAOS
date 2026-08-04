@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth",
+  "recordedAt": "2026-08-03T00:00:00Z",
+  "groups": [
+    "Enforcement",
+    "Configuration",
+    "Ordering",
+    "Public surface",
+    "Non-regression"
+  ],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Enforcement",
+      "text": "Every `/tasks` route — `GET /tasks`, `GET /tasks/{id}`, `POST /tasks`, `PUT /tasks/{id}`, `DELETE /tasks/{id}` — requires a valid API key in the `X-Api-Key` request header."
+    },
+    {
+      "id": "C-002",
+      "group": "Enforcement",
+      "text": "A request to a `/tasks` route with a **missing** `X-Api-Key` header is rejected with HTTP 401 Unauthorized."
+    },
+    {
+      "id": "C-003",
+      "group": "Enforcement",
+      "text": "A request to a `/tasks` route with an **incorrect** `X-Api-Key` header value is rejected with HTTP 401 Unauthorized."
+    },
+    {
+      "id": "C-004",
+      "group": "Configuration",
+      "text": "The valid API key is the string value of configuration key `ApiKey`."
+    },
+    {
+      "id": "C-005",
+      "group": "Configuration",
+      "text": "When configuration key `ApiKey` is not set, the valid API key defaults to `test-secret-key`."
+    },
+    {
+      "id": "C-006",
+      "group": "Ordering",
+      "text": "The authentication check runs before existence checks: an unauthenticated `GET /tasks/{id}`, `PUT /tasks/{id}` or `DELETE /tasks/{id}` for a non-existent id returns 401, never 404."
+    },
+    {
+      "id": "C-007",
+      "group": "Ordering",
+      "text": "The authentication check runs before payload validation: an unauthenticated `POST /tasks` or `PUT /tasks/{id}` with a blank title returns 401, never 400."
+    },
+    {
+      "id": "C-008",
+      "group": "Ordering",
+      "text": "A rejected request reads no task and mutates no task: the store is unchanged after an unauthenticated `POST`/`PUT`/`DELETE`, and no task data appears in the 401 response."
+    },
+    {
+      "id": "C-009",
+      "group": "Public surface",
+      "text": "The root health endpoint `GET /` stays public and returns 200 with no `X-Api-Key` header present."
+    },
+    {
+      "id": "C-010",
+      "group": "Non-regression",
+      "text": "With a valid key supplied, all pre-existing CRUD behaviour of the `/tasks` endpoints is unchanged (list, get-by-id, create, update, delete, blank-title 400)."
+    },
+    {
+      "id": "C-011",
+      "group": "Non-regression",
+      "text": "`dotnet build` and `dotnet test` stay green (R-003), the domain layer gains no dependency on the HTTP layer (R-004), `TaskState` naming is preserved (R-005), and no protected file is edited (R-006)."
+    }
+  ]
+}

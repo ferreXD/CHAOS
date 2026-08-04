@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-task-count-b1a",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T23:16:25Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Every contract statement C-001..C-005 is delivered and covered by an executing integration test, build is clean (0 warnings, 0 errors) and tests are green at 10/10 with the 5 baseline tests untouched. The diff is exactly two files, both declared in the K1 scope, and M5 never fired across 7 scans — NO_DRIFT. No deviation from the approved framing was needed, so the deviations list is empty rather than decision-backed.",
+  "commentary": "Two obligations fired late and were authored at the firing rather than at close, per the creator rule: M4 at K2 raised openspec 0 → 1 and the task-api delta spec was written before any further implementation; M3 at the first diff scan raised openspec 1 → 2 and the full OpenSpec set (proposal, design, tasks) was authored immediately, before the second work unit. The frame record honestly reports openspec depth 0 / NOT_INVOKED because that was the true classified state at framing time; a pass record is never rewritten, so the raised depth is reported here and in the verify record instead. adr settled at 1, below the threshold of 2, so no ADR is owed and none was written — the design rationale lives in openspec/changes/task-count/design.md. The second work unit exists because the self-review caught that ReadFromJsonAsync's case-insensitive web defaults would have accepted a 'Count' field; C-001 names the field exactly 'count', so the assertion was tightened to parse the raw JSON.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 10,
+      "total": 10,
+      "note": "the 5 baseline TaskEndpointsTests unchanged and green + 5 added in TaskCountEndpointTests"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Get_tasks_count_returns_200_with_an_integer_count"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Count_equals_the_number_of_tasks_returned_by_get_tasks"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Creating_a_task_increases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Deleting_a_task_decreases_the_count_by_exactly_one"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskCountEndpointTests.cs::Root_health_endpoint_is_unchanged",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs — all 5 baseline CRUD tests, unmodified and still passing"
+        ]
+      }
+    ],
+    "rules": [
+      { "id": "R-001", "status": "pass", "evidence": "the single material question set is recorded as RUN-DEC-001 with options, recommendation, answer and folds: 3; resolved-in-arm under the run's documented no-live-human deviation rather than guessed in chat" },
+      { "id": "R-002", "status": "pass", "evidence": "every verdict in the frame, deliver and verify records carries confidence / evidenceCoverage / assumptionLoad, and every finding carries a knowledge type" },
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 10/10, 0 failed; the 5 baseline tests are unchanged in the diff and still pass" },
+      { "id": "R-004", "status": "pass", "evidence": "no Domain/** file appears in the diff; the count is read at the endpoint boundary from TaskStore.All(), so domain code references no ASP.NET type" },
+      { "id": "R-005", "status": "pass", "evidence": "no enum or contract rename in the diff; TaskState naming untouched, no TaskStatus introduced" },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are absent from the diff — neither was edited nor silently written" }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskCountEndpointTests.cs",
+        "change": "added"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 7 scan(s) — derived from classification-state.json; the C-15-scoped diff touches exactly two of the paths declared in the K1 scope line"
+    }
+  }
+}

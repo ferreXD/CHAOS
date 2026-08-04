@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "task-count",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-task-count-b1a",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T23:06:42Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 fired M2 (data-store surface) because the predicted scope named Domain/TaskStore.cs; the adjudication pass raised nothing (scanSeq 2). Vector: stops 1 · evidence.targeted 1 · evidence.breadth 0 · review 0 · verify 1 · openspec 0 · adr 0."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The M2 firing closed the L1-D11 easy gate at scan 1; every implementation unit in this run is performed at ceiling, not delegated to mid tier."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The additive route this change introduces is expected to fire M3 at the first K3 diff scan; the K1 adjudication deliberately did not pre-empt it (adjudication rule 12)."
+    }
+  ],
+  "verdictRationale": "Intent, predicted scope and the five contract statements are complete and testable against the existing green baseline (5 integration tests over WebApplicationFactory<Program>). Nothing in the K1 inputs is ambiguous: the change is additive, read-only, and lands at the endpoint boundary the architecture posture designates for new behaviour. The one classification signal — M2 data-store — is a scope-prediction artefact rather than a persistence-model change, and is carried, not suppressed.",
+  "commentary": "Documented deviation for this measurement run: no live human is available. Every decision in this run is recorded in the ledger AND resolved by me with an explicit maintainer-style rationale, with status RESOLVED-IN-ARM and tagged 'resolved-in-arm (no live human; lever-run mechanized run)'. Answering the approves-change decision IS the approval. No preset flag was passed, so the run carries zero floors and the classifier's fired triggers alone set the rigor. The governance digest verified clean (digest.py --check exit 0), so the digest was read once in place of its fourteen source references. OpenSpec is owed at depth 0, so no OpenSpec artifact exists for this change by design — the contract of record is change.md §Contract, backed by records/contract.json. Recorded tooling note: this run passed no preset flag, so classification-state.json carries mode null and the L4 emitter stamped mode: null on this record; the renderer requires a string, so the record's mode reads 'light' — the zero-floor preset — as the honest string encoding of 'no preset given'. The only floor in force is the C-11 unconditional stops floor of 1, not a preset floor.",
+  "facts": {
+    "title": "Active-task count endpoint",
+    "intent": [
+      "Add a lightweight aggregate endpoint that reports how many tasks exist. This is a read-only convenience for the dashboard; it introduces no authentication and no persistence-model change. Contract: add GET /tasks/count returning HTTP 200 with a JSON object {\"count\": <integer>} where count is the total number of tasks currently in the store; count must always equal the number of items returned by GET /tasks (same store, same moment); creating a task (POST /tasks, 201) increases count by exactly 1 and deleting a task (DELETE /tasks/{id}, 204) decreases count by exactly 1; the root health endpoint GET / and all existing /tasks CRUD behaviour are unchanged. Constraints: keep dotnet build and dotnet test green (the existing 5 tests must still pass); do not change unrelated behaviour of the CRUD endpoints; work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the classification owes no OpenSpec artifact; the contract of record is change.md §Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "entrypoint, protected files, minimum pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "behavioural principles + confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007, the executable constraints this change is checked against", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, data-access posture, non-goals — the posture doc passed to the classifier", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the HTTP surface the new route joins", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the in-memory store whose item count the endpoint reports", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "composition root; GET / health endpoint that must stay unchanged", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the 5-test green baseline", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "Additive, read-only route. No authentication, no persistence-model change, no change to any existing endpoint's behaviour, and no new dependency. Blast radius is one endpoint file plus tests.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "`GET /tasks/count` could be swallowed by the existing `GET /tasks/{id}` route and return 404 instead of 200.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The existing by-id route carries a `:guid` route constraint, so the literal segment cannot match it; an integration test asserts 200 plus the JSON body shape."
+        },
+        {
+          "id": "RK-2",
+          "summary": "The count could drift from `GET /tasks` if derived from a separate counter rather than the same store projection.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The count is derived from the same `TaskStore.All()` projection the list endpoint uses; a test asserts equality of the two at the same moment."
+        },
+        {
+          "id": "RK-3",
+          "summary": "Adding count state to the store's public shape would cross the architecture boundary posture (new behaviour belongs at the endpoint/query boundary).",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "The endpoint computes the count at the HTTP boundary from the existing store projection; `Domain/**` is not modified, so R-004 and the boundary posture both hold."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "task-count aggregate endpoint (no OpenSpec artifact owed at depth 0)",
+        "statements": ["C-001", "C-002", "C-003", "C-004"],
+        "tasks": "1 work unit: map GET /tasks/count in TaskEndpoints.cs and add integration tests covering the response shape and the three invariants."
+      },
+      {
+        "capability": "non-regression of the existing surface",
+        "statements": ["C-005"],
+        "tasks": "Covered by the untouched 5-test baseline plus the deliver and verify build+test re-runs."
+      }
+    ]
+  }
+}

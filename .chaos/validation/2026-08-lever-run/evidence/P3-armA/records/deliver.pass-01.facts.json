@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-occ-a1",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T22:59:14Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "APPLIED rather than PARTIALLY_APPLIED: every one of the thirteen contract statements is delivered and evidenced, nothing was deferred, and no part of the intent was dropped or renegotiated along the way. Build is clean (0 errors, 0 warnings) and the suite is 14/14 with the five baseline tests unmodified in body — the backward-compatibility requirement is proven by the pre-existing PUT test, which omits expectedVersion and still passes untouched. The diff is exactly the five files predicted at K1, so scope drift is NO_DRIFT by measurement rather than by assertion: M5 never fired across all 8 scans.",
+  "commentary": "The one decision that mattered here was where the concurrency check lives, and it was made explicitly (RUN-DEC-001, ADR 2026-08-04) rather than absorbed into implementation. Everything downstream follows from it: because the compare-and-swap sits inside TaskStore against the snapshot it validated, C-009 and C-010 are properties of the code's structure rather than of careful handling at the call site. Two coverage rows lean on code inspection alongside their tests and carry whyNotTest accordingly — C-010, whose atomicity claim a test can make very likely but not prove, and C-013, which asserts the absence of a dependency and so is verified by grep. Both are stated as such rather than quietly counted as test-covered. No deviations were needed: nothing in the delivered work departs from what RUN-DEC-001 approved, which is why the deviations list is empty rather than merely unfilled.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 14,
+      "total": 14
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_returns_a_task_at_version_1", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Seeded_tasks_start_at_version_1"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_returns_a_task_at_version_1"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Seeded_tasks_start_at_version_1"]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Successive_successful_updates_increment_the_version_monotonically", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_without_expected_version_succeeds_and_increments_the_version"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_without_expected_version_succeeds_and_increments_the_version", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task"]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_without_expected_version_succeeds_and_increments_the_version", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task"]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_a_matching_expected_version_succeeds_and_increments_the_version"]
+      },
+      {
+        "statement": "C-008",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_with_a_stale_expected_version_is_rejected_with_409"]
+      },
+      {
+        "statement": "C-009",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::A_rejected_update_leaves_the_task_completely_unchanged"]
+      },
+      {
+        "statement": "C-010",
+        "covered": true,
+        "evidence": "code",
+        "whyNotTest": "A test can make an atomicity claim very likely but cannot prove it: ::Concurrent_updates_from_the_same_version_let_exactly_one_writer_win drives ten simultaneous writers all holding version 1 and asserts exactly one 200, nine 409s and a final version of 2 — which a check-then-write implementation would fail — but no finite number of scheduling interleavings establishes the invariant. The proof is structural and is recorded as such: TaskStore.Update commits via ConcurrentDictionary.TryUpdate(id, updated, existing) where `existing` is the very snapshot whose version was compared, and TaskItem is a record whose value equality includes Version, so any interleaved write invalidates the comparand and the swap fails rather than clobbering. Counted as code evidence with the test as strong corroboration, rather than as test evidence.",
+        "refs": ["src/TaskTracker.Api/Domain/TaskStore.cs::Update", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Concurrent_updates_from_the_same_version_let_exactly_one_writer_win"]
+      },
+      {
+        "statement": "C-011",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_updates_an_existing_task", "dotnet test 14/14, 0 failed", "dotnet build 0 errors, 0 warnings"]
+      },
+      {
+        "statement": "C-012",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_returns_the_seeded_tasks", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_creates_a_task_and_get_by_id_returns_it", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Delete_removes_a_task", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Post_with_blank_title_is_rejected", "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Put_against_an_unknown_id_is_still_404"]
+      },
+      {
+        "statement": "C-013",
+        "covered": true,
+        "evidence": "code",
+        "whyNotTest": "Both halves assert the ABSENCE of something, which a runtime integration test cannot observe. R-004 is the absence of an HTTP dependency in the domain: verified by grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore, IResult, Results. and HttpContext, which returns no match — the new UpdateOutcome/UpdateResult types carry no HTTP vocabulary and the status mapping stays in the endpoint. R-005 is the absence of a TaskStatus reintroduction: verified by grep over src/ and tests/, which matches only the pre-existing explanatory doc comment. A compile-time architecture test could enforce R-004 mechanically, but adding one is outside this change's approved scope.",
+        "refs": ["src/TaskTracker.Api/Domain/TaskStore.cs", "src/TaskTracker.Api/Domain/TaskItem.cs", "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs"]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet build: 0 errors, 0 warnings. dotnet test: 14/14 passed, 0 failed. The five baseline tests are unmodified in body — only the shared private TaskDto record gained a Version component so the new assertions can read it — and ::Put_updates_an_existing_task, which omits expectedVersion entirely, still passes. Independently re-run by the verify emitter (L4-D4) with identical results."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "grep over src/TaskTracker.Api/Domain/ for Microsoft.AspNetCore, IResult, Results., HttpContext returns no match. The new domain types (UpdateOutcome enum, UpdateResult record struct) express the outcome in domain vocabulary; Endpoints/TaskEndpoints.cs owns the 200/409/404 mapping. The domain->HTTP direction is unchanged."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "grep for TaskStatus over src/ and tests/ matches only the pre-existing doc comment in Domain/TaskItem.cs that explains why the name is avoided. No enum was renamed; TaskState is intact and still used throughout."
+      },
+      {
+        "id": "R-006",
+        "status": "pass",
+        "evidence": "git diff --name-only -- AGENTS.md README.md is empty. Neither protected file was read-modify-written, previewed or patched by this run."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "change": "modified"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 8 scan(s) — derived from classification-state.json"
+    }
+  }
+}

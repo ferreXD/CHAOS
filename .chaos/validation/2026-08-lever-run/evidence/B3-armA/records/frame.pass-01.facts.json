@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "enforce-title-max-length",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-enforce-title-max-length",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T23:41:47Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired zero triggers (deterministic scan + my adjudication pass, scanSeq 2); the vector sits at stops 1 · evidence.targeted 0 · evidence.breadth 0 · review 0 · verify 0 · openspec 0 · adr 0. No preset floor was supplied on this run."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run: every stop is recorded and then resolved with a documented maintainer-style rationale, status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; lever-run mechanized run)."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The 200-character bound is a request-validation rule at the endpoint boundary, so no domain or store shape changes; the K3 diff is expected to touch only TaskEndpoints.cs and the test file, and no materiality trigger is anticipated."
+    }
+  ],
+  "verdictRationale": "The intent is a bounded, fully specified input-validation constraint: the task states the exact limit (200), the exact status codes for both affected routes, the exact boundary behaviour (200 characters accepted), and the non-regression requirements. Every contract statement is testable against the existing WebApplicationFactory integration suite, the predicted scope is two files inside the governed subject, and nothing in the intent crosses recorded posture — the architecture already places Title validation at the endpoint layer and the intent explicitly disclaims both non-goals it could plausibly have touched (auth, persistence).",
+  "commentary": "Documented deviation for this measurement run: no live human is reachable, so the interaction runtime / Decision Center path is not used. Each decision is still recorded as a RUN-DEC-* ledger entry with its options, recommendation and why-material, and is then resolved in-arm with an explicit maintainer-style rationale — status RESOLVED-IN-ARM, tagged resolved-in-arm (no live human; lever-run mechanized run). Answering the approves-change decision (RUN-DEC-001) IS the approval for this change. Stops are resolved when reached, in order, never batched. Second note: openspec depth is 0, so no OpenSpec artifact is authored at all — the contract of record is change.md §Contract, rendered from records/contract.json. That is the classified obligation, not a skipped gate and not degraded mode; the openspec CLI was not needed and its availability was never in question.",
+  "facts": {
+    "title": "Enforce a maximum title length",
+    "intent": [
+      "Task titles are currently unbounded. Add an upper bound on title length as input validation. This is a request-validation convenience: no authentication, no persistence-model change. A task title may be at most 200 characters long. POST /tasks with a title longer than 200 characters must be rejected with HTTP 400 Bad Request and must not create a task. PUT /tasks/{id} with a title longer than 200 characters must be rejected with HTTP 400 Bad Request and must not modify the task. A title of exactly 200 characters is accepted (POST -> 201, PUT -> 200). The existing blank/whitespace title -> 400 behaviour is preserved for both POST and PUT. Titles of normal length continue to work exactly as before."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 0,
+      "invocationPath": "skipped, openspec dimension 0 — the classification owes no OpenSpec artifact; the contract of record is change.md §Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      {
+        "path": "AGENTS.md",
+        "role": "entrypoint: pre-edit behaviour, protected files, governed subject",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/rules/index.md",
+        "role": "R-003 green baseline, R-004 domain/HTTP boundary, R-005 TaskState naming, R-006 protected files",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/architecture.md",
+        "role": "boundary model (Title validation lives at the endpoint layer) and non-goals",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/constitution.md",
+        "role": "confidence doctrine applied to every verdict in this run",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "role": "the HTTP surface carrying the existing blank-title validation the bound joins",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs",
+        "role": "CreateTaskRequest / UpdateTaskRequest shapes the validated Title arrives on",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "role": "the 5-test green baseline the new cases extend",
+        "knowledge": "FACT"
+      }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "A rejection-only input bound on one already-validated field, applied at the endpoint boundary. No route is added or removed, no domain type or store shape moves, no auth or persistence surface is touched, and every previously valid request under 200 characters keeps its exact prior behaviour.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "The bound could be applied inconsistently between POST and PUT, leaving one route unbounded.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "Both routes carry the same shared limit constant, and the contract enumerates POST and PUT separately (C-001, C-002) with a test each."
+        },
+        {
+          "id": "RK-2",
+          "summary": "An off-by-one at the boundary would reject a legitimate 200-character title.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "C-003 pins exactly-200 as accepted on both routes and is covered by dedicated tests, so the boundary is asserted rather than assumed."
+        },
+        {
+          "id": "RK-3",
+          "summary": "Reordering the validation could change the existing blank-title rejection or its response shape.",
+          "likelihood": "Low",
+          "impact": "Low",
+          "mitigation": "The blank check stays first and untouched; C-004 keeps the existing behaviour under test, including the pre-existing baseline case."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "title-length-bound on POST /tasks and PUT /tasks/{id} (no OpenSpec artifact owed at depth 0; contract of record is change.md §Contract)",
+        "statements": [
+          "C-001",
+          "C-002",
+          "C-003",
+          "C-004",
+          "C-005"
+        ],
+        "tasks": "1 work unit: add the shared 200-character limit to both write endpoints and cover the reject/accept boundary for POST and PUT with integration tests."
+      }
+    ]
+  }
+}

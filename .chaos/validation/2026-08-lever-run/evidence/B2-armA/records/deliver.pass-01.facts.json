@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status-b2a",
+  "mode": "light",
+  "verdict": "APPLIED",
+  "at": "2026-08-03T23:33:27Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All six contract statements are delivered and covered — five by test, one by code evidence with whyNotTest — build and tests are green at 13/13, the two material decisions are recorded and resolved, and the C-15-scoped diff never left the approved scope (M5 never fired across 7 scans). APPLIED rather than PARTIALLY_APPLIED: nothing in the approved contract was deferred.",
+  "commentary": "Two notes the facts alone do not carry. (1) The openspec dimension moved after the frame record was written: S1 approved depth 0, then M4 fired at the K2 scan and raised it to 1. The obligation was authored at the firing — openspec/changes/filter-tasks-by-status/specs/task-api/spec.md, before any code was written — not deferred to close. The frame record's depth-0 statement is left standing rather than rewritten, because a record is emitted for a completed pass and is never revised; this is the pass that carries the correction. (2) The single unit needed two test cycles. The first failed on '?status=Open,Done', which Enum.TryParse OR-combined into a defined value and returned as HTTP 200. That is the strongest evidence in this run that the invalid-value contract needed an explicit parser rather than framework binding, and it is recorded rather than quietly repaired.",
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 13,
+      "total": 13,
+      "note": "the 5 baseline tests unchanged and green + 8 added for the status filter (2 Theory rows expand to 6 cases)"
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_filtered_by_status_returns_only_that_status — InlineData rows Open, InProgress, Done; asserts every returned item carries the requested status"]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Status_filter_is_case_insensitive — ?status=Open and ?status=open return identical id sets"]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_status_returns_every_task — the unfiltered list equals the three status buckets combined",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_returns_the_seeded_tasks — the untouched baseline test for the unfiltered route"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "test",
+        "refs": ["tests/TaskTracker.Tests/TaskEndpointsTests.cs::Unrecognised_status_value_is_rejected — InlineData rows Bogus, 0, Open,Done; asserts 400 and that the body carries no task list"]
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs — the filter is a Where over store.All() inside the MapGet lambda",
+          "the C-15-scoped diff contains no file under src/TaskTracker.Api/Domain/**; TaskStore and TaskState are read, never modified"
+        ],
+        "whyNotTest": "This is a boundary invariant about which files may change, not a runtime behaviour: a passing test cannot distinguish filtering done at the endpoint from the same filtering pushed into TaskStore. The checkable evidence is the diff itself — Domain/** is absent from it — which is exactly what R-004 and R-005 name as their violation criteria."
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "dotnet test 13/13, 0 failed — the 5 baseline tests are unmodified and still pass",
+          "the diff touches exactly src/TaskTracker.Api/Endpoints/TaskEndpoints.cs and tests/TaskTracker.Tests/TaskEndpointsTests.cs; the other CRUD handlers are byte-identical"
+        ]
+      }
+    ],
+    "rules": [
+      { "id": "R-001", "status": "pass", "evidence": "Two material questions arose and both became ledger entries before being acted on — APP-DEC-001 (frame approval, approves-change: true) and APP-DEC-002 (the spec-vs-contract discordance). Neither was decided silently in prose." },
+      { "id": "R-002", "status": "pass", "evidence": "Every verdict in this run carries confidence, evidenceCoverage and assumptionLoad; every ledger entry and VFY finding carries a knowledge type and confidence." },
+      { "id": "R-003", "status": "pass", "evidence": "dotnet test 13/13, 0 failed; the 5 baseline tests are unmodified. The one intermediate red cycle was repaired inside the loop before the checkpoint." },
+      { "id": "R-004", "status": "pass", "evidence": "No file under Domain/** appears in the diff; the domain references no Microsoft.AspNetCore type, and filtering is applied at the endpoint/query boundary as the architecture's boundary posture requires." },
+      { "id": "R-005", "status": "pass", "evidence": "TaskState is consumed by TryParseState and the Where predicate; no TaskStatus identifier is introduced anywhere in the diff." },
+      { "id": "R-006", "status": "pass", "evidence": "AGENTS.md and root README.md are absent from the diff — neither was edited, previewed or otherwise." }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [
+      {
+        "summary": "The requirement 'List Tasks' in openspec/specs/task-api/spec.md is left partially unimplemented: the priority filter and AND-combination clauses are not delivered. The gap predates this change (no filtering existed at all) and was explicitly bounded rather than closed or edited away.",
+        "decision": "APP-DEC-002"
+      },
+      {
+        "summary": "Tests were added to the existing tests/TaskTracker.Tests/TaskEndpointsTests.cs rather than the separately predicted TaskFilterTests.cs, so one predicted scope path was never created. Narrowing within the approved scope, not drift — the endpoint's tests stay in one file with the shared WebApplicationFactory fixture they depend on.",
+        "decision": "APP-DEC-001"
+      }
+    ],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 7 scan(s) — derived from classification-state.json; the C-15-scoped diff covers two of the three paths declared at K1 and nothing else."
+    }
+  }
+}

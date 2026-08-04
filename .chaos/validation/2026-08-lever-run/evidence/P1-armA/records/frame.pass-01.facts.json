@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "require-api-key-auth",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-03-chaos-run-require-api-key-auth",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T21:53:24Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired M2 sensitive-surface (scan, surface auth, TRG-001) and M1 posture-crossing (adjudication, surface auth, TRG-002) at scanSeq 2; the owed vector is stops 1 · evidence.targeted 1 · evidence.breadth 0 · review 0 · verify 1 · openspec 1 · adr 2. No preset floor was supplied: every dimension above zero is inferred by the classifier, not imposed."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The L1 easy gate never opened for implementation: M2 fired on the first scan, so every step of this run — including implementation — is performed at ceiling."
+    },
+    {
+      "kind": "ASSUMPTION",
+      "confidence": "MEDIUM",
+      "text": "The committed fallback key `test-secret-key` is treated as a demo default rather than a secret, because the governed subject has no production hosting defined (.chaos/architecture.md §Runtime / deployment model, [UNKNOWN]). If this API is ever hosted, the fallback becomes a real vulnerability and must be removed in a follow-up change."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "Requiring a header on five previously-open routes is breaking for any client outside this repository. Only the visible test suite is in scope, so unknown external consumers cannot be assessed here."
+    }
+  ],
+  "verdictRationale": "The intent is unambiguous and fully specified (header name, configuration key, default value, status code, check ordering, the public exception), and it is testable against a green five-test integration baseline. The single material question is not what to build but whether to build it here at all: the change crosses an explicit, unhedged architecture non-goal. That question is carried by the frame approval stop, and the posture amendment it implies is recorded in the ADR authored at the firing. Framing is therefore complete: nothing needed for implementation is unknown.",
+  "commentary": "**Documented deviation — mechanized human stop.** No live human is available in this measurement run. Every decision in `decision-events.md` is recorded exactly as it would be surfaced to the Decision Center, and is then resolved in-arm with an explicit maintainer-style rationale, carrying `status: RESOLVED-IN-ARM` and the tag `resolved-in-arm (no live human; lever-run mechanized run)`. Answering `RUN-DEC-001` (`approves-change: true`) IS the approval for this run. No other element of the loop is mechanized: classification, adjudication, artifact obligations and the audit gate all ran for real.\n\nTwo notes on how this change was framed. First, the M1 firing was mine, not the scanner's: the deterministic layer saw only the `auth` path class. The posture crossing is a *textual* contradiction — the intent commits to a concrete mechanism while `.chaos/architecture.md` lists \"Authentication / authorization / multi-tenant concerns\" among its non-goals with no `[UNKNOWN]` hedge — and that is exactly the class of thing the adjudication layer exists to catch. Second, I deliberately did not raise M3: no route is added, no dependency is introduced, and requiring a header on existing routes is enforcement, which M2 already covers. Stretching M3 over it would have double-counted one surface.\n\nOpenSpec depth 1 was hand-authored as a delta spec. The `openspec` CLI is present (v1.6.0) but its `new change` scaffold produces the full proposal/design/tasks set, which exceeds the classified depth; authoring the delta directly is the first-class path at depth 1 and is not degraded mode.\n\n**Note on the `mode` field.** This run was invoked with **no preset flag**, i.e. zero floors: `classification-state.json` records `mode: null` and `floors` all zero except the C-11 stops floor of 1. The record schema's `mode` enum admits only `light|standard|strict`, so `light` is written as the nearest representable value. It is a serialization artifact, not a preset: nothing in this run was floored, and every non-zero dimension in the vector was inferred by the classifier.",
+  "facts": {
+    "title": "Require API-key authentication on the task endpoints",
+    "intent": [
+      "Require API-key authentication on the task endpoints. The Task Tracker API is currently open (no authentication). Add API-key authentication to the /tasks endpoints. Every request to any /tasks route - GET /tasks, GET /tasks/{id}, POST /tasks, PUT /tasks/{id}, DELETE /tasks/{id} - must present a valid API key in the X-Api-Key request header. The valid API key is the string value of configuration key ApiKey, defaulting to test-secret-key when that configuration value is not set. A request to a /tasks route with a missing or incorrect X-Api-Key header must be rejected with HTTP 401 Unauthorized, and must not read or mutate any task (the auth check happens before existence/validation checks). The root health endpoint GET / must stay public (no key required). Update the existing visible test suite as needed so it supplies the key and stays green. Constraints: keep dotnet build and dotnet test green; do not change unrelated behaviour of the CRUD endpoints; work only inside src/TaskTracker.Api and tests/TaskTracker.Tests."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "invocationPath": "Depth 1 = delta spec only. Authored by hand at openspec/changes/require-api-key-auth/specs/task-api/spec.md, matching the shape of the repository's own prior delta (openspec/changes/archive/2026-07-19-add-task-query-filters/specs/task-api/spec.md): an `## ADDED Requirements` block with one SHALL requirement and eight WHEN/THEN scenarios. The openspec CLI is installed (v1.6.0) but `openspec new change` scaffolds proposal.md + design.md + tasks.md, i.e. depth 2; invoking it would have over-authored past the classified obligation. No proposal.md, design.md or tasks.md was written.",
+      "confidenceImpact": "None. Depth 1 is the classified obligation and it is satisfied. `openspec status --change require-api-key-auth` will read isComplete: false at depth 1; that is the expected answer, not degraded mode."
+    },
+    "sourceManifest": [
+      {
+        "path": "AGENTS.md",
+        "role": "agent entrypoint, protected-file list, minimum pre-edit behaviour",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/constitution.md",
+        "role": "human ownership of material decisions (§1), posture-contradiction duty (§6), confidence doctrine",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/rules/index.md",
+        "role": "R-003 green baseline, R-004 domain→HTTP boundary, R-005 TaskState naming, R-006 protected files",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/architecture.md",
+        "role": "the posture this change crosses: §Authentication / authorization posture and §Non-goals; also the boundary model that constrains where enforcement may live",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Program.cs",
+        "role": "host composition; where the public GET / lives and where the /tasks group is wired",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "role": "the five /tasks routes the key will guard, and their current validation ordering",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/appsettings.json",
+        "role": "configuration surface where ApiKey may be set",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "role": "the green five-test integration baseline that must keep passing with the key supplied",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "openspec/specs/task-api/spec.md",
+        "role": "the main spec the delta extends",
+        "knowledge": "FACT"
+      }
+    ],
+    "risk": {
+      "class": "MEDIUM",
+      "classRationale": "Not additive: this change makes five existing, previously-open routes fail closed, and it crosses a recorded architecture non-goal. Blast radius inside the repository is small and fully covered by tests, but the failure modes of an auth change are asymmetric — an enforcement gap is silent, whereas a bug in the happy path is loud and caught by the baseline suite.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "Enforcement leaks: a /tasks route escapes the check (e.g. a future route added outside the guarded group, or a path-prefix match that misses a casing/trailing-slash variant).",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "Attach the filter to the /tasks route group itself rather than matching request paths in global middleware, so membership in the group is what confers protection and a new route in the group inherits it automatically. All five routes are covered by explicit 401 tests."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Ordering defect: the auth check runs after existence or validation, letting an unauthenticated caller distinguish 404 from 401 or trigger validation behaviour.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "An endpoint filter runs before the handler delegate by construction. Pinned by dedicated tests asserting 401 (not 404) for a non-existent id and 401 (not 400) for a blank title, both without a key."
+        },
+        {
+          "id": "RK-3",
+          "summary": "The committed default key `test-secret-key` is mistaken for a production-safe fallback.",
+          "likelihood": "Low",
+          "impact": "High",
+          "mitigation": "The default is required verbatim by the contract, so it cannot be removed here. It is labelled a demo default in the ADR consequences, with removal named as a prerequisite to any real hosting. Recorded as a todo candidate rather than silently accepted."
+        },
+        {
+          "id": "RK-4",
+          "summary": "The public GET / is accidentally gated, breaking the documented liveness signal.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "Group-scoped enforcement cannot reach the root endpoint; a test asserts GET / returns 200 with no key."
+        },
+        {
+          "id": "RK-5",
+          "summary": "R-004 violation: authentication concepts leak into Domain/**, coupling the domain to the HTTP layer.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "Enforcement is confined to a new Auth/ file plus the endpoint wiring; Domain/TaskItem.cs and Domain/TaskStore.cs are not touched. Asserted in the deliver record's rule mapping and re-checked by the diff scan."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "Task Endpoint API-Key Authentication (openspec/changes/require-api-key-auth/specs/task-api/spec.md, ADDED Requirements)",
+        "statements": [
+          "C-001",
+          "C-002",
+          "C-003",
+          "C-004",
+          "C-005",
+          "C-006",
+          "C-007",
+          "C-008",
+          "C-009"
+        ],
+        "tasks": "Work unit 1: add the API-key endpoint filter, attach it to the /tasks group, read the key from configuration with the documented default."
+      },
+      {
+        "capability": "Preserved baseline behaviour and rule compliance (no OpenSpec delta owed — this is non-regression, not new contract)",
+        "statements": [
+          "C-010",
+          "C-011"
+        ],
+        "tasks": "Work unit 2: supply the key in the existing five integration tests and add the negative/ordering/public-surface tests; keep build and tests green."
+      }
+    ]
+  }
+}

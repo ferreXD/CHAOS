@@ -1,0 +1,16 @@
+{
+ "intent": "Change task deletion to a soft delete so deleted tasks are retained but hidden by default. Add a nullable deletedAt timestamp to the task model, serialized in JSON as deletedAt (ISO-8601 string when set, null when the task is active). DELETE /tasks/{id} must soft-delete: set deletedAt to the current time and return 204 No Content; it must not permanently remove the task; deleting an unknown id still returns 404. GET /tasks returns only active (not soft-deleted) tasks by default. GET /tasks?includeDeleted=true returns all tasks including soft-deleted ones. GET /tasks/{id} returns 404 Not Found for a soft-deleted task. The four seeded tasks remain active (deletedAt = null) after startup - existing rows must keep working (backward-compatible migration). Keep dotnet build and dotnet test green (the existing 5 tests must still pass). Do not change unrelated behaviour of the other CRUD endpoints. Work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests).",
+ "scope": "scope: src/TaskTracker.Api/Domain/TaskItem.cs, src/TaskTracker.Api/Domain/TaskStore.cs, src/TaskTracker.Api/Endpoints/TaskEndpoints.cs, tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+ "declaredTriggers": [],
+ "mode": null,
+ "selfReview": "PASS",
+ "subjectPaths": [
+  "src",
+  "tests"
+ ],
+ "mapFile": ".chaos\\path-class-map.json",
+ "postureFiles": [
+  ".chaos/architecture.md"
+ ],
+ "lastCheckpoint": "K3"
+}

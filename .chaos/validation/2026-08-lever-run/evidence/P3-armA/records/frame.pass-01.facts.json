@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "optimistic-concurrency-updates",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-occ-a1",
+  "mode": "light",
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-03T22:48:53Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 fired M2 (scan, surface data-store, TRG-001) and M1 (adjudication, surface data-store, TRG-002) at scanSeq 2; vector stops 1 / evidence.targeted 1 / evidence.breadth 0 / review 0 / verify 1 / openspec 1 / adr 2. The classifier reports confidence MEDIUM after the adjudication merge."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "The M1 firing closed the L1-D11 easy gate at the first scan of the run, so no implementation unit is delegable at mid tier; all implementation runs at ceiling."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "This run carries NO preset flag, so the floor vector is all zeros and the fired triggers alone set the rigor. The record's `mode` field is constrained to light|standard|strict and is recorded as `light` to denote the absence of any preset floor; it is vestigial under Stage C/D, where the dimension vector — not a mode word — sets what is owed."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The K1 adjudication deliberately did not pre-empt the deterministic scan on the additive `expectedVersion` request field (adjudication rule 12); any contract-surface firing it warrants belongs to the first K3 diff scan."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "No live human is available in this measurement run; every stop is resolved in-arm with a documented maintainer-style rationale (status RESOLVED-IN-ARM). This is a recorded deviation from the human-ownership contract, not a silent one."
+    }
+  ],
+  "verdictRationale": "The intent is fully specified — the task pins field names, status codes, and the null/match/mismatch behaviour matrix — so there is nothing ambiguous to frame around. The classification is honest about what this change actually is: not an additive endpoint feature but a change to the store's public shape and to persistence semantics, which is why M2 fired deterministically on the domain path and why the adjudication raised M1 against the boundary-posture line. The obligations that firing created (an OpenSpec delta spec at depth 1 and an ADR at depth 2) are authored before this stop, not deferred to close, so the approver sees the crossing with its reasoning in front of them. Contract statements C-001..C-013 are each checkable against the HTTP surface or the build, and the green five-test baseline gives the non-regression statements a real oracle.",
+  "commentary": "Two things are worth flagging to a reviewer. First, the posture crossing is genuine and unavoidable rather than a matter of taste: the architecture prefers new behaviour at the endpoint boundary, but an endpoint-side check-then-write against a shared singleton store is racy by construction, so honouring the posture literally would ship the very lost-update bug this change exists to remove. The ADR records that argument and the rejected alternatives (ETag/If-Match, endpoint-level check) rather than waving the hedge through. Second, the documented deviation: no live human is available in this lever-run measurement, so each decision is recorded in the ledger and then resolved in-arm with an explicit maintainer-style rationale, tagged 'resolved-in-arm (no live human; lever-run mechanized run)' with status RESOLVED-IN-ARM. Answering the approves-change decision constitutes the approval for this run. Nothing else about the loop is relaxed: obligations are authored at the firing, the audit gate still has to pass, and the verify record is produced by the emitter's independent re-run.",
+  "facts": {
+    "title": "Optimistic concurrency on task updates",
+    "intent": [
+      "Task 3 - Optimistic concurrency on task updates. PUT /tasks/{id} currently overwrites a task unconditionally, so a client working from a stale copy can silently clobber someone else's update (lost-update race). Add optimistic concurrency control. Contract (implement exactly this - behaviour is checked against it): Add an integer version to the task, serialized as version. New and seeded tasks start at version 1. Every successful PUT /tasks/{id} increments the task's version by 1 (1 -> 2 -> 3 ...). UpdateTaskRequest gains an optional integer field expectedVersion: when expectedVersion is provided and does not equal the task's current version, the update must be rejected with HTTP 409 Conflict and the task must be left unchanged (no field updated, version not bumped); when expectedVersion is provided and matches, the update succeeds (200) and the version increments; when expectedVersion is omitted (null), the update proceeds unconditionally (backward-compatible last-writer-wins) and the version increments. POST /tasks returns a task with version = 1. Constraints: Keep dotnet build and dotnet test green - the existing PUT test omits expectedVersion and must keep working. Do not change unrelated behaviour of the other CRUD endpoints. Work only inside src/TaskTracker.Api and its tests (tests/TaskTracker.Tests)."
+    ],
+    "openspec": {
+      "status": "INVOKED",
+      "depth": 1,
+      "invocationPath": "`openspec new change optimistic-concurrency-updates` (CLI 1.6.0, first-class path) -> `openspec status --change optimistic-concurrency-updates --json` for the resolved artifact paths -> authored the owed delta spec at openspec/changes/optimistic-concurrency-updates/specs/task-api/spec.md -> `openspec validate optimistic-concurrency-updates --strict` returned \"Change 'optimistic-concurrency-updates' is valid\" (exit 0). Depth 1 owes the delta spec only; proposal.md/design.md/tasks.md are deliberately absent, so `openspec status` reads isComplete: false with applyRequires [tasks]. That is the classified depth, not degraded mode.",
+      "confidenceImpact": "None. The owed depth was authored and strictly validated before the frame stop."
+    },
+    "sourceManifest": [
+      { "path": "AGENTS.md", "role": "agent entrypoint, protected files, minimum pre-edit behaviour", "knowledge": "FACT" },
+      { "path": ".chaos/constitution.md", "role": "human-ownership and confidence doctrine", "knowledge": "FACT" },
+      { "path": ".chaos/rules/index.md", "role": "R-001..R-007; R-003 green baseline, R-004 domain/HTTP boundary, R-005 TaskState naming, R-006 protected files", "knowledge": "FACT" },
+      { "path": ".chaos/architecture.md", "role": "boundary model, data-access posture, non-goals — the posture M1 crosses", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskItem.cs", "role": "the record that gains the Version component", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Domain/TaskStore.cs", "role": "the singleton ConcurrentDictionary store where the compare-and-swap must be atomic", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Contracts/TaskRequests.cs", "role": "UpdateTaskRequest, which gains optional expectedVersion", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs", "role": "the PUT handler that maps the conflict outcome to 409", "knowledge": "FACT" },
+      { "path": "src/TaskTracker.Api/Program.cs", "role": "JSON policy (JsonStringEnumConverter) that determines how `version` serializes", "knowledge": "FACT" },
+      { "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs", "role": "the green five-test baseline, including the PUT test that omits expectedVersion", "knowledge": "FACT" },
+      { "path": "openspec/specs/task-api/spec.md", "role": "the main task-api spec the delta extends", "knowledge": "FACT" }
+    ],
+    "risk": {
+      "class": "MEDIUM",
+      "classRationale": "Not an additive read-only surface: the change alters the shape of the persisted domain record and the semantics of an existing mutating endpoint, and it introduces a new failure status (409) on a route clients already use. Two triggers fired on the data-store surface. Blast radius stays small — four subject files plus tests, no auth, no durability, no new dependency — which is why this is MEDIUM rather than HIGH.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "A check-then-write implementation would leave the lost-update race in place under concurrent writers — the exact bug the change exists to fix.",
+          "likelihood": "Medium",
+          "impact": "High",
+          "mitigation": "ADR 2026-08-04 mandates the compare-and-swap inside TaskStore via ConcurrentDictionary.TryUpdate against the read snapshot; contract statement C-010 pins it."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Adding a component to the TaskItem record could break the existing PUT/POST paths or the test DTO, turning a green baseline red.",
+          "likelihood": "Medium",
+          "impact": "Medium",
+          "mitigation": "Version is set by the store's own construction paths, never by request binding; C-011/C-012 and the untouched existing tests are the oracle, and the emitter's verify pass re-runs build+tests independently."
+        },
+        {
+          "id": "RK-3",
+          "summary": "A rejected update could partially mutate the task (write fields, then fail the version check), violating the leave-unchanged guarantee.",
+          "likelihood": "Low",
+          "impact": "High",
+          "mitigation": "The store compares before it writes and returns a conflict outcome without touching the dictionary; C-009 is covered by a dedicated test asserting every field and the version after a 409."
+        },
+        {
+          "id": "RK-4",
+          "summary": "Serialization drift — `version` might not appear in the JSON payload under the configured serializer policy.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "Tests assert the field through the real HTTP surface via WebApplicationFactory, not against the in-process object, so a serialization miss fails the suite."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "Task Version Field (openspec delta spec, ADDED Requirement)",
+        "statements": ["C-001", "C-002", "C-003"],
+        "tasks": "Work unit 1: add the Version component to TaskItem and initialise it to 1 on every store construction path."
+      },
+      {
+        "capability": "Optimistic Concurrency On Task Update (openspec delta spec, ADDED Requirement)",
+        "statements": ["C-004", "C-005", "C-006", "C-007", "C-008", "C-009", "C-010"],
+        "tasks": "Work unit 1: expectedVersion on UpdateTaskRequest, the atomic compare-and-swap in TaskStore.Update, the 409 mapping in the PUT handler. Work unit 2: integration tests over the real HTTP surface."
+      },
+      {
+        "capability": "Unrelated CRUD Behaviour Is Preserved (openspec delta spec, ADDED Requirement)",
+        "statements": ["C-011", "C-012", "C-013"],
+        "tasks": "Work unit 2: keep the five baseline tests untouched and green; assert 404-on-unknown-id and blank-title 400 still hold; the verify pass re-runs build+tests independently."
+      }
+    ]
+  }
+}

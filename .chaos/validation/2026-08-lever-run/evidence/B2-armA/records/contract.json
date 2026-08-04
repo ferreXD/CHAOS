@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "filter-tasks-by-status",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-filter-tasks-by-status-b2a",
+  "recordedAt": "2026-08-04T00:00:00Z",
+  "groups": ["Endpoint", "Invariants", "Non-regression"],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Endpoint",
+      "text": "`GET /tasks?status=<state>` returns HTTP 200 with only those tasks whose `Status` equals `<state>`, where `<state>` is one of the `TaskState` names `Open`, `InProgress`, `Done`."
+    },
+    {
+      "id": "C-002",
+      "group": "Endpoint",
+      "text": "The `status` match is case-insensitive: `?status=open` returns exactly the same set as `?status=Open`."
+    },
+    {
+      "id": "C-003",
+      "group": "Endpoint",
+      "text": "`GET /tasks` with no `status` query parameter returns all tasks, in the existing creation order — behaviour unchanged."
+    },
+    {
+      "id": "C-004",
+      "group": "Endpoint",
+      "text": "`GET /tasks?status=<unrecognised>` (e.g. `?status=Bogus`) returns HTTP 400 Bad Request and no task list in the response body."
+    },
+    {
+      "id": "C-005",
+      "group": "Invariants",
+      "text": "Filtering is applied at the endpoint/query boundary; `TaskStore`'s public shape and the `Domain/**` layer are unchanged, so the domain keeps no dependency on the HTTP layer (R-004) and the `TaskState` naming is preserved (R-005)."
+    },
+    {
+      "id": "C-006",
+      "group": "Non-regression",
+      "text": "All other `/tasks` CRUD behaviour is unchanged: the 5 existing integration tests still pass, `dotnet build` and `dotnet test` stay green (R-003), and no file outside `src/TaskTracker.Api/**` and `tests/TaskTracker.Tests/**` is modified."
+    }
+  ]
+}
