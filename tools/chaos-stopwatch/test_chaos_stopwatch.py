@@ -62,10 +62,37 @@ class TestRealPromptDetection(unittest.TestCase):
 
     def test_runtime_wrappers_are_not_prompts(self):
         for wrapper in ("<local-command-stdout>Set model</local-command-stdout>",
-                        "<command-name>/model</command-name>",
                         "<ide_opened_file>a.cs</ide_opened_file>",
                         "<system-reminder>note</system-reminder>"):
             self.assertFalse(S.is_real_prompt(prompt(0, wrapper)), wrapper)
+
+    def test_a_slash_command_IS_a_user_turn(self):
+        """`/chaos-run "..."` is how the product is actually invoked. If it does not open a
+        segment, the human's thinking time before it is charged to the tool."""
+        rec = prompt(0, '<command-name>/chaos-run</command-name>\n'
+                        '<command-message>chaos-run</command-message>\n'
+                        '<command-args>"Add a ?priority= filter to GET /tasks"</command-args>')
+        self.assertTrue(S.is_real_prompt(rec))
+
+    def test_slash_invocation_excludes_the_human_wait_before_it(self):
+        """The regression this guards: 20 min of the user deciding, then a 2 min run."""
+        recs = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0, "some earlier question"), assistant(60),
+            prompt(1260, '<command-name>/chaos-run</command-name>'
+                         '<command-args>"add a filter"</command-args>'),
+            assistant(1380)]]
+        m = S.measure(recs)
+        self.assertEqual(m["machine"], 180.0)      # 60 + 120, NOT 1380
+        self.assertEqual(m["humanWait"], 1200.0)
+
+    def test_window_matches_text_inside_a_slash_invocation(self):
+        recs = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0, "chatter"), assistant(10),
+            prompt(100, '<command-name>/chaos-run</command-name>'
+                        '<command-args>"Add an optional ?priority= query filter"</command-args>'),
+            assistant(400)]]
+        got = S.window(recs, from_match=r"\?priority= query filter")
+        self.assertEqual(S.measure(got)["machine"], 300.0)
 
     def test_real_text_alongside_an_injected_wrapper_still_counts(self):
         """A genuine prompt often arrives in the same record as injected IDE context."""
