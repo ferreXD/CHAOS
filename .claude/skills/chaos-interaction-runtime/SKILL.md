@@ -107,6 +107,6 @@ Iteration 1 runtime is the source of truth; Iteration 2 MCP is the tool surface;
 Iteration 3 Decision Center is where humans answer; Iteration 4 `chaos:resume` is the
 authoritative manual resume; Iteration 5 is the live auto-resume runner (auto-resume
 only while its lease is live — never after runner death); **Iteration 7 diagnostics**
-(`tools/chaos-interaction-diagnostics`, surfaced by `chaos:doctor` / `chaos:status`)
+(`tools/chaos-interaction-diagnostics`, surfaced by `chaos:doctor`)
 observes the evidence commands leave behind. This iteration (6) makes commands
 produce/consume that state. It does not redesign any of them.

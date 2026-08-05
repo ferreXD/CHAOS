@@ -1,13 +1,13 @@
 ---
 name: chaos-resume
-description: Resume a paused CHAOS command from interaction-runtime state and resume capsules after human decisions were answered. Resolves candidates, validates capsules/decisions/locks, incorporates answered decisions, and continues the original source command from nextStep. Never resumes from chat memory. Supports --run/--change/--latest and --light/--standard/--strict.
+description: Resume a paused CHAOS command from interaction-runtime state and resume capsules after human decisions were answered. Resolves candidates, validates capsules/decisions/locks, incorporates answered decisions, and continues the original source command from nextStep. Never resumes from chat memory. Supports --run/--change/--latest.
 ---
 
 # CHAOS Resume Skill
 
 Use this skill when the user invokes `chaos:resume`, `/chaos-resume`, or says
-things like "decisions accepted, continue where you left off", "resume the latest
-CHAOS run", or "continue chaos:apply for <change>".
+things like "decisions accepted, continue where you left off" or "resume the latest
+CHAOS run".
 
 Delegate execution to the `chaos-resume-orchestrator` agent.
 
@@ -18,14 +18,12 @@ capsules are the compact handoff that lets CHAOS continue **without relying on
 chat memory**. `chaos:resume` is not a "reread the whole chat and continue"
 command — it resumes only from structured runtime state.
 
-## Stage-C: classification state travels with the resume
+## The lean core loop (chaos:run)
 
-When the change folder carries `classification-state.json` (design
-`docs/design/2026-08-02-stage-c-progressive-rigor.md`), the resumed source command inherits
-it: continue its checkpoint against that state file (the ratchet survives the pause —
-fired dimensions never lower on resume; floors from the original flags persist in the
-state), never rebuild classification from chat memory, and treat newly ANSWERED decisions
-as potential MR-3 stop-satisfiers at the next K3.
+`chaos:run` is the only command that pauses mid-change. Its capsule `nextStep` values are
+`spec` | `build` | `verify` | `record`. After incorporating and consuming the answered
+decision(s), flip the session with `chaos_resume_command` and continue the loop from
+`nextStep` per `.claude/skills/chaos-run/SKILL.md`.
 
 ## Required references
 
@@ -53,11 +51,6 @@ Read the reference files before acting:
 - Do not modify production files unless the resumed command's `nextStep` allows it.
 - If runtime state is malformed, STOP and report repair actions.
 - Do not fake literal chat continuation — continue semantically from `nextStep`.
-- **Light lifecycle:** resuming an answered light FRAME run (`sourceCommand: chaos:propose`,
-  `mode: light`, `capsule.nextStep: deliver`) is an **administrative terminalization only** —
-  consume the answered decisions, close the run, release the lock, and point at `chaos:apply`
-  (which infers light from `change.md` and owns DELIVER). Resume never implements on a light
-  run; apply's preflight can perform this same close if invoked directly.
 
 ## Relationship to other iterations
 

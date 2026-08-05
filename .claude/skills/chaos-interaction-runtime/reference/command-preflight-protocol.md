@@ -25,7 +25,7 @@ The rest of this protocol applies only when the gate is `true`.
 ## Steps
 
 1. **Resolve command identity**
-   - `sourceCommand` (e.g. `chaos:apply`)
+   - `sourceCommand` (e.g. `chaos:run`)
    - `changeId` if applicable
    - `mode` (`light` / `standard` / `strict`)
    - `adapter: claude`
@@ -40,8 +40,8 @@ The rest of this protocol applies only when the gate is `true`.
    - `BLOCKED_BY_PENDING_DECISION` → STOP. Direct the user to the Decision Center to
      answer, then `chaos:resume`. Never bypass.
    - `CONFLICTING_COMMAND_ACTIVE` → STOP, unless this command is explicitly read-only
-     and compatible under the lock policy (`chaos:status`, `chaos:doctor`,
-     `chaos:help`, `chaos:todo --dry-run`, matching-session `chaos:resume`).
+     and compatible under the lock policy (`chaos:doctor`,
+     `chaos:help`, matching-session `chaos:resume`).
    - `RUNTIME_UNAVAILABLE` → follow `fallback-protocol.md`.
 
 4. **Honour `mustStop`** — any runtime result with `mustStop: true` means stop now.

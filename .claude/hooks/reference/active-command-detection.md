@@ -18,18 +18,14 @@ typically carries no user text), no command can be detected.
 
 Two literal forms are recognized, in this order:
 
-1. **`chaos:<name>`** — e.g. `chaos:apply`, `chaos:code-review`. Matched
+1. **`chaos:<name>`** — e.g. `chaos:run`, `chaos:doctor`. Matched
    with `\bchaos:([a-zA-Z][a-zA-Z-]*)\b` and looked up case-insensitively
    against the known command table.
 2. **`/chaos-<name>`** — the skill-invocation slash form, e.g.
-   `/chaos-status`, `/chaos-proposal` (an alias for `propose`). Matched
-   with `/chaos-([a-zA-Z][a-zA-Z-]*)\b`.
+   `/chaos-run`, `/chaos-doctor`. Matched with `/chaos-([a-zA-Z][a-zA-Z-]*)\b`.
 
-Recognized command words: `init`, `help`, `status`, `doctor`,
-`archaeology`, `archeology` (alternate spelling, treated identically),
-`propose` (`proposal` is a slash-form alias), `review`, `apply`,
-`code-review`, `verify`, `archive`, `sync`, `retro`. Anything else is not a
-CHAOS command and is ignored.
+Recognized command words (lean core): `init`, `help`, `doctor`, `run`,
+`resume`. Anything else is not a CHAOS command and is ignored.
 
 If a `chaos:<name>` match exists, it wins over a `/chaos-<name>` match.
 Only the first match in the text is used.
@@ -49,23 +45,11 @@ this hook infers.
 2. An OpenSpec/CHAOS change path appearing anywhere in the text:
    `.chaos/changes/<id>/...` or `openspec/changes/<id>/...`.
 3. The first positional token immediately following the command match
-   (e.g. `chaos:apply add-task-query-filters` → `add-task-query-filters`).
-   Skipped entirely for `chaos:sync`, since a bare positional token after
-   `sync` is ambiguous with other flags.
+   (e.g. `chaos:run add-task-query-filters` → `add-task-query-filters`).
 4. Otherwise `changeId` is `""` with `LOW` confidence.
 
 `--change`/path matches are `HIGH`/`MEDIUM` confidence respectively;
 positional inference is `MEDIUM`.
-
-## `chaos:sync --all` vs `chaos:sync --change <id>`
-
-If the command word is `sync` and `--all` appears in the text, the record
-is switched to repository scope: `scope: "repository"`, `repoWide: true`,
-`expectedArtifacts: [".chaos/sync-reports/repo-sync-<today>.md"]`,
-`allowedWriteGlobs: [".chaos/sync-reports/**"]`, and `changeId` is forced
-back to `""`/`LOW` even if a change id was otherwise found in the text.
-Without `--all`, `chaos:sync` is treated as change-scoped like any other
-change command.
 
 ## Expected artifacts and write-glob hints
 
@@ -77,15 +61,13 @@ list with `{changeId}`, `{date}`, `{topic}` placeholders. At write time:
 - `{changeId}` is resolved from the changeId rules above; if it could not
   be resolved, that template's artifact entry is **omitted** (not written
   with a literal `{changeId}` in the path) and a note is added instead.
-- `{topic}` (archaeology only) is never resolved by this hook — prompt text
-  doesn't reliably contain a normalized topic slug — so archaeology's
-  `expectedArtifacts` is always empty, with a note explaining why.
+- `{topic}` is never resolved by this hook (prompt text doesn't reliably
+  contain a normalized topic slug); such entries are omitted with a note.
 
-Read-only hints per command mirror the CHAOS command inventory (`status`,
-`doctor`, `archaeology`, `review`, `code-review`, `verify` are read-only
-except their own report; `apply`/`sync`/`init` are not; `archive`/`retro`
-have "limited writes" noted in free text). These are hints only — see
-`hook-runtime-policy.md` for why nothing here is enforced.
+Read-only hints per command mirror the lean command inventory (`help` and
+`doctor` are read-only except doctor's own report; `run`/`resume`/`init`
+are not). These are hints only — see `hook-runtime-policy.md` for why
+nothing here is enforced.
 
 ## What happens when no command is detected
 

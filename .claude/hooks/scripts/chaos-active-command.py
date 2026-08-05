@@ -51,81 +51,26 @@ COMMAND_TABLE: Dict[str, Dict[str, Any]] = {
         "expectedArtifacts": [], "allowedWriteGlobs": [],
         "notes": ["chaos:help is read-only."],
     },
-    "status": {
-        "readOnly": True, "scope": "repository",
-        "expectedArtifacts": [".chaos/status-report.md"], "allowedWriteGlobs": [".chaos/status-report.md"],
-        "notes": ["read-only except the status report itself."],
-    },
     "doctor": {
         "readOnly": True, "scope": "repository",
         "expectedArtifacts": [".chaos/doctor/doctor-report-{date}.md"], "allowedWriteGlobs": [".chaos/doctor/**", ".chaos/runtime/**"],
         "notes": ["read-only except the doctor report and runtime files."],
     },
-    "archaeology": {
-        "readOnly": True, "scope": "topic",
-        "expectedArtifacts": [".chaos/archaeology/{topic}-archaeology.md"], "allowedWriteGlobs": [".chaos/archaeology/**"],
-        "notes": ["read-only except the archaeology report/index."],
-    },
-    "archeology": {
-        "readOnly": True, "scope": "topic",
-        "expectedArtifacts": [".chaos/archaeology/{topic}-archaeology.md"], "allowedWriteGlobs": [".chaos/archaeology/**"],
-        "notes": ["alternate spelling of chaos:archaeology; read-only except the archaeology report/index."],
-    },
-    "propose": {
+    "run": {
         "readOnly": False, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/lifecycle.md"],
-        "allowedWriteGlobs": [".chaos/changes/{changeId}/**", "openspec/changes/{changeId}/**"],
-        "notes": [],
+        "expectedArtifacts": [], "allowedWriteGlobs": ["**"],
+        "notes": ["lean core loop: one pre-code stop, build, verify, decision record in .chaos/decisions/."],
     },
-    "review": {
-        "readOnly": True, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/proposal-review.md"],
-        "allowedWriteGlobs": [
-            ".chaos/changes/{changeId}/proposal-review.md",
-            ".chaos/changes/{changeId}/approval.md",
-            ".chaos/changes/{changeId}/decision-events.md",
-        ],
-        "notes": ["read-only except review/approval/decision artifacts."],
-    },
-    "apply": {
+    "resume": {
         "readOnly": False, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/apply-report.md"], "allowedWriteGlobs": ["**"],
-        "notes": ["not read-only; implements the approved change."],
-    },
-    "code-review": {
-        "readOnly": True, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/code-review.md"], "allowedWriteGlobs": [".chaos/changes/{changeId}/code-review.md"],
-        "notes": ["read-only except the code-review report."],
-    },
-    "verify": {
-        "readOnly": True, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/verification.md"], "allowedWriteGlobs": [".chaos/changes/{changeId}/verification.md"],
-        "notes": ["read-only except the verification report."],
-    },
-    "archive": {
-        "readOnly": False, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/archive-report.md"],
-        "allowedWriteGlobs": [".chaos/changes/{changeId}/archive-report.md", ".chaos/archive-reports/**"],
-        "notes": ["limited writes (archive/lifecycle closure only)."],
-    },
-    "sync": {
-        "readOnly": False, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/sync-report.md"], "allowedWriteGlobs": [".chaos/changes/{changeId}/sync-report.md"],
-        "notes": ["not read-only, but scope-sensitive; see --all handling."],
-    },
-    "retro": {
-        "readOnly": False, "scope": "change",
-        "expectedArtifacts": [".chaos/changes/{changeId}/retro.md"], "allowedWriteGlobs": [".chaos/changes/{changeId}/retro.md"],
-        "notes": ["limited writes (retro report only)."],
+        "expectedArtifacts": [], "allowedWriteGlobs": ["**"],
+        "notes": ["continues an interrupted chaos:run from its capsule and answered decisions."],
     },
 }
 
 SLASH_ALIASES: Dict[str, str] = {
-    "init": "init", "help": "help", "status": "status", "doctor": "doctor",
-    "archaeology": "archaeology", "archeology": "archeology",
-    "propose": "propose", "proposal": "propose",
-    "review": "review", "apply": "apply", "code-review": "code-review",
-    "verify": "verify", "archive": "archive", "sync": "sync", "retro": "retro",
+    "init": "init", "help": "help", "doctor": "doctor",
+    "run": "run", "resume": "resume",
 }
 
 _CHAOS_TOKEN_RE = re.compile(r"\bchaos:([a-zA-Z][a-zA-Z-]*)\b")
@@ -133,7 +78,6 @@ _SLASH_TOKEN_RE = re.compile(r"/chaos-([a-zA-Z][a-zA-Z-]*)\b")
 _MODE_RE = re.compile(r"--(light|standard|strict)\b", re.IGNORECASE)
 _CHANGE_FLAG_RE = re.compile(r"--change[= ]([A-Za-z0-9._-]+)")
 _CHANGE_PATH_RE = re.compile(r"(?:\.chaos/changes|openspec/changes)/([A-Za-z0-9._-]+)")
-_ALL_FLAG_RE = re.compile(r"--all\b")
 
 
 def _extract_prompt_text(payload: Dict[str, Any]) -> str:
@@ -167,8 +111,6 @@ def _extract_change_id(text: str, command_word: str, match_end: int) -> Tuple[st
     m = _CHANGE_PATH_RE.search(text)
     if m:
         return m.group(1), "MEDIUM"
-    if command_word == "sync":
-        return "", "LOW"
     # First positional token immediately after the command match.
     tail = text[match_end:match_end + 200].lstrip()
     tok_match = re.match(r"([A-Za-z0-9][A-Za-z0-9._-]{2,})", tail)
@@ -203,14 +145,6 @@ def build_active_command(repo_root: str, payload: Dict[str, Any]) -> Optional[Di
     notes = list(entry["notes"])
     expected_templates = list(entry["expectedArtifacts"])
     write_globs = list(entry["allowedWriteGlobs"])
-
-    if command_word == "sync" and _ALL_FLAG_RE.search(text):
-        scope = "repository"
-        repo_wide = True
-        expected_templates = [".chaos/sync-reports/repo-sync-{date}.md"]
-        write_globs = [".chaos/sync-reports/**"]
-        notes = notes + ["chaos:sync --all detected: repository-wide scope, not change-scoped."]
-        change_id, change_confidence = "", "LOW"
 
     today = datetime.now().strftime("%Y-%m-%d")
     expected_artifacts: List[str] = []

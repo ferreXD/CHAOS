@@ -1,79 +1,54 @@
 # CHAOS Help Skill
 
-Use this skill when the user invokes `chaos:help` or asks how to use the CHAOS workflow in the current repository.
+Use this skill when the user invokes `chaos:help` or asks how to use the CHAOS workflow in
+the current repository. Answer directly in chat — no agent, no report file.
 
-## Goals
+## What CHAOS is (lean core, since 2026-08)
 
-- Make the workflow discoverable.
-- Explain commands, modes, and artifacts.
-- Explain **model robustness**: CHAOS commands are designed to be model-portable so they
-  work with the weakest supported Claude model, not only Opus. Opus may infer governance
-  intent; weaker models (e.g. Sonnet) require explicit gates. Native interactive selection
-  UI is preferred, with numbered chat options as the fallback, and a command always stops
-  after asking a material decision. OpenSpec-backed commands (especially `chaos:propose`)
-  must invoke OpenSpec rather than hand-writing proposal artifacts. Canonical source:
-  `.claude/skills/chaos-shared/reference/model-robustness-policy.md` and
-  `interactive-decision-protocol.md`.
-- Explain the v0 collaboration model: the per-change artifact layout
-  (`.chaos/changes/<change-id>/`), the team concurrency policy, and
-  `chaos:sync --change` vs `chaos:sync --all`. Canonical source: `.chaos/changes/README.md`.
-- Explain the **repository context & MCP integration model** (vNext):
-  - CHAOS is **GitHub-native** for public/OSS use; **Azure DevOps / Azure Repos** is a
-    first-class internal provider, both consumed through one provider-neutral repository
-    context contract (`.claude/skills/chaos-shared/reference/repository-context-contract.md`).
-  - The **repository context resolver** picks an adapter and a source: MCP → `gh`/`az devops`
-    CLI → local git → manual.
-  - **MCP is optional** — it improves context quality but is never required; **local git
-    fallback** always works (with reduced/LOW authority confidence).
-  - `chaos:doctor` diagnoses local runtime/tooling/MCP/repository readiness; run it when setup
-    seems off, before relying on provider context, or before repo-wide sync.
-  - `chaos:sync --all` needs **stronger repository context** because it is repository-wide:
-    strict blocks without provider authority; standard needs explicit maintainer confirmation;
-    light recommends `--dry-run`.
-- Recommend the next command from current repository state, using
-  `.chaos/changes/<change-id>/lifecycle.md` for `chaos:help next` when available. `chaos:help
-  next` may also consult `.chaos/todo/index.md` and its generated HTML views
-  (`.chaos/todo/views/`) when present, for open blockers and recommended next actions.
-- Explain `chaos:todo`: the CHAOS backlog curator. It scans CHAOS evidence and turns it into a
-  traceable, deduplicated Markdown todo backlog (`.chaos/todo/items/`) with static HTML digest
-  views (`.chaos/todo/views/`). It is distinct from `chaos:status` (workspace/governance
-  health), `chaos:sync` (governance reconciliation), `chaos:retro` (lessons learned), and
-  roadmap files (release direction) — `chaos:todo` answers "what concrete actionable work is
-  pending?" Canonical source: `.claude/skills/chaos-todo/SKILL.md`.
-- Generate or refresh a CHAOS workflow README when requested, using idempotent
-  compare-before-write behaviour; the generated README includes the team concurrency and
-  mainline sync policy.
+CHAOS is a thin discipline around AI-driven changes, built on the three mechanisms the
+2026 validation program showed carry the value
+(`.chaos/validation/2026-08-hostile-terrain/VERDICT.md`):
 
-## Non-goals
+1. **One pre-code stop** — every open question, doubt, assumption, and
+   architecture/contract crossing folded into a single human decision, answered through
+   the Decision Center before implementation starts.
+2. **Honest verification** — checks actually run; delegated work independently reviewed;
+   unverifiable claims labeled, never ticked.
+3. **A small decision record** — one page per change in `.chaos/decisions/`, so future
+   stops can catch crossings against what was decided.
 
-- Do not implement code.
-- Do not run lifecycle commands on the user's behalf unless explicitly asked.
-- Do not enforce gates.
-- Do not silently modify governance files.
-- Do not support demo mode.
+## Commands
 
-## Required process
+| Command | What it does |
+|---|---|
+| `chaos:init` | Bootstrap a repo: `AGENTS.md`, `.chaos/` workspace (architecture, decisions index, config). One-time. |
+| `chaos:run "<intent>"` | The core loop: targeted read → pre-code stop → size-gated OpenSpec → build → verify → record. |
+| `chaos:resume` | Continue an interrupted run from runtime state + answered decisions (never from chat memory). |
+| `chaos:doctor` | Diagnose runtime/MCP/hooks/tooling health. Read-only. |
+| `chaos:help` | This. |
 
-1. Determine the requested help scope.
-2. Load command registry and workflow map when available.
-3. Inspect repository artifacts if `next` or `--readme` is requested.
-4. Present a concise answer in chat.
-5. For `--readme`, render a candidate README and compare it with the target before writing.
-6. If the existing target is up to date, report `README_UP_TO_DATE` and do not rewrite it.
-7. Preview first unless `--write` was explicit.
-8. Record generated README metadata and fingerprints inside the README.
+OpenSpec (`/opsx:*`) is invoked by `chaos:run` when the spec gate says a change is large
+enough (defaults: ≥5 files or ≥250 LOC or any posture crossing; override in
+`.chaos/config.yaml` under `specGate:`).
 
-## Reference files
+## The moving parts
 
-- `reference/help-contract.md`
-- `reference/autodiscovery-policy.md`
-- `reference/next-command-policy.md`
-- `reference/readme-generation-policy.md`
-- `reference/workflow-map-template.md`
-- `reference/report-and-artifact-map.md`
-- `reference/command-help-template.md`
-- `reference/modes.md`
-- `reference/question-bank.md`
-- `.claude/skills/chaos-shared/reference/repository-context-contract.md`
-- `.claude/skills/chaos-shared/reference/github-mcp-integration.md`
-- `.claude/skills/chaos-shared/reference/azure-devops-mcp-integration.md`
+- **Interaction runtime** (`tools/chaos-interaction-runtime`) + **MCP server**
+  (`tools/chaos-interaction-mcp`): sessions, decisions, resume capsules, locks.
+- **Decision Center** (VS Code): where the human answers stops.
+- **Hooks** (`.claude/hooks`): session context, active-command detection, artifact
+  metadata, runtime observability.
+- **chaos-stopwatch** (`tools/chaos-stopwatch`): wall-clock measurement of runs from
+  transcripts (the validated instrument).
+
+Model-robustness and decision-protocol rules remain canonical in
+`.claude/skills/chaos-shared/reference/` (`model-robustness-policy.md`,
+`interactive-decision-protocol.md`): a command always stops after asking a material
+decision, prefers the Decision Center, and never silently bypasses one.
+
+## History
+
+The heavier lifecycle (propose/review/apply/verify/archive/sync/retro, classification
+machinery, phase records) was measured 2026-06→08 and retired: see the tag
+`apparatus-final` and `.chaos/validation/2026-08-hostile-terrain/VERDICT.md` for the full
+record and verdict.

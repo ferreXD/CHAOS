@@ -15,29 +15,23 @@ Natural-language equivalents are accepted (map to the same behaviour):
 
 - "Decisions accepted, continue where you left off." → no-args auto-resolve.
 - "Resume the latest CHAOS run." → `--latest`.
-- "Continue chaos:apply for request-context-middleware." → `--change request-context-middleware` (and validate the candidate's `sourceCommand` is `chaos:apply`).
+- "Continue the run for that change." → `--change <change-id>` (and validate the
+  candidate's `sourceCommand`).
 
 ## Execution order
 
-1. **Resolve mode** (`--light` / `--standard` / `--strict`). Default `--standard`.
-   If inferred, show it. Do not silently downgrade `--strict`.
-2. **Read the runtime first.** Prefer MCP; fall back to files only if MCP is
+1. **Read the runtime first.** Prefer MCP; fall back to files only if MCP is
    unavailable (disclose the degraded mode).
-3. **Resolve the candidate** (see `resume-candidate-resolution.md`).
-4. **Load + validate the capsule** (see `resume-capsule-contract.md`).
-5. **Validate answered decisions/responses** (see `resume-decision-consumption-policy.md`).
-6. **Reconstruct context** and load `requiredArtifacts`.
+2. **Resolve the candidate** (see `resume-candidate-resolution.md`).
+3. **Load + validate the capsule** (see `resume-capsule-contract.md`).
+4. **Validate answered decisions/responses** (see `resume-decision-consumption-policy.md`).
+5. **Reconstruct context** and load `requiredArtifacts`.
+6. **Incorporate the answers, mark consumed, then flip the session** with
+   `chaos_resume_command` (see `resume-state-machine.md`).
 7. **Continue semantically** from `nextStep` under the original `sourceCommand`
-   contract, delegating to that command's skill/agent as needed.
-   **Special case — light FRAME (`sourceCommand: chaos:propose`, capsule `nextStep: deliver`,
-   `change.md` frontmatter `mode: light`):** the continuation is an **administrative
-   terminalization only** — consume the answered decisions, close the run, release the lock,
-   and point the user at `chaos:apply <change-id>` (which infers light from `change.md` and owns
-   DELIVER). Resume never implements production code on a light run; `chaos:apply`'s preflight
-   performs this same close when invoked directly, so this step may already be done.
-8. **Consume decisions** after incorporation; **write a resume report** in
-   standard/strict (or with `--write-report`).
-9. **Finalize** session state.
+   contract — for `chaos:run`, the lean loop steps `spec` | `build` | `verify` | `record`
+   per `.claude/skills/chaos-run/SKILL.md`.
+8. **Finalize** session state (`chaos_complete_command` when the run actually finishes).
 
 ## Hard stops (STOP and report — never continue)
 

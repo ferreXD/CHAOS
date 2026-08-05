@@ -18,7 +18,7 @@ When ready to implement, run /opsx:apply
 
 ## CHAOS invocation overlay
 
-When invoked by `chaos:propose` (as the OpenSpec proposal engine under CHAOS governance),
+When invoked by `chaos:run` (as the OpenSpec proposal engine under the spec gate),
 this overlay **takes precedence** over the standalone steps/guardrails below for any
 **material** decision. Canonical policy:
 `.claude/skills/chaos-shared/reference/interactive-decision-protocol.md` and
@@ -39,7 +39,7 @@ this overlay **takes precedence** over the standalone steps/guardrails below for
   governance, or source-of-truth choices. Momentum heuristics apply only to immaterial
   formatting/wording choices.
 
-(Standalone invocation — the user running `/opsx:propose` directly, not via `chaos:propose`
+(Standalone invocation — the user running `/opsx:propose` directly, not via `chaos:run`
 — keeps the default behaviour described below.)
 
 ---

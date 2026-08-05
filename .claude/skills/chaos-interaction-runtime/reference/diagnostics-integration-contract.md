@@ -1,7 +1,7 @@
 # Diagnostics Integration Contract (Iteration 7 alignment)
 
 Iteration 7 (`tools/chaos-interaction-diagnostics`, surfaced by `chaos:doctor` and
-`chaos:status`) already defines the health model. Iteration 6 commands must *produce
+the retired `chaos:status`) already defined the health model. Iteration 6 commands must *produce
 and consume* the state that model expects — they must not redesign it.
 
 ## Evidence commands must leave
@@ -34,6 +34,6 @@ canonical source is `.chaos/config.yaml`.
 
 ## Read-only commands
 
-`chaos:status` keeps its **compact** Interaction Runtime summary; `chaos:doctor` keeps
+`chaos:doctor` keeps
 its **detailed** section. Neither auto-repairs. Command integration must not change
 those Iteration 7 outputs beyond tiny additive notes.

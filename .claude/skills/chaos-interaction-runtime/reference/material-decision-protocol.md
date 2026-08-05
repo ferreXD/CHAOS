@@ -10,7 +10,7 @@ whether to continue after failed validation; approve scope expansion; resolve
 conflicting evidence; decide archive/sync promotion; accept/reject a waiver; select a
 todo import/write mode; choose a repair action when diagnostics found blockers;
 **authorize a repo-wide or owner/maintainer-gated operation** (e.g. the
-`chaos:sync --all` maintainer/repo-owner confirmation).
+maintainer/repo-owner confirmations for repo-wide actions).
 
 These must go through `chaos_create_decision` (→ Decision Center), **not** an ad-hoc
 in-chat yes/no — that is the whole point of the runtime. The only exception is when
@@ -46,7 +46,7 @@ into repeated single decisions.
   Use for: execution profile; "add now / amend first / defer / accept-risk / stop";
   conflict resolution with named resolutions.
 - **confirmation** — a yes/no gate; provide exactly two options (e.g. `confirm` / `deny`).
-  Use for: repo-wide / owner-gated authorizations (the `chaos:sync --all`
+  Use for: repo-wide / owner-gated authorizations (the
   maintainer/repo-owner confirmation); "proceed with this risky write?";
   archive-with-debt approval.
 - **multi-choice-decision** — the human selects one or more options (checkboxes); answer
@@ -82,5 +82,5 @@ still returns `mustStop: true`. Treat that identically to a fresh
 
 A created-but-unanswered decision is exactly what Iteration 7's decision probe counts
 as a pending decision, and it holds a change lock. Stopping is what keeps
-`chaos:doctor` / `chaos:status` accurate. Continuing past it is a
+`chaos:doctor` accurate. Continuing past it is a
 `continued-after-must-stop` violation the advisory hook guard will record.

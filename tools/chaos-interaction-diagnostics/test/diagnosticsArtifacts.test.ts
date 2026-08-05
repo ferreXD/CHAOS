@@ -38,11 +38,11 @@ test("chaos:doctor skill includes an Interaction Runtime section + read-only lan
   assert.ok(lower.includes("todo candidate"));
 });
 
-test("chaos:status skill includes a compact Interaction Runtime summary", () => {
-  const status = read(path.join(REPO, ".claude/skills/chaos-status/SKILL.md"));
-  assert.ok(/##\s+Interaction Runtime summary/.test(status));
-  assert.ok(status.toLowerCase().includes("compact"));
-  assert.ok(status.toLowerCase().includes("read-only"));
+test("chaos:status is retired — doctor is the only runtime-health surface", () => {
+  // The apparatus command suite (incl. chaos:status) was retired 2026-08-05
+  // (tag `apparatus-final`); chaos:doctor owns runtime health alone.
+  assert.ok(!fs.existsSync(path.join(REPO, ".claude/skills/chaos-status")));
+  assert.ok(fs.existsSync(path.join(REPO, ".claude/skills/chaos-doctor/SKILL.md")));
 });
 
 test("config declares additive interactionRuntime diagnostics + advisory enforcement", () => {

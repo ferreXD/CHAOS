@@ -117,31 +117,15 @@ policies:
       allowStatusToEdit: false
       allowSyncToEdit: false
       requirePatchPreview: true
-  commandExecution:
-    inferModeWhenMissing: true
-    defaultMode: "standard"
-    allowStrictDowngradeWithRationale: true
-  lightMode:                           # collapsed light lifecycle (FRAME -> DELIVER)
-    collapsedWorkflow: true
-    maxMaterialDecisions: 2            # exceeding this auto-escalates light -> standard
-    autoEscalate: true                 # never ask; always announce + record (escalatedFrom, ESC-*)
-    allowStandaloneApplyEntry: true
   decisions:
-    requireDecisionEvents: true
-    requireSyncAction: true
-  confidence:
-    requireKnowledgeType: true
-    requireConfidence: true
-    requireEvidenceCoverage: true
-  changeArtifacts:                     # v0 team-safe collaboration model; canonical: .chaos/changes/README.md
-    layout: ".chaos/changes/<change-id>"
-    writePerChangeReportsUnderChangeFolder: true
-    readLegacyReportFolders: true
-    migrateLegacyReportsAutomatically: false
-    lifecycleManifest: "lifecycle.md"
-  sync:
-    changeScopedAllowedForContributors: true
-    repoWideSyncRequiresMaintainerConfirmation: true
+    recordDir: ".chaos/decisions"      # one-page decision record per chaos:run change
+
+specGate:                              # when chaos:run owes an OpenSpec change (lean core)
+  files: 5                             # estimated files touched >= this -> spec owed
+  loc: 250                             # estimated LOC >= this -> spec owed
+  crossingsAlwaysOwe: true             # any architecture/contract crossing -> spec owed
+  # Standing demotion rule (operator, 2026-08-05): if the spec path visibly balloons
+  # wall time, demote OpenSpec to optional-everywhere and record the observation.
     repoWideSyncCommand: "chaos:sync --all"
     repoWideSyncReport: ".chaos/sync-reports/repo-sync-YYYY-MM-DD.md"
     mainlineSyncRecommended: true

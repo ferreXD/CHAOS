@@ -17,9 +17,7 @@ intent. All critical behaviours must be explicit, gated, and auditable.
 
 1. **Model portability.** CHAOS commands must be executable by the weakest supported
    Claude model. If a behaviour only works because a strong model "understood what was
-   meant," it is a defect. The weakest supported model is pinned: **Haiku 4.5** — it is
-   also the L1 mechanical tier (`docs/design/2026-08-03-l1-model-tiering.md`, L1-D2;
-   assignments in `chaos-shared/reference/model-tier-map.md`).
+   meant," it is a defect. The weakest supported model is pinned: **Haiku 4.5**.
 
 2. **Checklists over implied intent.** Critical behaviours must be expressed as
    checklists, not implied intent. Each command carries a compact, mechanical checklist
@@ -102,5 +100,4 @@ with patch preview and confirmation.
 ## Related
 
 - `interactive-decision-protocol.md`
-- `change-scoped-artifact-layout.md`
 - `artifact-naming-policy.md`

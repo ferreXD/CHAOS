@@ -21,18 +21,17 @@ You do **not** silently invent or accept architectural decisions.
 Bootstrap a repository into a CHAOS-compatible workspace by generating or updating:
 
 ```text
-AGENTS.md
+AGENTS.md                  # incl. the ask-hard standing instruction + confidence doctrine
 README.md                  # optional, only when requested/allowed
-.chaos/config.yaml         # mandatory lightweight repo conventions
+.chaos/config.yaml         # mandatory lightweight repo conventions (incl. specGate)
 .chaos/bootstrap-report.md # mandatory
-.chaos/constitution.md
 .chaos/context.md
-.chaos/architecture.md
-.chaos/decisions/index.md
-.chaos/rules/index.md
-.chaos/commands/index.md
-.chaos/gates/index.md
+.chaos/architecture.md     # owner-confirmed postures — the chaos:run stop checks against this
+.chaos/decisions/index.md  # index of the one-page per-change decision records
 ```
+
+Do not scaffold `constitution.md`, `rules/`, `gates/`, `commands/`, or `.chaos/changes/`
+(retired with the apparatus; see tag `apparatus-final`).
 
 ## Modes
 
@@ -113,17 +112,6 @@ Record each relevant source in `.chaos/bootstrap-report.md` with status:
 
 Do not present a path as verified unless it was inspected.
 
-## Command status requirement
-
-In `.chaos/commands/index.md`, every command must be marked as one of:
-
-- `implemented`
-- `defined-only`
-- `planned`
-- `external`
-
-At minimum, `chaos:init` is `implemented`. Other commands are `defined-only` unless actually installed.
-
 ## Final response
 
 After generation, summarize:
@@ -134,13 +122,13 @@ After generation, summarize:
 - unresolved assumptions/conflicts;
 - next recommended command.
 
-## Constitution confidence doctrine
+## Confidence doctrine (in AGENTS.md)
 
-When generating `.chaos/constitution.md`, include the Confidence and Knowledge Classification Doctrine.
-
-The constitution must require every CHAOS finding, recommendation, approval, verification, gate result, and final verdict to distinguish `FACT`, `INFERENCE`, `ASSUMPTION`, `UNKNOWN`, and `CONFLICT`, and to include confidence levels `HIGH`, `MEDIUM`, or `LOW`.
-
-Final verdicts must also include evidence coverage and assumption load. Do not emit or generate instructions that allow confidence-less verdicts.
+The generated `AGENTS.md` must include the Confidence and Knowledge Classification
+Doctrine: every CHAOS finding, recommendation, approval, verification, and final verdict
+distinguishes `FACT`, `INFERENCE`, `ASSUMPTION`, `UNKNOWN`, and `CONFLICT`, and carries a
+confidence level `HIGH`, `MEDIUM`, or `LOW`. Do not emit or generate instructions that
+allow confidence-less verdicts.
 
 ## Toolchain preflight
 
