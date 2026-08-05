@@ -429,11 +429,17 @@
           ]
         },
         "warnings": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "errors": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "note": {
@@ -459,11 +465,17 @@
           ]
         },
         "passed": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "total": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "note": {

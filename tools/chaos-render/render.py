@@ -673,7 +673,10 @@ def build_model(root: str, change_id: str) -> Tuple[Dict[str, Any], List[str], L
     tests_src = verify_rec or deliver_rec
     if tests_src:
         t = tests_src["facts"]["checks"]["tests"] if verify_rec else tests_src["facts"]["tests"]
-        current["tests"] = f"{t['passed']}/{t['total']}"
+        # `?` rather than `None`: this lands in the lifecycle frontmatter, where a literal
+        # "None/None" would read as data instead of as an unparsed log.
+        current["tests"] = "%s/%s" % tuple("?" if v is None else v
+                                           for v in (t["passed"], t["total"]))
     if contract and deliver_rec:
         ticked = sum(1 for r in coverage.values() if r["covered"])
         current["contract"] = f"{ticked}/{len(statement_ids)}"
@@ -779,6 +782,21 @@ def check_table(rows: List[Tuple[str, str]]) -> List[str]:
 
 def rules_cell(rules: List[Dict[str, Any]]) -> str:
     return " · ".join(f"{r['id']} {'✅' if r['status'] == 'pass' else '❌'}" for r in rules)
+
+
+def count_cell(template: str, *values: Any) -> str:
+    """Format derived build/test counts, keeping an underivable one VISIBLE.
+
+    A `null` count means chaos-record ran the command and could not parse its output — the
+    L4-D5 honesty rule, which forbids guessing a number the tool did not read. It must render
+    as unknown rather than as `0`, because `0 err` is a claim and `? err` is an admission, and
+    a reader skimming the check table would believe the first one.
+    """
+    cells = ["?" if v is None else str(v) for v in values]
+    text = template.format(*cells)
+    if any(v is None for v in values):
+        text += " ⚠ output not parseable — count underivable"
+    return text
 
 
 # --------------------------------------------------------------------------
@@ -1200,8 +1218,9 @@ def render_change_body(model: Dict[str, Any]) -> List[str]:
             tnote = f" ({tests['note']})" if tests.get("note") else ""
             covered = sum(1 for r in f["coverage"] if r["covered"])
             out.extend(check_table([
-                ("build", f"{build['warnings']} warn / {build['errors']} err{bcmd}"),
-                ("tests", f"{tests['passed']}/{tests['total']}{tnote}"),
+                ("build", count_cell("{0} warn / {1} err" + bcmd,
+                                     build["warnings"], build["errors"])),
+                ("tests", count_cell("{0}/{1}" + tnote, tests["passed"], tests["total"])),
                 ("contract", f"{covered}/{len(f['coverage'])} statements covered"),
                 ("rules", rules_cell(f["rules"])),
             ]))
@@ -1350,10 +1369,11 @@ def render_verify_pass(model: Dict[str, Any], rec: Dict[str, Any]) -> List[str]:
     rows: List[Tuple[str, str]] = []
     b = checks["build"]
     note = f" — {b['note']}" if b.get("note") else ""
-    rows.append(("build", f"{b['warnings']} warn / {b['errors']} err{note}"))
+    rows.append(("build", count_cell("{0} warn / {1} err" + note,
+                                     b["warnings"], b["errors"])))
     t = checks["tests"]
     note = f" — {t['note']}" if t.get("note") else ""
-    rows.append(("tests", f"{t['passed']}/{t['total']}{note}"))
+    rows.append(("tests", count_cell("{0}/{1}" + note, t["passed"], t["total"])))
     c = checks["contract"]
     note = f"; {c['note']}" if c.get("note") else ""
     rows.append(("contract", f"{c['ticked']}/{c['total']} ticked{note}"))

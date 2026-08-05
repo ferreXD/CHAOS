@@ -177,7 +177,7 @@ class LoopFixture(unittest.TestCase):
 
     # -- the composite arm ------------------------------------------------------------
 
-    def _frame_composite(self, td, raises=None):
+    def _frame_composite(self, td, raises=None, record=None):
         change = CHANGE_REL
         code, out = _quiet(L.main, [
             "frame", "--change-dir", change, "--run", "RUN-1",
@@ -185,7 +185,7 @@ class LoopFixture(unittest.TestCase):
             "--subject", "src", "--subject", "tests",
             "--map", MAP_REL, "--root", td])
         self.assertEqual(code, 0, out)
-        inp = {"contract": CONTRACT_IN, "record": FRAME_J}
+        inp = {"contract": CONTRACT_IN, "record": record or FRAME_J}
         if raises is not None:
             inp["raises"] = raises
         p = self._write(td, "frame-input.json", json.dumps(inp))
@@ -194,17 +194,50 @@ class LoopFixture(unittest.TestCase):
             "--input", p, "--title", "Widget summary endpoint", "--root", td])
         return code, out
 
-    def _close_composite(self, td, self_review="clean", deliver_j=None):
+    def _garbage_cmds(self, td):
+        """Commands that run fine but emit output no parser can read.
+
+        `record verify` re-runs the checks, so this is what a real run hits whenever the build
+        or test tool changes its output format — the counts come back underivable.
+        """
+        self._write(td, "emit_junk.py", "print('nothing a parser can read here')")
+        cmd = '"%s" emit_junk.py' % sys.executable
+        return cmd, cmd
+
+    def _echo_cmds(self, td):
+        """Build/test commands that replay the fixture logs.
+
+        `record verify` re-RUNS the checks (L4-D4 independence) rather than reading a log, so
+        a fixture that owes a verify record needs commands that actually emit parseable
+        output. Without them `parse_build`/`parse_tests` leave the integer fields empty and
+        the record cannot render — the same shape as the contract-join defect, in a field this
+        fix does not touch.
+        """
+        self._write(td, "emit_build.py", "print(open('build.log').read())")
+        self._write(td, "emit_test.py", "print(open('test.log').read())")
+        return ('"%s" emit_build.py' % sys.executable, '"%s" emit_test.py' % sys.executable)
+
+    def _close_composite(self, td, self_review="clean", deliver_j=None, verify_j=None,
+                         real_checks=False, garbage_checks=False):
         change = CHANGE_REL
         build_log, test_log = self._logs(td)
-        code, out = _quiet(L.main, [
-            "close", "--change-dir", change, "--run", "RUN-1",
-            "--self-review", self_review,
-            "--build-log", build_log, "--test-log", test_log, "--root", td])
+        argv = ["close", "--change-dir", change, "--run", "RUN-1",
+                "--self-review", self_review,
+                "--build-log", build_log, "--test-log", test_log, "--root", td]
+        if real_checks or garbage_checks:
+            # Opt-in ONLY. The recorded command string lands in the record and therefore in
+            # change.md, so overriding it here for every caller would make the granular and
+            # composite arms diverge and read as a parity failure that isn't one.
+            build_cmd, test_cmd = (self._garbage_cmds(td) if garbage_checks
+                                   else self._echo_cmds(td))
+            argv += ["--build-cmd", build_cmd, "--test-cmd", test_cmd]
+        code, out = _quiet(L.main, argv)
         if code != 0:
             return code, out
-        p = self._write(td, "close-input.json",
-                        json.dumps({"deliver": deliver_j or DELIVER_J}))
+        payload = {"deliver": deliver_j or DELIVER_J}
+        if verify_j is not None:
+            payload["verify"] = verify_j
+        p = self._write(td, "close-input.json", json.dumps(payload))
         return _quiet(L.main, ["close-commit", "--change-dir", change, "--run", "RUN-1",
                                "--input", p, "--root", td])
 
@@ -407,6 +440,25 @@ class TestFrame(LoopFixture):
                                     "--run", "RUN-1", "--input", p, "--root", td])
         self.assertEqual(code, 2, out)
 
+    def test_frame_commit_accepts_an_echoed_derived_intent(self):
+        """An ECHO is not an overwrite (2026-08-05).
+
+        The frame packet shows the model the derived intent, so copying it back verbatim is
+        the natural move — and it used to cost a hard failure plus a round trip. It costs one
+        in governed T1 run 3. A byte-identical value now passes; a different one still fails
+        (test above), so the honesty guard is unchanged.
+        """
+        td = self._mk_repo()
+        _quiet(L.main, ["frame", "--change-dir", CHANGE_REL, "--run", "RUN-1",
+                        "--intent", INTENT, "--scope", SCOPE, "--subject", "src",
+                        "--map", MAP_REL, "--root", td])
+        echoed = dict(FRAME_J, facts={"intent": INTENT})
+        p = self._write(td, "in.json",
+                        json.dumps({"raises": [], "contract": CONTRACT_IN, "record": echoed}))
+        code, out = _quiet(L.main, ["frame-commit", "--change-dir", CHANGE_REL,
+                                    "--run", "RUN-1", "--input", p, "--root", td])
+        self.assertEqual(code, 0, out)
+
     def test_frame_commit_refuses_raises_when_not_due(self):
         td = self._mk_repo()
         code, out = self._frame_composite(td, raises=[])
@@ -484,6 +536,128 @@ class TestClose(LoopFixture):
         code, out = self._close_composite(td)
         self.assertEqual(code, 1, out)
         self.assertIn("stops.all-answered", out)
+
+
+class TestVerifyRecordContractJoin(LoopFixture):
+    """`close` emits the verify record BEFORE the deliver record, so the derived
+    contract-tick join has nothing to read and used to scaffold empty strings into a field
+    the schema requires to be integers — a field the model is never asked to author.
+
+    That made close-commit fail at `render --write` for EVERY run owing a verify record.
+    Governed T1 run 3 was the first to owe one (M3 by adjudication) and burned two
+    consecutive close-commit failures on it (2026-08-04).
+    """
+
+    # M2 is the trigger that raises `verify` without dragging in `openspec` (it is not in
+    # OPENSPEC_BASE), so it isolates the join under test — and it is the trigger T2 governed
+    # is predicted to fire, which is the next run this path has to survive.
+    def _verify_owed(self):
+        td = self._mk_repo()
+        code, out = self._frame_composite(
+            td, raises=[{"trigger": "M2", "cite": "the change touches the data store"}],
+            record=dict(FRAME_J, commentary="M2 sensitive-surface raised at adjudication."))
+        self.assertEqual(code, 0, out)
+        self._write(td, os.path.join(self._change(td), "decision-events.md"), LEDGER)
+        return td
+
+    def test_a_verify_record_is_actually_owed_by_this_fixture(self):
+        """Guards the guard: if M2 stops raising verify, the test below silently stops
+        testing anything."""
+        td = self._verify_owed()
+        self._work_edit(td)
+        self._work_rescan(td)
+        build_cmd, test_cmd = self._echo_cmds(td)
+        code, out = _quiet(L.main, [
+            "close", "--change-dir", CHANGE_REL, "--run", "RUN-1", "--self-review", "clean",
+            "--build-cmd", build_cmd, "--test-cmd", test_cmd,
+            "--build-log", self._logs(td)[0], "--test-log", self._logs(td)[1], "--root", td])
+        self.assertEqual(code, 0, out)
+        self.assertTrue(L._latest_record(self._change(td), "verify"),
+                        "no verify record emitted — fixture no longer exercises the join")
+
+    VERIFY_J = {
+        "verdict": "READY",
+        "assessment": {"confidence": "HIGH", "evidenceCoverage": "COMPLETE",
+                       "assumptionLoad": "LOW"},
+        "verdictRationale": "Every contract statement is covered by a passing test.",
+        "archiveReadiness": "READY",
+        "openspecIsComplete": True,
+        "traceability": [],
+        "findings": [],
+    }
+
+    def test_close_commit_recomputes_the_contract_join_into_integers(self):
+        td = self._verify_owed()
+        self._work_edit(td)
+        self._work_rescan(td)
+        code, out = self._close_composite(td, verify_j=self.VERIFY_J, real_checks=True)
+        self.assertEqual(code, 0, out)
+
+        with open(L._latest_record(self._change(td), "verify"), encoding="utf-8") as fh:
+            vrec = json.load(fh)
+        contract = vrec["facts"]["checks"]["contract"]
+        self.assertIsInstance(contract["ticked"], int)
+        self.assertIsInstance(contract["total"], int)
+        # Recomputed against the finalized deliver record, not the empty scaffold.
+        with open(L._latest_record(self._change(td), "deliver"), encoding="utf-8") as fh:
+            drec = json.load(fh)
+        covered = sum(1 for c in drec["facts"]["coverage"] if c.get("covered") is True)
+        self.assertEqual(contract["ticked"], covered)
+        self.assertNotIn("placeholder", contract.get("note") or "")
+
+
+class TestUnderivableCounts(LoopFixture):
+    """A build/test command whose output cannot be parsed must not block the close.
+
+    L4-D5 forbids guessing a count the emitter did not read. That was implemented as `""`,
+    which the phase-facts schema rejects (it requires an integer) — so an unparseable log
+    produced a record `render --write` refused to write, naming a field no agent authors.
+    `null` keeps the doctrine and is representable. Same defect class as the contract-tick
+    join; found while fixing that one, on 2026-08-05.
+    """
+
+    def _verify_owed(self):
+        td = self._mk_repo()
+        code, out = self._frame_composite(
+            td, raises=[{"trigger": "M2", "cite": "the change touches the data store"}],
+            record=dict(FRAME_J, commentary="M2 sensitive-surface raised at adjudication."))
+        self.assertEqual(code, 0, out)
+        self._write(td, os.path.join(self._change(td), "decision-events.md"), LEDGER)
+        return td
+
+    def test_unparseable_check_output_still_closes(self):
+        td = self._verify_owed()
+        self._work_edit(td)
+        self._work_rescan(td)
+        code, out = self._close_composite(
+            td, verify_j=TestVerifyRecordContractJoin.VERIFY_J, garbage_checks=True)
+        self.assertEqual(code, 0, out)
+
+        with open(L._latest_record(self._change(td), "verify"), encoding="utf-8") as fh:
+            checks = json.load(fh)["facts"]["checks"]
+        self.assertIsNone(checks["build"]["errors"])
+        self.assertIsNone(checks["tests"]["passed"])
+
+    def test_an_underivable_count_renders_as_unknown_not_zero(self):
+        """The reader-facing half: `0 err` is a claim, `? err` is an admission."""
+        td = self._verify_owed()
+        self._work_edit(td)
+        self._work_rescan(td)
+        code, out = self._close_composite(
+            td, verify_j=TestVerifyRecordContractJoin.VERIFY_J, garbage_checks=True)
+        self.assertEqual(code, 0, out)
+
+        with open(os.path.join(self._change(td), "change.md"), encoding="utf-8") as fh:
+            change_md = fh.read()
+        # Only the VERIFY table is affected: deliver parses the loop's own (good) log, verify
+        # re-runs the command (L4-D4). Asserting on the whole document would wrongly flag the
+        # deliver pass's legitimate `0 warn / 0 err`.
+        verification = change_md.split("## Verification", 1)[1]
+        self.assertIn("? warn / ? err", verification)
+        self.assertIn("output not parseable", verification)
+        self.assertNotIn("0 warn / 0 err", verification)
+        # And the lifecycle summary must not read as a real count either.
+        self.assertIn('tests: "?/?"', change_md)
 
 
 class TestShortCircuit(LoopFixture):

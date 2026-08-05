@@ -399,11 +399,23 @@ def cmd_frame_commit(args):
     _validate_contract(inp.get("contract"))
     _validate_envelope_judgement(judgement, "frame record")
     facts_in = judgement.get("facts") or {}
-    _require("intent" not in facts_in,
-             "facts.intent is derived (verbatim from scan-inputs) — the input file must "
-             "not overwrite derived facts")
-    _require(not (args.title and "title" in facts_in),
-             "facts.title conflicts with --title — the argument is the derived source")
+    # An ECHO is not an overwrite. The frame packet shows the model the derived intent, so
+    # copying it back verbatim is the natural thing to do and used to cost a hard failure and
+    # a round trip. Only a value that actually DIFFERS is an attempt to overwrite a derived
+    # fact, and that still fails closed. Same doctrine, one less way to trip over it.
+    if "intent" in facts_in:
+        _require(facts_in["intent"] == inputs.get("intent"),
+                 "facts.intent is derived (verbatim from scan-inputs) and the input file "
+                 "supplies a DIFFERENT value — derived facts must not be overwritten.\n"
+                 "  derived: %r\n  supplied: %r\n"
+                 "Drop the key (it is filled for you), or make it byte-identical."
+                 % (inputs.get("intent"), facts_in["intent"]))
+        facts_in.pop("intent")
+    if args.title and "title" in facts_in:
+        _require(facts_in["title"] == args.title,
+                 "facts.title conflicts with --title — the argument is the derived source.\n"
+                 "  --title: %r\n  supplied: %r" % (args.title, facts_in["title"]))
+        facts_in.pop("title")
 
     if _short_circuit_eligible(args.change_dir) and not args.no_short_circuit:
         marker = {"status": "deferred", "decidedBy": "tool",
@@ -761,6 +773,12 @@ def cmd_close_commit(args):
         vrec["facts"]["archiveReadiness"] = vj["archiveReadiness"]
         vrec["facts"]["traceability"] = vj.get("traceability") or []
         vrec["facts"]["findings"] = vj.get("findings") or []
+        # checks.contract is a DERIVED join over the latest deliver record's coverage. It was
+        # scaffolded before that record existed, so it is a placeholder here; recompute it now
+        # that the deliver record above is final. Without this the placeholder reaches the
+        # renderer and fails schema validation on a field the model was never asked to author
+        # (measured: two consecutive close-commit failures, governed T1 run 3).
+        vrec["facts"]["checks"]["contract"] = record_mod.contract_tick_join(args.change_dir)
         openspec_check = vrec["facts"]["checks"].get("openspec")
         if openspec_check and openspec_check.get("isComplete") is None \
                 and vj.get("openspecIsComplete") is not None:

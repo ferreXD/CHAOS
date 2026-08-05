@@ -95,11 +95,17 @@ def load_inputs(change_dir):
 
 
 def parse_build(text, command):
+    # Underivable is NULL — never guessed (L4-D5), and never "" either. The doctrine is that
+    # a number this tool could not read must not be invented; `0` would assert "zero errors",
+    # which is a false fact. But the empty string this used to emit is not an honest unknown,
+    # it is a TYPE error against the phase-facts schema, which requires an integer here — so
+    # an unparseable log produced a record the renderer refused to write, with a message
+    # naming a field the agent was never asked to author. `null` says "unknown" in the one way
+    # the schema can carry, and render.py prints it as `?`.
     w, e = WARN_RE.search(text or ""), ERR_RE.search(text or "")
     out = {"command": command}
-    # underivable stays empty — never guessed (L4-D5)
-    out["warnings"] = int(w.group(1)) if w else ""
-    out["errors"] = int(e.group(1)) if e else ""
+    out["warnings"] = int(w.group(1)) if w else None
+    out["errors"] = int(e.group(1)) if e else None
     return out
 
 
@@ -107,13 +113,13 @@ def parse_tests(text, command):
     p, f, t = (PASSED_RE.search(text or ""), FAILED_RE.search(text or ""),
                TOTAL_RE.search(text or ""))
     out = {"command": command}
-    out["passed"] = int(p.group(1)) if p else ""
+    out["passed"] = int(p.group(1)) if p else None
     if t:
         out["total"] = int(t.group(1))
     elif p and f:
         out["total"] = int(p.group(1)) + int(f.group(1))
     else:
-        out["total"] = ""
+        out["total"] = None
     return out
 
 
@@ -155,16 +161,26 @@ def coverage_scaffold(change_dir):
 
 
 def contract_tick_join(change_dir):
-    """The same join the renderer does: ticked = statements the LATEST deliver pass covers."""
+    """The same join the renderer does: ticked = statements the LATEST deliver pass covers.
+
+    Always returns INTEGERS. The phase-facts schema requires them, so the empty strings this
+    used to emit when the join had nothing to read made the scaffold structurally invalid
+    against the tool's own schema — and because the field is derived, the model was never
+    asked to fill it and had no way to know what would satisfy the renderer. `note` says
+    plainly when a value is a pending placeholder; `loop close-commit` recomputes this once
+    the deliver record is final.
+    """
     contract = os.path.join(change_dir, "records", "contract.json")
     if not os.path.isfile(contract):
-        return {"ticked": "", "total": "", "note": ""}
+        return {"ticked": 0, "total": 0,
+                "note": "placeholder — no contract.json yet; recomputed at close"}
     total = len(json.loads(_read(contract)).get("statements", []))
     records_dir = os.path.join(change_dir, "records")
     delivers = sorted(n for n in os.listdir(records_dir)
                       if n.startswith("deliver.pass-") and PASS_FILE_RE.search(n))
     if not delivers:
-        return {"ticked": "", "total": total, "note": ""}
+        return {"ticked": 0, "total": total,
+                "note": "placeholder — no deliver record yet; recomputed at close"}
     coverage = json.loads(_read(os.path.join(records_dir, delivers[-1])))\
         .get("facts", {}).get("coverage", [])
     ticked = sum(1 for c in coverage if c.get("covered") is True)

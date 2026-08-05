@@ -134,10 +134,21 @@ class TestRecord(unittest.TestCase):
         self.assertIn("M5 never fired", f["scopeDrift"]["note"])
         self.assert_judgement_empty(rec)
 
-    def test_unparseable_log_stays_empty_never_guessed(self):
+    def test_unparseable_log_is_null_never_guessed(self):
+        """L4-D5, in the type the schema can actually carry.
+
+        This used to assert `""`, which is neither a number nor a null. The phase-facts schema
+        requires an integer here, so an unparseable log produced a record that could not be
+        rendered at all — failing on a field no agent authors. `None` keeps the doctrine (still
+        never guessed) and is representable.
+        """
         rec = self._emit("deliver", "--build-log", self._write("b.log", "garbage\n"))
-        self.assertEqual(rec["facts"]["build"]["warnings"], "")
-        self.assertEqual(rec["facts"]["tests"]["passed"], "")
+        self.assertIsNone(rec["facts"]["build"]["warnings"])
+        self.assertIsNone(rec["facts"]["build"]["errors"])
+        self.assertIsNone(rec["facts"]["tests"]["passed"])
+        self.assertIsNone(rec["facts"]["tests"]["total"])
+        # The distinction that matters: unknown must never be reported as zero.
+        self.assertNotEqual(rec["facts"]["build"]["errors"], 0)
 
     def test_m5_fired_leaves_drift_story_to_agent(self):
         self._state(make_state(fired=[{"trigger": "M5", "by": "scan", "surface": None,
