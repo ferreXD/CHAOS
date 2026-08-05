@@ -1,0 +1,91 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 12f5907..ca3d496 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -17,6 +17,13 @@ namespace TaskTracker.Api.Endpoints;
+ /// </remarks>
+ public static class TaskEndpoints
+ {
++    /// <summary>
++    /// Longest accepted task title. A title of exactly this length is valid; the limit is on the
++    /// value as sent, so it is checked before the store ever sees it and applies equally to POST
++    /// and PUT - a title that could not be created cannot be arrived at by updating either.
++    /// </summary>
++    public const int MaxTitleLength = 200;
++
+     public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
+     {
+         // Group-level auth + rate limiting: a route added here later is protected by default,
+@@ -67,8 +74,8 @@ public static class TaskEndpoints
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             var task = store.Add(ownerId, request.Title, request.Status, request.Priority, request.DueDate);
+             return Results.Created($"/tasks/{task.Id}", task);
+@@ -80,8 +87,8 @@ public static class TaskEndpoints
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             return store.Update(id, ownerId, request.Title, request.Status, request.Priority, request.DueDate) is { } updated
+                 ? Results.Ok(updated)
+@@ -100,6 +107,30 @@ public static class TaskEndpoints
+         return app;
+     }
+ 
++    /// <summary>
++    /// Validates a submitted title, returning the 400 to send back or <c>null</c> if it is fine.
++    /// Shared by POST and PUT so the two verbs cannot drift apart on what a valid title is.
++    /// </summary>
++    /// <remarks>
++    /// The length is measured on the value as sent, not on a trimmed copy, because that is what
++    /// gets stored - trimming here would accept a title the API then returns at a different length.
++    /// </remarks>
++    private static IResult? ValidateTitle(string? title)
++    {
++        if (string.IsNullOrWhiteSpace(title))
++            return Results.BadRequest(new { error = "Title is required." });
++
++        if (title.Length > MaxTitleLength)
++        {
++            return Results.BadRequest(new
++            {
++                error = $"Title must be {MaxTitleLength} characters or fewer (got {title.Length})."
++            });
++        }
++
++        return null;
++    }
++
+     /// <summary>
+     /// Parses a <c>?priority=</c> value. Case-insensitive, matching how the same enum is read
+     /// from request bodies by JsonStringEnumConverter.
+diff --git a/src/TaskTracker.Api/Contracts/TaskRequests.cs b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+index 4ac9cd6..9b55ee2 100644
+--- a/src/TaskTracker.Api/Contracts/TaskRequests.cs
++++ b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+@@ -5,6 +5,7 @@ namespace TaskTracker.Api.Contracts;
+ /// <summary>Request body for POST /tasks.</summary>
+ /// <remarks>
+ /// <c>dueDate</c> is optional; omitting it (or sending <c>null</c>) creates a task with no due date.
++/// <c>title</c> is required and capped at 200 characters; a longer one is answered with 400.
+ /// </remarks>
+ public record CreateTaskRequest(string Title, TaskState Status, TaskPriority Priority, DateTimeOffset? DueDate);
+ 
+@@ -13,5 +14,7 @@ public record CreateTaskRequest(string Title, TaskState Status, TaskPriority Pri
+ /// PUT replaces the task, so an omitted <c>dueDate</c> clears any existing one - the same way an
+ /// omitted <c>status</c> already resets the task to <see cref="TaskState.Open"/>. Sending the
+ /// current value back is what preserves it; there is no partial-update verb on this API.
++/// <c>title</c> carries the same 200-character cap as create, so an existing task cannot be
++/// updated into a title that could not have been created.
+ /// </remarks>
+ public record UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority, DateTimeOffset? DueDate);

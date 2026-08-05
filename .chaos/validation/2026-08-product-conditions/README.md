@@ -160,6 +160,28 @@ Filled in as the run proceeds; never back-dated.
   edits, measurement procedure and frozen plain-arm predictions in
   [`plain-workspace.md`](plain-workspace.md). 34/34 green, zero CHAOS references. No plain
   arm has run.
+- 2026-08-04 — **plain T1 run, n=3**, evidence and evaluation at
+  [`evidence/T1-plain/`](evidence/T1-plain/README.md). Two valid opus-5/high samples at
+  **1.5 min** each (vs governed 23.7 ⇒ **15.8×**); the frozen 3–5 min prediction was too slow
+  and the frozen 4–6× multiplier is **falsified**. A third run on haiku is void as a
+  denominator sample (model clause) and shipped a live C-003 violation. The two valid runs
+  chose **opposite** behaviours on the axis `RUN-DEC-001` stopped for.
+- 2026-08-04 — **plain+ask arm defined** and frozen at
+  [`plain-ask-arm.md`](plain-ask-arm.md): the plain workspace plus one standing instruction to
+  raise material decisions before coding, to price *asking* separately from *recording*. Prompt,
+  answering protocol, predictions and the three named outcomes committed before any run.
+  Evaluator oracle extracted to [`oracles/T1ContractOracleTests.cs`](oracles/T1ContractOracleTests.cs).
+  No plain+ask run has happened.
+
+## 8. Series complete
+
+2026-08-05 — governed T2–T5 ran to completion (demo-light `1e1084d`, `2365af9`, `e115b50`,
+`c9fe302`), all suites green with evaluator oracles dropped in. Full cross-arm evaluation:
+[`results-T1-T5-all-arms.md`](results-T1-T5-all-arms.md). Headline: governed floor ≈ 15 min per
+change at any size (multipliers 4.1–15.8× vs plain), zero measured quality delta, and exactly
+one behavioural divergence in five tasks — T4's grapheme-vs-UTF-16 answer, where the human
+overrode both the recommendation and every model default. T5 plain+ask remains void, never
+re-run.
 
 ## 9. Toolkit changes between T1 run 1 and the re-run
 
@@ -174,6 +196,31 @@ measures, so both are recorded here rather than folded silently into the result.
 **The re-run is therefore not a repeat — it is a different toolkit**, which is why run 1's
 evidence is kept intact at `evidence/T1-run1/` rather than overwritten. The delta between the two
 is the measurement: it isolates what the two defects cost, which run 1 could not separate.
+
+## 10. Toolkit changes between T1 run 3 and T2 governed
+
+Same discipline as §9: the toolkit moved again, so the delta is recorded before the next
+measurement rather than folded into it silently. Both changes come from defects that
+**governed T1 run 3 exposed**, and both are repairs, not levers.
+
+| Change | Effect on the measurement |
+|---|---|
+| **`stopwatch`: human gates inside a turn** — `AskUserQuestion` tool_use→tool_result intervals and Decision Center stop-hook waits are removed from `machine` | **Corrects the instrument, not the product.** T1 run 3 read 36.7 min and was truly 16.2; without this T2 governed would be inflated by however long its stops take to answer |
+| **`loop close-commit` recomputes `checks.contract`** (+ `record.contract_tick_join` returns integers) | Removes a **deterministic** close-commit failure. `close` emits the verify record *before* the deliver record, so the derived tick join always scaffolded empty strings into a schema-integer field — every run owing a verify record failed at `render --write`. T1 run 3 burned two consecutive close-commit calls on it |
+| **`loop frame-commit` accepts an echoed derived fact** | An input file repeating `facts.intent` verbatim is no longer an error; a *different* value still fails closed. Removes one round trip |
+
+**T2 governed is predicted to fire M2**, which raises `verify` to 1 — so it is exactly the case
+the tick-join defect blocked. Without this repair T2 governed could not have closed at all.
+
+| **Underivable build/test counts are `null`, not `""`** (`record.parse_build`/`parse_tests`, schema, renderer) | Removes the same defect class one layer over: an unparseable build or test output made the record unrenderable. Now representable, and rendered as `? warn / ? err ⚠ output not parseable` so an unknown can never read as a zero |
+
+**On the third row — the L4-D5 doctrine is unchanged, only its encoding.** "Anything it cannot
+actually derive stays empty rather than guessed" is right, and `0` would be a false claim of zero
+errors. But `""` is not an honest unknown; it is a type error against the tool's own schema, which
+requires an integer. `null` says unknown in the one way the schema can carry, the honesty unit test
+now asserts `None` (and explicitly `!= 0`), and the renderer marks the row so a reader cannot
+mistake it for a real count. This did not fire in T1 run 3 only because real build and test commands
+happened to be supplied; any tool changing its output format would have hit it.
 
 **Predictions for the re-run, frozen before it runs:**
 

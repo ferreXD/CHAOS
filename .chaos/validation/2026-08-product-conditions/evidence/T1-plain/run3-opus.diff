@@ -1,0 +1,148 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index dcc5093..b8b66ef 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -7,7 +7,7 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks currently returns EVERY task, unfiltered.
++/// GET /tasks returns every task unless narrowed by <c>?priority=</c>.
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -19,8 +19,25 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks[?priority=Low|Medium|High] — every task, optionally narrowed by priority.
++        // Filtering happens here rather than in TaskStore: the store stays a plain collection and
++        // the query-string contract lives with the route that defines it.
++        group.MapGet("/", (string? priority, TaskStore store) =>
++        {
++            // Absent parameter (and `?priority=` with no value) keeps the unfiltered behaviour.
++            if (string.IsNullOrEmpty(priority))
++                return Results.Ok(store.All());
++
++            if (!TryParsePriority(priority, out var filter))
++            {
++                return Results.BadRequest(new
++                {
++                    error = $"Unknown priority '{priority}'. Expected one of: {string.Join(", ", Enum.GetNames<TaskPriority>())}.",
++                });
++            }
++
++            return Results.Ok(store.All().Where(t => t.Priority == filter).ToList());
++        });
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+@@ -53,4 +70,29 @@ public static class TaskEndpoints
+ 
+         return app;
+     }
++
++    /// <summary>
++    /// Parses a <c>?priority=</c> value by name, case-insensitively — the same leniency
++    /// <see cref="System.Text.Json.Serialization.JsonStringEnumConverter"/> already gives request
++    /// bodies, so "high" means the same thing in a query string as it does in a POST.
++    /// </summary>
++    /// <remarks>
++    /// Deliberately NOT <c>Enum.TryParse</c>: that also accepts the underlying numbers, so "0"
++    /// would silently mean Low and "7" would parse into a TaskPriority that matches nothing.
++    /// Matching against the declared names keeps the accepted set exactly Low/Medium/High.
++    /// </remarks>
++    private static bool TryParsePriority(string value, out TaskPriority priority)
++    {
++        foreach (var name in Enum.GetNames<TaskPriority>())
++        {
++            if (string.Equals(name, value, StringComparison.OrdinalIgnoreCase))
++            {
++                priority = Enum.Parse<TaskPriority>(name);
++                return true;
++            }
++        }
++
++        priority = default;
++        return false;
++    }
+ }
+diff --git a/src/TaskTracker.Api/TaskTracker.Api.http b/src/TaskTracker.Api/TaskTracker.Api.http
+index b198da0..1997e3c 100644
+--- a/src/TaskTracker.Api/TaskTracker.Api.http
++++ b/src/TaskTracker.Api/TaskTracker.Api.http
+@@ -6,6 +6,9 @@ GET {{host}}/
+ ### List all tasks
+ GET {{host}}/tasks
+ 
++### List tasks of one priority (Low | Medium | High)
++GET {{host}}/tasks?priority=High
++
+ ### Get one task (paste an id from the list above)
+ GET {{host}}/tasks/00000000-0000-0000-0000-000000000000
+ 
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index e6fd47e..aaafbef 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -28,6 +28,58 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Contains(tasks!, t => t.Title == "Add query-param filters to GET /tasks");
+     }
+ 
++    [Theory]
++    [InlineData("Low")]
++    [InlineData("Medium")]
++    [InlineData("High")]
++    public async Task Get_tasks_filtered_by_priority_returns_only_that_priority(string priority)
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>($"/tasks?priority={priority}");
++
++        Assert.NotNull(tasks);
++        Assert.NotEmpty(tasks!);
++        Assert.All(tasks!, t => Assert.Equal(priority, t.Priority));
++    }
++
++    [Fact]
++    public async Task Get_tasks_priority_filter_is_case_insensitive()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=hIgH");
++
++        Assert.NotEmpty(tasks!);
++        Assert.All(tasks!, t => Assert.Equal("High", t.Priority));
++    }
++
++    [Fact]
++    public async Task Get_tasks_without_priority_returns_every_priority()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var all = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        var high = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=High");
++
++        // The unfiltered call is a strict superset — the filter narrows, it does not replace.
++        Assert.True(all!.Count > high!.Count);
++        Assert.Contains(all!, t => t.Priority != "High");
++    }
++
++    [Theory]
++    [InlineData("Urgent")]   // not a member
++    [InlineData("0")]        // underlying number, not a name
++    [InlineData("7")]        // out of range entirely
++    public async Task Get_tasks_with_unknown_priority_is_rejected(string priority)
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var response = await client.GetAsync($"/tasks?priority={priority}");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++    }
++
+     [Fact]
+     public async Task Post_creates_a_task_and_get_by_id_returns_it()
+     {

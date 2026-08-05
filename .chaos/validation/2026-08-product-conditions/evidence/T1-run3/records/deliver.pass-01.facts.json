@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "deliver",
+  "pass": 1,
+  "changeId": "add-priority-filter",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-20b9a2",
+  "mode": null,
+  "verdict": "APPLIED",
+  "at": "2026-08-04T21:38:31Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "All seven contract statements are delivered and evidenced, six of them by tests that fail against the pre-change handler. The C-15-scoped diff is exactly the two files declared at K1, so M5 never fired. The classifier's own confidence sits at MEDIUM because the M3 contract-surface firing came from adjudication rather than the deterministic scan; that qualifies how the change was *classified*, not how it was *evidenced* \u2014 build and tests were re-run independently by the tool at close, 47/47.",
+  "commentary": null,
+  "facts": {
+    "build": {
+      "command": "dotnet build",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "dotnet test",
+      "passed": 47,
+      "total": 47
+    },
+    "coverage": [
+      {
+        "statement": "C-001",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_priority_returns_every_priority",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_returns_the_seeded_tasks (pre-existing baseline test, unmodified)"
+        ]
+      },
+      {
+        "statement": "C-002",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_filtered_by_priority_returns_only_that_priority",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_filter_matching_nothing_returns_an_empty_list (200 + [] on an emptied priority, in an isolated app instance)"
+        ]
+      },
+      {
+        "statement": "C-003",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_an_unrecognised_priority_is_rejected \u2014 6 cases: 'Urgent', 'Low,High', '0', '2', '', '  '",
+          "the 'Low,High' and '0'/'2' cases are the RK-1 shapes: they fail against an Enum.TryParse guard, which is what the closed route-B unit shipped"
+        ]
+      },
+      {
+        "statement": "C-004",
+        "covered": true,
+        "evidence": "code",
+        "refs": [
+          "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs \u2014 TryParsePriority + the filter applied to store.All() inside the GET handler",
+          "deliver facts: 2 files touched, neither under src/TaskTracker.Api/Domain/",
+          "git status --porcelain src tests \u2014 only TaskEndpoints.cs and TaskEndpointsTests.cs modified"
+        ],
+        "whyNotTest": "This statement asserts a property of the diff, not of the running system: that the filtering lives in the endpoint layer and that TaskStore.cs / TaskItem.cs were left alone. A black-box HTTP test cannot observe which file the logic sits in \u2014 identical responses would be produced by a store-level filter, which is exactly what the statement forbids. The evidence is therefore the file list, which the classifier's C-15 diff and the deliver record derive mechanically rather than take on my word."
+      },
+      {
+        "statement": "C-005",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "dotnet test \u2014 47/47 passing, of which 34 are the untouched baseline (independent re-run by chaos-record at close)",
+          "dotnet build \u2014 0 warnings, 0 errors",
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_a_priority_filter_still_requires_authentication \u2014 401 on the filtered route",
+          "tests/TaskTracker.Tests/EdgeHardeningTests.cs \u2014 the group's rate-limiting policy, which the filtered GET inherits from the RequireRateLimiting registration the diff leaves untouched"
+        ]
+      },
+      {
+        "statement": "C-006",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_priority_filter_ignores_casing \u2014 'low', 'LOW' and 'Low' asserted to return the same id set"
+        ]
+      },
+      {
+        "statement": "C-007",
+        "covered": true,
+        "evidence": "test",
+        "refs": [
+          "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_an_unrecognised_priority_is_rejected, InlineData(\"\") \u2014 GET /tasks?priority= returns 400 and not the full list"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R-003",
+        "status": "pass",
+        "evidence": "dotnet test 47/47, 0 failed. The 34 baseline tests are unmodified \u2014 the diff adds tests and changes none."
+      },
+      {
+        "id": "R-004",
+        "status": "pass",
+        "evidence": "No file under src/TaskTracker.Api/Domain/ changed. Parsing, validation and filtering all sit in Endpoints/TaskEndpoints.cs, consuming the store's existing All(); the store gained no query surface."
+      },
+      {
+        "id": "R-005",
+        "status": "pass",
+        "evidence": "No enum was renamed or introduced. TryParsePriority reads Enum.GetNames<TaskPriority>(); TaskState is not referenced by this change."
+      }
+    ],
+    "files": [
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "change": "modified"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "change": "modified"
+      }
+    ],
+    "deviations": [],
+    "scopeDrift": {
+      "status": "NO_DRIFT",
+      "risk": "LOW",
+      "note": "M5 never fired across 7 scan(s) \u2014 derived from classification-state.json"
+    }
+  }
+}

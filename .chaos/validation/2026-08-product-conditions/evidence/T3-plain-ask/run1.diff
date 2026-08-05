@@ -1,0 +1,656 @@
+diff --git a/README.md b/README.md
+index 0f50953..2753d3a 100644
+--- a/README.md
++++ b/README.md
+@@ -5,6 +5,32 @@ delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low
+ `High`), an optional due date and timestamps. Storage is an in-memory store seeded with a few
+ sample tasks; all `/tasks` routes require a bearer token.
+ 
++## Task ownership
++
++Every task belongs to the caller that created it. The owner is the bearer token's `sub` claim,
++recorded at creation and never changed afterwards - a PUT replaces the task's content, not its
++owner, and there is no way to set the owner from a request body.
++
++Every route is scoped to that owner:
++
++- `GET /tasks` returns only the caller's own tasks, `?priority=` included.
++- `GET`, `PUT` and `DELETE` on a task owned by someone else answer **404**, exactly as they do for
++  a task that does not exist. That is deliberate: a 403 would confirm the existence of a task the
++  caller is not entitled to know about.
++- A token that is otherwise valid but carries no `sub` claim is answered with **401**. It
++  authenticates a caller the API cannot identify, so there is no owner to scope the request to.
++
++The owner is not part of the response body. A caller only ever receives its own tasks, so echoing
++its own subject back would tell it nothing, and a published field is harder to withdraw than to
++add later.
++
++> **Breaking change.** `GET /tasks` previously returned every task in the store to any
++> authenticated caller. A caller that has created nothing now gets an empty list, and one that
++> holds an id for another caller's task now gets 404 where it previously got the task.
++
++The four seeded sample tasks are owned by `dev-user`, the same subject `POST /dev/token` issues,
++so a local run with a development token still shows them.
++
+ ## Due dates
+ 
+ Every task has a nullable `dueDate`, sent as an ISO-8601 instant (`"2026-09-01T17:00:00+00:00"`)
+@@ -16,7 +42,7 @@ due date the task had - send the current value back to keep it.
+ 
+ ```text
+ TaskTracker.sln
+-src/TaskTracker.Api/        the API: Domain (store + model), Endpoints, Contracts
++src/TaskTracker.Api/        the API: Domain (store + model), Endpoints, Contracts, Security
+ tests/TaskTracker.Tests/    xUnit integration tests booting the API in-memory
+ ```
+ 
+@@ -29,4 +55,4 @@ dotnet run --project src/TaskTracker.Api
+ ```
+ 
+ The API listens on the default Kestrel ports; `GET /` is an unauthenticated health check,
+-`GET /tasks` lists tasks for an authenticated caller.
++`GET /tasks` lists the authenticated caller's own tasks.
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index c287d82..9a5ea35 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -1,3 +1,5 @@
++using System.Text.Json.Serialization;
++
+ namespace TaskTracker.Api.Domain;
+ 
+ /// <summary>
+@@ -25,9 +27,17 @@ public enum TaskPriority
+ /// <paramref name="DueDate"/> is optional: <c>null</c> means the task has no due date, which is
+ /// the state every task created before the field existed is in. It serializes as <c>null</c>
+ /// rather than being omitted, so a caller can tell "no due date" from "field not supported".
++/// <para>
++/// <paramref name="OwnerId"/> is the JWT subject of the caller that created the task, set once at
++/// creation and never rewritten - not even by PUT, which replaces every other field. It is
++/// deliberately NOT serialized: it is the store's scoping key, not part of the wire contract, and
++/// a caller only ever receives tasks it already owns, so echoing its own subject back tells it
++/// nothing. Exposing it would be an additive contract change to reverse later.
++/// </para>
+ /// </remarks>
+ public record TaskItem(
+     Guid Id,
++    [property: JsonIgnore] string OwnerId,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index debc1c1..c3ef9d6 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -6,8 +6,24 @@ namespace TaskTracker.Api.Domain;
+ /// Process-lifetime, in-memory task store. Registered as a singleton, so all requests share
+ /// one instance for the lifetime of the process. Thread-safe for the demo's needs.
+ /// </summary>
++/// <remarks>
++/// Every read and write is scoped to an owner. There is deliberately no unscoped overload of
++/// <see cref="All"/>, <see cref="Get"/>, <see cref="Update"/> or <see cref="Remove"/>: a caller
++/// cannot reach another owner's task by forgetting an argument, because there is no argument to
++/// forget. A task that exists but belongs to someone else is reported exactly as one that does
++/// not exist - <c>null</c>/<c>false</c>, which the endpoints answer with 404 - so the store never
++/// gives an endpoint the material to distinguish the two cases.
++/// </remarks>
+ public class TaskStore
+ {
++    /// <summary>
++    /// Owner of the seeded sample tasks. Shared with the development token endpoint in Program.cs
++    /// so that running the app locally and calling <c>POST /dev/token</c> yields a token whose
++    /// subject can actually see the seeds; if the two drifted apart, a fresh checkout's
++    /// <c>GET /tasks</c> would silently return an empty list.
++    /// </summary>
++    public const string SeedOwnerId = "dev-user";
++
+     private readonly ConcurrentDictionary<Guid, TaskItem> _tasks = new();
+ 
+     public TaskStore()
+@@ -17,44 +33,55 @@ public class TaskStore
+         // Some seeds carry a due date and some do not, so GET /tasks shows both shapes of the
+         // field on first run.
+         var seedBase = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+-        AddAt("Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null);
+-        AddAt("Add query-param filters to GET /tasks", TaskState.Open, TaskPriority.High, seedBase.AddHours(2),
+-            seedBase.AddDays(7));
+-        AddAt("Review the design proposal", TaskState.InProgress, TaskPriority.High, seedBase.AddDays(1),
+-            seedBase.AddDays(3));
+-        AddAt("Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2), null);
++        AddAt(SeedOwnerId, "Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null);
++        AddAt(SeedOwnerId, "Add query-param filters to GET /tasks", TaskState.Open, TaskPriority.High,
++            seedBase.AddHours(2), seedBase.AddDays(7));
++        AddAt(SeedOwnerId, "Review the design proposal", TaskState.InProgress, TaskPriority.High,
++            seedBase.AddDays(1), seedBase.AddDays(3));
++        AddAt(SeedOwnerId, "Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2), null);
+     }
+ 
+-    /// <summary>All tasks, in creation order.</summary>
+-    public IReadOnlyList<TaskItem> All() =>
+-        _tasks.Values.OrderBy(t => t.CreatedAt).ToList();
++    /// <summary>The owner's tasks, in creation order.</summary>
++    public IReadOnlyList<TaskItem> All(string ownerId) =>
++        _tasks.Values.Where(t => t.OwnerId == ownerId).OrderBy(t => t.CreatedAt).ToList();
+ 
+-    public TaskItem? Get(Guid id) =>
+-        _tasks.TryGetValue(id, out var task) ? task : null;
++    /// <summary>The owner's task with this id, or <c>null</c> if it is missing or owned by someone else.</summary>
++    public TaskItem? Get(Guid id, string ownerId) =>
++        _tasks.TryGetValue(id, out var task) && task.OwnerId == ownerId ? task : null;
+ 
+-    public TaskItem Add(string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate) =>
+-        AddAt(title, status, priority, DateTimeOffset.UtcNow, dueDate);
++    public TaskItem Add(string ownerId, string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate) =>
++        AddAt(ownerId, title, status, priority, DateTimeOffset.UtcNow, dueDate);
+ 
+-    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate)
++    public TaskItem? Update(
++        Guid id,
++        string ownerId,
++        string title,
++        TaskState status,
++        TaskPriority priority,
++        DateTimeOffset? dueDate)
+     {
+-        if (!_tasks.TryGetValue(id, out var existing))
++        if (Get(id, ownerId) is not { } existing)
+             return null;
+ 
++        // `with` carries OwnerId and CreatedAt across untouched: a PUT replaces the task's content,
++        // never its owner.
+         var updated = existing with { Title = title, Status = status, Priority = priority, DueDate = dueDate };
+         _tasks[id] = updated;
+         return updated;
+     }
+ 
+-    public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
++    public bool Remove(Guid id, string ownerId) =>
++        Get(id, ownerId) is not null && _tasks.TryRemove(id, out _);
+ 
+     private TaskItem AddAt(
++        string ownerId,
+         string title,
+         TaskState status,
+         TaskPriority priority,
+         DateTimeOffset createdAt,
+         DateTimeOffset? dueDate)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt, dueDate);
++        var task = new TaskItem(Guid.NewGuid(), ownerId, title, status, priority, createdAt, dueDate);
+         _tasks[task.Id] = task;
+         return task;
+     }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index dd25277..12f5907 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -1,5 +1,7 @@
++using System.Security.Claims;
+ using TaskTracker.Api.Contracts;
+ using TaskTracker.Api.Domain;
++using TaskTracker.Api.Security;
+ 
+ namespace TaskTracker.Api.Endpoints;
+ 
+@@ -7,7 +9,11 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks returns every task unless a <c>?priority=</c> filter narrows it.
++/// Every route here is scoped to the caller: the owner is the JWT subject, and the store is only
++/// reachable through owner-scoped methods. GET /tasks returns the caller's own tasks (optionally
++/// narrowed by <c>?priority=</c>), and a task belonging to someone else is answered with 404 -
++/// the same as one that does not exist, so the API does not confirm the existence of another
++/// owner's task to a caller that may not name it.
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -19,12 +25,15 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks[?priority=Low|Medium|High] — every task in the store, optionally narrowed
++        // GET /tasks[?priority=Low|Medium|High] — the caller's own tasks, optionally narrowed
+         // to one priority. The filter is applied here rather than in TaskStore, which stays a
+-        // plain container.
+-        group.MapGet("/", (TaskStore store, string? priority) =>
++        // plain container; the ownership scope is not, because it must not be optional.
++        group.MapGet("/", (TaskStore store, ClaimsPrincipal user, string? priority) =>
+         {
+-            IReadOnlyList<TaskItem> tasks = store.All();
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            IReadOnlyList<TaskItem> tasks = store.All(ownerId);
+ 
+             if (priority is not null)
+             {
+@@ -43,33 +52,50 @@ public static class TaskEndpoints
+         });
+ 
+         // GET /tasks/{id}
+-        group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Get(id) is { } task ? Results.Ok(task) : Results.NotFound());
++        group.MapGet("/{id:guid}", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
+ 
+-        // POST /tasks
+-        group.MapPost("/", (CreateTaskRequest request, TaskStore store) =>
++            return store.Get(id, ownerId) is { } task ? Results.Ok(task) : Results.NotFound();
++        });
++
++        // POST /tasks — the owner comes from the token, never from the request body, so a caller
++        // cannot create a task on someone else's behalf.
++        group.MapPost("/", (CreateTaskRequest request, TaskStore store, ClaimsPrincipal user) =>
+         {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            var task = store.Add(request.Title, request.Status, request.Priority, request.DueDate);
++            var task = store.Add(ownerId, request.Title, request.Status, request.Priority, request.DueDate);
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+ 
+         // PUT /tasks/{id}
+-        group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store) =>
++        group.MapPut("/{id:guid}", (Guid id, UpdateTaskRequest request, TaskStore store, ClaimsPrincipal user) =>
+         {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            return store.Update(id, request.Title, request.Status, request.Priority, request.DueDate) is { } updated
++            return store.Update(id, ownerId, request.Title, request.Status, request.Priority, request.DueDate) is { } updated
+                 ? Results.Ok(updated)
+                 : Results.NotFound();
+         });
+ 
+         // DELETE /tasks/{id}
+-        group.MapDelete("/{id:guid}", (Guid id, TaskStore store) =>
+-            store.Remove(id) ? Results.NoContent() : Results.NotFound());
++        group.MapDelete("/{id:guid}", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            return store.Remove(id, ownerId) ? Results.NoContent() : Results.NotFound();
++        });
+ 
+         return app;
+     }
+diff --git a/src/TaskTracker.Api/Program.cs b/src/TaskTracker.Api/Program.cs
+index cdd3b91..aab3117 100644
+--- a/src/TaskTracker.Api/Program.cs
++++ b/src/TaskTracker.Api/Program.cs
+@@ -33,6 +33,11 @@ builder.Services
+     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+     .AddJwtBearer(options =>
+     {
++        // Tasks are owned by the token's "sub", so that claim has to survive to the handler under
++        // the name the token spelled. The default inbound map rewrites "sub" to the long
++        // ClaimTypes.NameIdentifier URI, which would leave a lookup for "sub" silently empty.
++        options.MapInboundClaims = false;
++
+         options.TokenValidationParameters = new TokenValidationParameters
+         {
+             ValidateIssuerSigningKey = true,
+@@ -45,6 +50,10 @@ builder.Services
+             // No leeway: an expired token is expired. The default 5-minute skew would let
+             // just-expired tokens through, which undercuts the whole reason for choosing JWT.
+             ClockSkew = TimeSpan.Zero,
++            // With inbound mapping off, nothing would otherwise populate Identity.Name. Pointing
++            // it at the subject keeps the rate limiter's authenticated partition key meaningful
++            // (see RateLimitPartitionKey below) instead of null for every caller.
++            NameClaimType = JwtRegisteredClaimNames.Sub,
+         };
+     });
+ 
+@@ -146,7 +155,9 @@ if (app.Environment.IsDevelopment() && auth.EnableDevTokenEndpoint)
+         var token = new JwtSecurityToken(
+             issuer: auth.Issuer,
+             audience: auth.Audience,
+-            claims: new[] { new Claim(JwtRegisteredClaimNames.Sub, "dev-user") },
++            // Same subject the store seeds its sample tasks under, so a locally issued token can
++            // actually see them.
++            claims: new[] { new Claim(JwtRegisteredClaimNames.Sub, TaskStore.SeedOwnerId) },
+             notBefore: now,
+             expires: now.AddMinutes(auth.TokenLifetimeMinutes),
+             signingCredentials: new SigningCredentials(auth.SecurityKey, SecurityAlgorithms.HmacSha256));
+diff --git a/src/TaskTracker.Api/Security/CallerIdentity.cs b/src/TaskTracker.Api/Security/CallerIdentity.cs
+new file mode 100644
+index 0000000..6ea642d
+--- /dev/null
++++ b/src/TaskTracker.Api/Security/CallerIdentity.cs
+@@ -0,0 +1,38 @@
++using System.IdentityModel.Tokens.Jwt;
++using System.Security.Claims;
++
++namespace TaskTracker.Api.Security;
++
++/// <summary>
++/// Resolves the task-owner identity of the authenticated caller.
++/// </summary>
++public static class CallerIdentity
++{
++    /// <summary>
++    /// Reads the caller's JWT <c>sub</c> claim, the value tasks are owned by.
++    /// </summary>
++    /// <remarks>
++    /// Read under <c>MapInboundClaims = false</c> (see Program.cs), so the claim still carries the
++    /// name the token spelled rather than the ClaimTypes.NameIdentifier URI the default inbound map
++    /// rewrites it to.
++    /// <para>
++    /// Returns <c>false</c> rather than falling back to a placeholder when the claim is absent or
++    /// blank: a validly signed token that names no subject authenticates a caller the API cannot
++    /// identify, and inventing an owner for it would put unrelated callers into one shared bucket.
++    /// Callers turn that into 401 - the credential is the problem, not the resource.
++    /// </para>
++    /// </remarks>
++    public static bool TryGetOwnerId(this ClaimsPrincipal user, out string ownerId)
++    {
++        var subject = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
++
++        if (string.IsNullOrWhiteSpace(subject))
++        {
++            ownerId = string.Empty;
++            return false;
++        }
++
++        ownerId = subject;
++        return true;
++    }
++}
+diff --git a/tests/TaskTracker.Tests/TaskOwnershipTests.cs b/tests/TaskTracker.Tests/TaskOwnershipTests.cs
+new file mode 100644
+index 0000000..93a1e6d
+--- /dev/null
++++ b/tests/TaskTracker.Tests/TaskOwnershipTests.cs
+@@ -0,0 +1,215 @@
++using System.Net;
++using System.Net.Http.Json;
++using Xunit;
++
++namespace TaskTracker.Tests;
++
++/// <summary>
++/// Covers task ownership: the owner is taken from the caller's JWT subject, listing returns only
++/// the caller's own tasks, and another owner's task is indistinguishable from one that does not
++/// exist.
++/// </summary>
++/// <remarks>
++/// The store is a process-lifetime singleton shared by every test in this class, so each test
++/// uses subjects unique to itself rather than a shared "alice"/"bob" pair - otherwise a task left
++/// behind by one test would show up in another's listing and the assertions would depend on
++/// execution order.
++/// </remarks>
++public class TaskOwnershipTests : IClassFixture<TestApiFactory>
++{
++    private readonly TestApiFactory _factory;
++
++    public TaskOwnershipTests(TestApiFactory factory) => _factory = factory;
++
++    [Fact]
++    public async Task Get_tasks_returns_only_the_callers_own_tasks()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-list-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-list-b");
++
++        await Create(alice, "Alice's task");
++        await Create(bob, "Bob's task");
++
++        var alicesTasks = await alice.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++        var bobsTasks = await bob.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++
++        Assert.Contains(alicesTasks!, t => t.Title == "Alice's task");
++        Assert.DoesNotContain(alicesTasks!, t => t.Title == "Bob's task");
++
++        Assert.Contains(bobsTasks!, t => t.Title == "Bob's task");
++        Assert.DoesNotContain(bobsTasks!, t => t.Title == "Alice's task");
++    }
++
++    /// <summary>
++    /// The breaking half of the change stated as a test: before this, any authenticated caller got
++    /// every task in the store, seeds included.
++    /// </summary>
++    [Fact]
++    public async Task A_caller_who_has_created_nothing_sees_an_empty_list()
++    {
++        var newcomer = _factory.CreateAuthenticatedClient("owner-newcomer");
++
++        var tasks = await newcomer.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++
++        Assert.Empty(tasks!);
++    }
++
++    [Fact]
++    public async Task The_priority_filter_does_not_widen_the_scope()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-filter-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-filter-b");
++
++        await Create(alice, "Alice high", priority: "High");
++        await Create(bob, "Bob high", priority: "High");
++
++        var alicesHigh = await alice.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?priority=High");
++
++        Assert.Contains(alicesHigh!, t => t.Title == "Alice high");
++        Assert.DoesNotContain(alicesHigh!, t => t.Title == "Bob high");
++    }
++
++    [Fact]
++    public async Task Reading_another_owners_task_by_id_is_404()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-read-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-read-b");
++        var alices = await Create(alice, "Private to Alice");
++
++        var response = await bob.GetAsync($"/tasks/{alices.Id}");
++
++        // 404, not 403: a caller who cannot see the task must not learn that it exists.
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++        Assert.Equal(
++            HttpStatusCode.NotFound,
++            (await bob.GetAsync($"/tasks/{Guid.NewGuid()}")).StatusCode);
++    }
++
++    [Fact]
++    public async Task Updating_another_owners_task_is_404_and_changes_nothing()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-update-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-update-b");
++        var alices = await Create(alice, "Alice's original");
++
++        var response = await bob.PutAsJsonAsync(
++            $"/tasks/{alices.Id}", new { title = "Hijacked", status = "Done", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++
++        var stillAlices = await alice.GetFromJsonAsync<TaskEndpointsTests.TaskDto>($"/tasks/{alices.Id}");
++        Assert.Equal("Alice's original", stillAlices!.Title);
++        Assert.Equal("Open", stillAlices.Status);
++    }
++
++    [Fact]
++    public async Task Deleting_another_owners_task_is_404_and_leaves_it_in_place()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-delete-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-delete-b");
++        var alices = await Create(alice, "Alice's keeper");
++
++        var response = await bob.DeleteAsync($"/tasks/{alices.Id}");
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++
++        var survivor = await alice.GetAsync($"/tasks/{alices.Id}");
++        Assert.Equal(HttpStatusCode.OK, survivor.StatusCode);
++    }
++
++    [Fact]
++    public async Task An_owner_can_still_read_update_and_delete_their_own_task()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-happy-path");
++        var created = await Create(alice, "Mine");
++
++        Assert.Equal(HttpStatusCode.OK, (await alice.GetAsync($"/tasks/{created.Id}")).StatusCode);
++
++        var update = await alice.PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Mine, edited", status = "Done", priority = "High" });
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        Assert.Equal(HttpStatusCode.NoContent, (await alice.DeleteAsync($"/tasks/{created.Id}")).StatusCode);
++        Assert.Equal(HttpStatusCode.NotFound, (await alice.GetAsync($"/tasks/{created.Id}")).StatusCode);
++    }
++
++    /// <summary>
++    /// A task created while authenticated as one subject is owned by that subject even if the same
++    /// HTTP client later presents a different token - ownership follows the credential on the
++    /// creating request, not the connection.
++    /// </summary>
++    [Fact]
++    public async Task Ownership_is_taken_from_the_token_on_the_creating_request()
++    {
++        var alice = _factory.CreateAuthenticatedClient("owner-source-a");
++        var bob = _factory.CreateAuthenticatedClient("owner-source-b");
++
++        var created = await Create(alice, "Created by Alice");
++
++        Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/tasks/{created.Id}")).StatusCode);
++        Assert.Equal(HttpStatusCode.OK, (await alice.GetAsync($"/tasks/{created.Id}")).StatusCode);
++    }
++
++    /// <summary>
++    /// The owner is the store's scoping key, not part of the wire contract; responses must not
++    /// start carrying it, since removing a published field later is itself a breaking change.
++    /// </summary>
++    [Fact]
++    public async Task The_owner_id_is_not_serialized_into_responses()
++    {
++        var client = _factory.CreateAuthenticatedClient("owner-not-serialized");
++        var created = await client.PostAsJsonAsync(
++            "/tasks", new { title = "Check the wire shape", status = "Open", priority = "Low" });
++
++        var createdBody = await created.Content.ReadAsStringAsync();
++        var listBody = await (await client.GetAsync("/tasks")).Content.ReadAsStringAsync();
++
++        Assert.DoesNotContain("owner", createdBody, StringComparison.OrdinalIgnoreCase);
++        Assert.DoesNotContain("owner", listBody, StringComparison.OrdinalIgnoreCase);
++    }
++
++    public static TheoryData<string, string> TaskRoutes() => new()
++    {
++        { "GET", "/tasks" },
++        { "GET", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "POST", "/tasks" },
++        { "PUT", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "DELETE", "/tasks/11111111-1111-1111-1111-111111111111" },
++    };
++
++    /// <summary>
++    /// A correctly signed token that names no subject passes authentication but identifies nobody,
++    /// so there is no owner to scope to. Every route must refuse it rather than fall back to a
++    /// shared or empty owner - on all five, not just the one someone remembered to guard.
++    /// </summary>
++    [Theory]
++    [MemberData(nameof(TaskRoutes))]
++    public async Task A_valid_token_with_no_subject_claim_is_rejected(string method, string route)
++    {
++        var client = _factory.CreateClient();
++        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
++            "Bearer", TestApiFactory.MintToken(subject: null));
++
++        var request = new HttpRequestMessage(new HttpMethod(method), route);
++        if (method is "POST" or "PUT")
++        {
++            request.Content = JsonContent.Create(new { title = "Should never be created", status = "Open", priority = "Low" });
++        }
++
++        var response = await client.SendAsync(request);
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    private static async Task<TaskEndpointsTests.TaskDto> Create(
++        HttpClient client,
++        string title,
++        string priority = "Low")
++    {
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title, status = "Open", priority });
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++
++        return (await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>())!;
++    }
++}
+diff --git a/tests/TaskTracker.Tests/TestApiFactory.cs b/tests/TaskTracker.Tests/TestApiFactory.cs
+index d949317..4a29110 100644
+--- a/tests/TaskTracker.Tests/TestApiFactory.cs
++++ b/tests/TaskTracker.Tests/TestApiFactory.cs
+@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
+ using Microsoft.Extensions.Configuration;
+ using Microsoft.Extensions.Hosting;
+ using Microsoft.IdentityModel.Tokens;
++using TaskTracker.Api.Domain;
+ 
+ namespace TaskTracker.Tests;
+ 
+@@ -75,20 +76,33 @@ public class TestApiFactory : WebApplicationFactory<Program>
+         }
+     }
+ 
+-    /// <summary>A client that presents a valid bearer token on every request.</summary>
+-    public HttpClient CreateAuthenticatedClient()
++    /// <summary>
++    /// A client that presents a valid bearer token on every request.
++    /// </summary>
++    /// <remarks>
++    /// Defaults to the subject the store seeds its sample tasks under, so tests about CRUD
++    /// behaviour still see the seeded fixture now that tasks are owner-scoped. Tests about
++    /// ownership pass their own subject to get a caller that owns nothing to begin with.
++    /// </remarks>
++    public HttpClient CreateAuthenticatedClient(string subject = TaskStore.SeedOwnerId)
+     {
+         var client = CreateClient();
+         client.DefaultRequestHeaders.Authorization =
+-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", MintToken());
++            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", MintToken(subject: subject));
+         return client;
+     }
+ 
++    /// <param name="subject">
++    /// The <c>sub</c> claim, i.e. the task owner. Passing <c>null</c> mints an otherwise valid
++    /// token that carries no subject at all - the case the API answers with 401, because a caller
++    /// it cannot identify has no tasks to be scoped to.
++    /// </param>
+     public static string MintToken(
+         string? issuer = null,
+         string? audience = null,
+         string? signingKey = null,
+-        TimeSpan? lifetime = null)
++        TimeSpan? lifetime = null,
++        string? subject = TaskStore.SeedOwnerId)
+     {
+         var now = DateTime.UtcNow;
+         var expires = now.Add(lifetime ?? TimeSpan.FromMinutes(60));
+@@ -102,10 +116,14 @@ public class TestApiFactory : WebApplicationFactory<Program>
+             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey ?? SigningKey)),
+             SecurityAlgorithms.HmacSha256);
+ 
++        var claims = subject is null
++            ? Array.Empty<Claim>()
++            : new[] { new Claim(JwtRegisteredClaimNames.Sub, subject) };
++
+         var token = new JwtSecurityToken(
+             issuer: issuer ?? Issuer,
+             audience: audience ?? Audience,
+-            claims: new[] { new Claim(JwtRegisteredClaimNames.Sub, "test-user") },
++            claims: claims,
+             notBefore: notBefore,
+             expires: expires,
+             signingCredentials: credentials);

@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "verify",
+  "pass": 1,
+  "changeId": "add-priority-filter",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-20b9a2",
+  "mode": null,
+  "verdict": "READY",
+  "at": "2026-08-04T21:38:26Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "verify 1 was owed by the M3 contract-dependency firing and was run inside the loop, attributed to that surface: the route delta is confirmed additive, the new 400 path is reachable only when the parameter is supplied, and the omitted-parameter response is byte-compatible with the baseline. Build and tests were re-run independently of my own run. Nothing is deferred and no debt is recorded, so READY rather than READY_WITH_DEBT.",
+  "commentary": null,
+  "facts": {
+    "archiveReadiness": "READY",
+    "checks": {
+      "build": {
+        "command": "dotnet build",
+        "warnings": 0,
+        "errors": 0,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "tests": {
+        "command": "dotnet test",
+        "passed": 47,
+        "total": 47,
+        "note": "independent re-run by chaos-record (L4-D4)"
+      },
+      "contract": {
+        "ticked": 7,
+        "total": 7,
+        "note": "join against deliver.pass-01.facts.json \u2014 derived, same rule the renderer ticks by"
+      },
+      "scopeDrift": {
+        "status": "NO_DRIFT",
+        "risk": "LOW",
+        "note": "M5 never fired across 7 scan(s) \u2014 derived from classification-state.json"
+      },
+      "rules": [
+        {
+          "id": "R-003",
+          "status": "pass",
+          "evidence": "Independent re-run at close: dotnet test 47/47, 0 failed; dotnet build 0 errors, 0 warnings. The 34 baseline tests are unmodified by this diff."
+        },
+        {
+          "id": "R-004",
+          "status": "pass",
+          "evidence": "The C-15-scoped diff changes two files, neither under src/TaskTracker.Api/Domain/. The endpoint consumes the store's existing All(); no HTTP type crossed into the domain and the store gained no query surface."
+        },
+        {
+          "id": "R-005",
+          "status": "pass",
+          "evidence": "No enum renamed or added. TryParsePriority enumerates Enum.GetNames<TaskPriority>(); TaskState is untouched and TaskStatus is not reintroduced."
+        }
+      ]
+    },
+    "traceability": [
+      {
+        "requirement": "Listing tasks without a filter is unchanged",
+        "capability": "task-filtering",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs \u2014 `priority is null` returns Results.Ok(store.All()) before any validation runs",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_without_priority_returns_every_priority",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Tasks can be filtered by priority",
+        "capability": "task-filtering",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs \u2014 tasks.Where(t => t.Priority == requested) over store.All(), preserving creation order",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_filtered_by_priority_returns_only_that_priority, ::Get_tasks_priority_filter_ignores_casing, ::Get_tasks_filter_matching_nothing_returns_an_empty_list",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "An unrecognised priority value is rejected",
+        "capability": "task-filtering",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs \u2014 TryParsePriority matches whole enum names case-insensitively; anything else returns Results.BadRequest",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_an_unrecognised_priority_is_rejected (6 cases)",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      },
+      {
+        "requirement": "Filtering stays in the HTTP layer",
+        "capability": "task-filtering",
+        "implementation": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs \u2014 the only production file changed; Domain/ untouched",
+        "test": "tests/TaskTracker.Tests/TaskEndpointsTests.cs::Get_tasks_with_a_priority_filter_still_requires_authentication, plus the unmodified 34-test baseline",
+        "status": "SATISFIED",
+        "confidence": "HIGH"
+      }
+    ],
+    "findings": [
+      {
+        "id": "VFY-001",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the route delta is additive, and the pre-change call shape is preserved",
+        "detail": "Attributed to TRG-002 (M3 contract-surface, breaking false). The route template MapGet(\"/\") is byte-identical; the delta is one added optional query parameter plus a 400 status that is unreachable unless the parameter is supplied. Every existing caller of GET /tasks \u2014 which by definition sends no priority parameter \u2014 takes the same code path and receives the same 200 and the same body as before, asserted by the unmodified baseline test Get_tasks_returns_the_seeded_tasks."
+      },
+      {
+        "id": "VFY-002",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Contract check: the permissive-parse failure mode that closed tier route B is covered by a failing-first test",
+        "detail": "The handler binds the parameter as string? and matches whole enum names, rather than binding TaskPriority? and delegating to Enum.TryParse. That is deliberate: Enum.TryParse accepts comma-separated lists and numeric values, so ?priority=Low,High would return 200 with the Low tasks. Both shapes are asserted to return 400 (InlineData \"Low,High\", \"0\", \"2\"). This is the exact defect recorded in the model-tier-map route-B closure of 2026-08-04, and the reason this unit was not run at the floor tier."
+      },
+      {
+        "id": "VFY-003",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "N/A as a positive claim: auth, data-store and deploy safeguards were not run, and are not owed",
+        "detail": "Only the contract-dependency surface fired (TRG-002), so credential, persistence and deploy safeguards are N/A \u2014 asserted rather than silently skipped. The diff touches no Domain/** file, no secrets path, no appsettings key and no composition root: the two changed files are Endpoints/TaskEndpoints.cs and the test file. The M4 firing at K2 carried surface 'process' (decision density), which owes no runtime safeguard."
+      },
+      {
+        "id": "VFY-004",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "OpenSpec isComplete:false is the expected reading at classified depth 1",
+        "detail": "openspec validate add-priority-filter --strict returns valid. openspec status reports isComplete:false with applyRequires:[tasks], because the CLI measures the full spec-driven artifact set (proposal, design, specs, tasks) while depth 1 owes only the delta spec. This is the classified obligation met, not a degraded or partial invocation."
+      },
+      {
+        "id": "VFY-005",
+        "severity": "ADVISORY",
+        "knowledge": "FACT",
+        "confidence": "HIGH",
+        "title": "Follow-up owed outside this change: OQ-002 is now answered",
+        "detail": "RUN-DEC-001 settles context open question OQ-002 ('what should an invalid filter value return once filtering is added \u2014 400 vs ignore?') in favour of 400, and the delta spec records it. Closing OQ-002 in .chaos/context.md and updating the .chaos/architecture.md API-strategy section are source-of-truth edits owed to chaos:sync, carried on the ledger entry as sync-action UPDATE_CHAOS_RULES. They are deliberately not made here: this run governs src/ and tests/, not the repository's own posture documents."
+      }
+    ]
+  }
+}

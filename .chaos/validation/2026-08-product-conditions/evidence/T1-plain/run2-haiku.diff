@@ -1,0 +1,28 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index dcc5093..1315c1b 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -19,8 +19,21 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks — returns every task in the store, optionally filtered by priority.
++        group.MapGet("/", (string? priority, TaskStore store) =>
++        {
++            var tasks = store.All();
++
++            if (priority is not null)
++            {
++                if (!Enum.TryParse<TaskPriority>(priority, ignoreCase: true, out var parsedPriority))
++                    return Results.BadRequest(new { error = "Priority must be one of: Low, Medium, High." });
++
++                tasks = tasks.Where(t => t.Priority == parsedPriority).ToList();
++            }
++
++            return Results.Ok(tasks);
++        });
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>

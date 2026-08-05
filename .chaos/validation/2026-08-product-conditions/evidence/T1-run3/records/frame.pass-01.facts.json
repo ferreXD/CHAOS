@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "recordType": "phase-facts",
+  "phase": "frame",
+  "pass": 1,
+  "changeId": "add-priority-filter",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-20b9a2",
+  "mode": null,
+  "verdict": "READY_FOR_REVIEW",
+  "at": "2026-08-04T21:33:42Z",
+  "assessment": {
+    "confidence": "HIGH",
+    "evidenceCoverage": "COMPLETE",
+    "assumptionLoad": "LOW"
+  },
+  "verdictRationale": "Intent, predicted scope and contract are complete and testable against the green baseline. The change is the extension point the architecture posture already names, implemented on the side of the boundary that posture prescribes, so nothing here crosses recorded posture. The two points the repository genuinely does not answer \u2014 case sensitivity of the accepted values, and the meaning of an empty `?priority=` \u2014 are folded into the S1 approval stop rather than assumed.",
+  "commentary": "The intent also settles context OQ-002 (\"what should an invalid filter value return once filtering is added \u2014 400 vs ignore?\") in favour of 400. That open question was recorded as deferred to the first proposal on this surface; this run is that surface, so closing OQ-002 in context.md and the architecture API-strategy section is owed as a sync action, not a silent side effect.",
+  "facts": {
+    "title": "Optional ?priority= filter on GET /tasks",
+    "intent": [
+      "Add an optional ?priority= query filter to GET /tasks, accepting Low, Medium or High. Omitting the parameter keeps today's behaviour of returning everything. An unrecognised value is a 400. Keep the filtering in the endpoint layer over the existing store.All() result - do not change TaskStore."
+    ],
+    "openspec": {
+      "status": "NOT_INVOKED",
+      "depth": 1,
+      "invocationPath": "skipped, openspec dimension 0 \u2014 the K1 classification fired no trigger, so no OpenSpec artifact is owed and the contract of record is change.md \u00a7Contract. This is the classified outcome, not degraded mode.",
+      "confidenceImpact": "None. Depth 0 is the classified obligation."
+    },
+    "sourceManifest": [
+      {
+        "path": "AGENTS.md",
+        "role": "entrypoint, pre-edit behaviour, protected files",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/architecture.md",
+        "role": "boundary posture and API strategy; names GET /tasks query filtering as the known extension point",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/rules/index.md",
+        "role": "R-003 green baseline, R-004 domain\u2192HTTP boundary, R-005 TaskState naming",
+        "knowledge": "FACT"
+      },
+      {
+        "path": ".chaos/context.md",
+        "role": "open question OQ-002 \u2014 invalid filter value: 400 vs ignore",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+        "role": "the GET /tasks handler this change modifies",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskStore.cs",
+        "role": "supplies All(); explicitly not modified",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "src/TaskTracker.Api/Domain/TaskItem.cs",
+        "role": "TaskPriority enum defining the three accepted values",
+        "knowledge": "FACT"
+      },
+      {
+        "path": "tests/TaskTracker.Tests/TaskEndpointsTests.cs",
+        "role": "the green integration-test baseline the new cases join",
+        "knowledge": "FACT"
+      }
+    ],
+    "risk": {
+      "class": "LOW",
+      "classRationale": "An additive, optional, read-only query filter on an existing authenticated route. No auth, persistence or contract-type change; the unfiltered path is preserved by C-001.",
+      "items": [
+        {
+          "id": "RK-1",
+          "summary": "A naive `Enum.TryParse` guard silently accepts comma-separated lists (`?priority=Low,High`) and numeric values (`?priority=0`), returning 200 where C-003 requires 400.",
+          "likelihood": "High",
+          "impact": "Medium",
+          "mitigation": "C-003 pins both shapes explicitly; the handler validates against an exact allow-list of the three names rather than delegating to Enum.TryParse, and tests cover the list and numeric forms. This exact defect shipped once before on this exact feature (model-tier-map, route B closure 2026-08-04)."
+        },
+        {
+          "id": "RK-2",
+          "summary": "Regressing the unfiltered `GET /tasks` response while adding the filter.",
+          "likelihood": "Low",
+          "impact": "Medium",
+          "mitigation": "C-001 pins the omitted-parameter path; the existing baseline tests already assert it and stay green (R-003)."
+        }
+      ]
+    },
+    "framingTraceability": [
+      {
+        "capability": "priority-filter on GET /tasks (no OpenSpec artifact owed at depth 0)",
+        "statements": [
+          "C-001",
+          "C-002",
+          "C-003",
+          "C-004",
+          "C-005"
+        ],
+        "tasks": "1 work unit: parse + validate + filter in the GET /tasks handler, with integration tests for the omitted, valid, empty-result and rejected forms."
+      }
+    ]
+  },
+  "confidenceLimiters": [
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "K1 classification fired zero triggers with the architecture posture attached (deterministic scan + adjudication pass, scanSeq 1); the dimension vector sits at its floors."
+    },
+    {
+      "kind": "INFERENCE",
+      "confidence": "MEDIUM",
+      "text": "The added query parameter is expected to fire M3 contract-surface at the first K3 diff scan; the K1 adjudication deliberately declined to pre-empt it per adjudication rule 12 (an announced additive parameter is the route-delta scan's job)."
+    },
+    {
+      "kind": "FACT",
+      "confidence": "HIGH",
+      "text": "Two contract points are unresolved by the repository and are folded into S1 rather than decided here: whether `?priority=low` is accepted, and whether an empty `?priority=` is a 400 or behaves as omitted."
+    }
+  ]
+}

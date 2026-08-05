@@ -1,0 +1,44 @@
+{
+ "fired": [
+  {
+   "trigger": "M4",
+   "by": "scan",
+   "surface": "process",
+   "cite": "ledger scan rule: 3 material question(s) across 1 entry >= threshold 2",
+   "checkpoint": "K2"
+  },
+  {
+   "trigger": "M3",
+   "by": "adjudication",
+   "surface": "contract-dependency",
+   "cite": "patch 'src/TaskTracker.Api/Endpoints/TaskEndpoints.cs: -group.MapGet(\"/\", (TaskStore store) => Results.Ok(store.All())); +group.MapGet(\"/\", (string? priority, TaskStore store) => { ... return Results.BadRequest(new { error = ... }); }' x scope 'the GET /tasks handler gains an optional priority query parameter' \u2014 the public contract of an existing route changed: it accepts a new query parameter and can now answer 400 where it previously always answered 200. The deterministic route-delta scan cannot see this because the route template MapGet(\"/\") is byte-identical; only the handler's parameter list and status set changed.",
+   "checkpoint": "K3",
+   "breaking": false
+  }
+ ],
+ "stopsPlaced": [
+  "K1:floor-approval"
+ ],
+ "floors": {
+  "stops": 1,
+  "evidence.targeted": 0,
+  "evidence.breadth": 0,
+  "review": 0,
+  "verify": 0,
+  "openspec": 0,
+  "adr": 0
+ },
+ "mode": null,
+ "x1Level": 0,
+ "checkpointsRun": [
+  "K1",
+  "K2",
+  "K3",
+  "K4"
+ ],
+ "seenPaths": [
+  "src/TaskTracker.Api/Endpoints/TaskEndpoints.cs",
+  "tests/TaskTracker.Tests/TaskEndpointsTests.cs"
+ ],
+ "scanCount": 7
+}

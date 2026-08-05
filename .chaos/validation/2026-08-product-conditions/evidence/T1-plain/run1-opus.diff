@@ -1,0 +1,100 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index dcc5093..829c47e 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -7,7 +7,7 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks currently returns EVERY task, unfiltered.
++/// GET /tasks returns every task unless narrowed by <c>?priority=</c>.
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -19,8 +19,19 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks[?priority=Low|Medium|High] — the parameter is a plain string rather than a
++        // TaskPriority? so an unrecognised value produces our own 400 body, instead of the empty
++        // 400 minimal APIs emit when parameter binding fails.
++        group.MapGet("/", (string? priority, TaskStore store) =>
++        {
++            if (priority is null)
++                return Results.Ok(store.All());
++
++            if (!TryParsePriority(priority, out var wanted))
++                return Results.BadRequest(new { error = "Priority must be one of: Low, Medium, High." });
++
++            return Results.Ok(store.All().Where(task => task.Priority == wanted).ToList());
++        });
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+@@ -53,4 +64,15 @@ public static class TaskEndpoints
+ 
+         return app;
+     }
++
++    private static bool TryParsePriority(string value, out TaskPriority priority)
++    {
++        priority = default;
++
++        var name = value.Trim();
++        if (name.Length == 0 || name.Contains(',') || !char.IsLetter(name[0]))
++            return false;
++
++        return Enum.TryParse(name, ignoreCase: true, out priority) && Enum.IsDefined(priority);
++    }
+ }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index e6fd47e..4188322 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -90,6 +90,44 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Get_tasks_filters_by_priority()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=High");
++
++        Assert.NotNull(tasks);
++        Assert.NotEmpty(tasks!);
++        Assert.All(tasks!, t => Assert.Equal("High", t.Priority));
++    }
++
++    [Fact]
++    public async Task Get_tasks_priority_filter_is_case_insensitive()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var lower = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=high");
++        var exact = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=High");
++
++        Assert.Equal(exact!.Count, lower!.Count);
++    }
++
++    [Theory]
++    [InlineData("Urgent")]
++    [InlineData("0")]
++    [InlineData("99")]
++    [InlineData("Low,High")]
++    [InlineData("")]
++    public async Task Get_tasks_rejects_an_unrecognised_priority(string priority)
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var response = await client.GetAsync($"/tasks?priority={Uri.EscapeDataString(priority)}");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++    }
++
+     /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+     internal record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
+ }

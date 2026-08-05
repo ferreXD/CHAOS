@@ -1,0 +1,314 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 2e82822..6bb1d68 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -21,9 +21,15 @@ public enum TaskPriority
+ }
+ 
+ /// <summary>An immutable task record held in the in-memory store.</summary>
++/// <remarks>
++/// <see cref="DueDate"/> is optional: <c>null</c> means the task has no due date, which is a
++/// normal state rather than missing data. It sits with the caller-supplied fields; the
++/// system-assigned <see cref="CreatedAt"/> stays last.
++/// </remarks>
+ public record TaskItem(
+     Guid Id,
+     string Title,
+     TaskState Status,
+     TaskPriority Priority,
++    DateTimeOffset? DueDate,
+     DateTimeOffset CreatedAt);
+diff --git a/src/TaskTracker.Api/Contracts/TaskRequests.cs b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+index afb9da7..f37ce20 100644
+--- a/src/TaskTracker.Api/Contracts/TaskRequests.cs
++++ b/src/TaskTracker.Api/Contracts/TaskRequests.cs
+@@ -3,7 +3,20 @@ using TaskTracker.Api.Domain;
+ namespace TaskTracker.Api.Contracts;
+ 
+ /// <summary>Request body for POST /tasks.</summary>
+-public record CreateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
++/// <remarks>An omitted (or null) <c>dueDate</c> creates a task with no due date.</remarks>
++public record CreateTaskRequest(
++    string Title,
++    TaskState Status,
++    TaskPriority Priority,
++    DateTimeOffset? DueDate = null);
+ 
+ /// <summary>Request body for PUT /tasks/{id}.</summary>
+-public record UpdateTaskRequest(string Title, TaskState Status, TaskPriority Priority);
++/// <remarks>
++/// PUT replaces the whole task, so an omitted (or null) <c>dueDate</c> clears an existing one
++/// rather than leaving it in place - the same reading the other fields already get.
++/// </remarks>
++public record UpdateTaskRequest(
++    string Title,
++    TaskState Status,
++    TaskPriority Priority,
++    DateTimeOffset? DueDate = null);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index cf58616..6e509ad 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -28,24 +28,41 @@ public class TaskStore
+     public TaskItem? Get(Guid id) =>
+         _tasks.TryGetValue(id, out var task) ? task : null;
+ 
+-    public TaskItem Add(string title, TaskState status, TaskPriority priority) =>
+-        AddAt(title, status, priority, DateTimeOffset.UtcNow);
++    public TaskItem Add(string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate = null) =>
++        AddAt(title, status, priority, DateTimeOffset.UtcNow, dueDate);
+ 
+-    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority)
++    /// <summary>
++    /// Replaces the mutable fields of a task. <paramref name="dueDate"/> is written through as
++    /// given, so passing null clears an existing due date.
++    /// </summary>
++    public TaskItem? Update(Guid id, string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate = null)
+     {
+         if (!_tasks.TryGetValue(id, out var existing))
+             return null;
+ 
+-        var updated = existing with { Title = title, Status = status, Priority = priority };
++        var updated = existing with
++        {
++            Title = title,
++            Status = status,
++            Priority = priority,
++            DueDate = dueDate,
++        };
+         _tasks[id] = updated;
+         return updated;
+     }
+ 
+     public bool Remove(Guid id) => _tasks.TryRemove(id, out _);
+ 
+-    private TaskItem AddAt(string title, TaskState status, TaskPriority priority, DateTimeOffset createdAt)
++    // dueDate defaults to null so the seed calls above - and any task created before due dates
++    // existed - stay valid without one.
++    private TaskItem AddAt(
++        string title,
++        TaskState status,
++        TaskPriority priority,
++        DateTimeOffset createdAt,
++        DateTimeOffset? dueDate = null)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), title, status, priority, createdAt);
++        var task = new TaskItem(Guid.NewGuid(), title, status, priority, dueDate, createdAt);
+         _tasks[task.Id] = task;
+         return task;
+     }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 5d25c17..dd25277 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -52,7 +52,7 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            var task = store.Add(request.Title, request.Status, request.Priority);
++            var task = store.Add(request.Title, request.Status, request.Priority, request.DueDate);
+             return Results.Created($"/tasks/{task.Id}", task);
+         });
+ 
+@@ -62,7 +62,7 @@ public static class TaskEndpoints
+             if (string.IsNullOrWhiteSpace(request.Title))
+                 return Results.BadRequest(new { error = "Title is required." });
+ 
+-            return store.Update(id, request.Title, request.Status, request.Priority) is { } updated
++            return store.Update(id, request.Title, request.Status, request.Priority, request.DueDate) is { } updated
+                 ? Results.Ok(updated)
+                 : Results.NotFound();
+         });
+diff --git a/src/TaskTracker.Api/TaskTracker.Api.http b/src/TaskTracker.Api/TaskTracker.Api.http
+index 92eb011..40b4df5 100644
+--- a/src/TaskTracker.Api/TaskTracker.Api.http
++++ b/src/TaskTracker.Api/TaskTracker.Api.http
+@@ -15,7 +15,7 @@ GET {{host}}/tasks?priority=Urgent
+ ### Get one task (paste an id from the list above)
+ GET {{host}}/tasks/00000000-0000-0000-0000-000000000000
+ 
+-### Create a task
++### Create a task (dueDate is optional - omit it for a task with no due date)
+ POST {{host}}/tasks
+ Content-Type: application/json
+ 
+@@ -25,13 +25,35 @@ Content-Type: application/json
+   "priority": "High"
+ }
+ 
+-### Update a task
++### Create a task with a due date
++POST {{host}}/tasks
++Content-Type: application/json
++
++{
++  "title": "Ship the release",
++  "status": "Open",
++  "priority": "High",
++  "dueDate": "2026-09-01T17:00:00Z"
++}
++
++### Update a task, setting or changing its due date
+ PUT {{host}}/tasks/00000000-0000-0000-0000-000000000000
+ Content-Type: application/json
+ 
+ {
+   "title": "Try the Task Tracker API (updated)",
+   "status": "InProgress",
++  "priority": "Medium",
++  "dueDate": "2026-09-15T09:00:00Z"
++}
++
++### Update a task, clearing its due date (PUT replaces the task, so an omitted dueDate removes it)
++PUT {{host}}/tasks/00000000-0000-0000-0000-000000000000
++Content-Type: application/json
++
++{
++  "title": "Try the Task Tracker API (no deadline)",
++  "status": "InProgress",
+   "priority": "Medium"
+ }
+ 
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index 9aea385..202f117 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -142,6 +142,117 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
+-    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
+-    internal record TaskDto(Guid Id, string Title, string Status, string Priority, DateTimeOffset CreatedAt);
++    [Fact]
++    public async Task Post_with_a_due_date_stores_and_returns_it()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var due = new DateTimeOffset(2026, 9, 1, 17, 0, 0, TimeSpan.Zero);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = "Ship the release", status = "Open", priority = "High", dueDate = due });
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(due, created!.DueDate);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(due, fetched!.DueDate);
++    }
++
++    [Fact]
++    public async Task Post_without_a_due_date_creates_a_task_that_has_none()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Someday", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        Assert.Null(created!.DueDate);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Null(fetched!.DueDate);
++    }
++
++    [Fact]
++    public async Task Post_with_an_explicitly_null_due_date_is_the_same_as_omitting_it()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks",
++            new { title = "No deadline", status = "Open", priority = "Low", dueDate = (DateTimeOffset?)null });
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Null(created!.DueDate);
++    }
++
++    [Fact]
++    public async Task Put_can_set_a_due_date_on_a_task_that_had_none()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var due = new DateTimeOffset(2026, 10, 5, 12, 30, 0, TimeSpan.Zero);
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Plan the sprint", status = "Open", priority = "Medium" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Null(created!.DueDate);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created.Id}",
++            new { title = "Plan the sprint", status = "InProgress", priority = "Medium", dueDate = due });
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(due, fetched!.DueDate);
++    }
++
++    [Fact]
++    public async Task Put_without_a_due_date_clears_an_existing_one()
++    {
++        // PUT replaces the whole task, so an omitted dueDate means "no due date" - the same way
++        // an omitted title or status is not treated as "keep the old value".
++        var client = _factory.CreateAuthenticatedClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks",
++            new
++            {
++                title = "Renew the certificate",
++                status = "Open",
++                priority = "High",
++                dueDate = new DateTimeOffset(2026, 8, 20, 0, 0, 0, TimeSpan.Zero),
++            }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        Assert.NotNull(created!.DueDate);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{created.Id}", new { title = "Renew the certificate", status = "Done", priority = "High" });
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Null(fetched!.DueDate);
++    }
++
++    [Fact]
++    public async Task Seeded_tasks_have_no_due_date_and_still_list_fine()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        var seeded = Assert.Single(tasks!, t => t.Title == "Add query-param filters to GET /tasks");
++        Assert.Null(seeded.DueDate);
++    }
++
++    /// <summary>
++    /// Mirror of the API's task shape; enums arrive as strings ("Open", "High") and
++    /// <c>DueDate</c> is null when the task has none.
++    /// </summary>
++    internal record TaskDto(
++        Guid Id,
++        string Title,
++        string Status,
++        string Priority,
++        DateTimeOffset? DueDate,
++        DateTimeOffset CreatedAt);
+ }
+diff --git a/README.md b/README.md
+index 23bc8a3..e70b803 100644
+--- a/README.md
++++ b/README.md
+@@ -2,8 +2,12 @@
+ 
+ A small ASP.NET Core (net8.0) minimal API for managing work items: create, list, update and
+ delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low`, `Medium`,
+-`High`) and timestamps. Storage is an in-memory store seeded with a few sample tasks; all
+-`/tasks` routes require a bearer token.
++`High`), an optional due date and timestamps. Storage is an in-memory store seeded with a few
++sample tasks; all `/tasks` routes require a bearer token.
++
++`dueDate` is optional everywhere it appears. It can be set on `POST /tasks` and `PUT /tasks/{id}`,
++and is returned on every task - `null` when the task has no due date. Because `PUT` replaces the
++whole task, leaving `dueDate` out of an update clears any date already set.
+ 
+ ## Layout
+ 

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "recordType": "contract",
+  "changeId": "add-priority-filter",
+  "sourceCommand": "chaos:run",
+  "run": "RUN-2026-08-04-chaos-run-20b9a2",
+  "recordedAt": "2026-08-04T21:33:42Z",
+  "groups": [
+    "Filter behaviour",
+    "Boundary",
+    "Non-regression"
+  ],
+  "statements": [
+    {
+      "id": "C-001",
+      "group": "Filter behaviour",
+      "text": "`GET /tasks` with no `priority` query parameter returns HTTP 200 and the full `store.All()` result in creation order \u2014 identical to today's behaviour."
+    },
+    {
+      "id": "C-002",
+      "group": "Filter behaviour",
+      "text": "`GET /tasks?priority=Low`, `?priority=Medium` and `?priority=High` each return HTTP 200 with exactly the tasks whose `Priority` equals the requested value, in creation order. A filter that matches nothing returns HTTP 200 with an empty array, never 404."
+    },
+    {
+      "id": "C-003",
+      "group": "Filter behaviour",
+      "text": "`GET /tasks?priority=<anything else>` returns HTTP 400 with a JSON error body and no task data. \"Anything else\" explicitly includes comma-separated lists (`Low,High`), numeric enum values (`0`, `2`), and any name outside the three accepted ones."
+    },
+    {
+      "id": "C-004",
+      "group": "Boundary",
+      "text": "The parsing, validation and filtering all live in `src/TaskTracker.Api/Endpoints/TaskEndpoints.cs` and operate over the result of `store.All()`. `Domain/TaskStore.cs` and `Domain/TaskItem.cs` are not modified (R-004 domain\u2192HTTP boundary; the intent's explicit constraint)."
+    },
+    {
+      "id": "C-005",
+      "group": "Non-regression",
+      "text": "The existing test baseline stays green and `dotnet build` stays clean. Every other `/tasks` route is unchanged, and the group's `RequireAuthorization()` + `RequireRateLimiting()` still apply to the filtered GET."
+    },
+    {
+      "id": "C-006",
+      "group": "Filter behaviour",
+      "text": "The three accepted values are matched **case-insensitively**: `?priority=low`, `?priority=LOW` and `?priority=Low` are equivalent and all return the Low tasks. This refines C-002 and narrows C-003's \"any name outside the three\" to a case-insensitive comparison, matching how the request-body path already deserializes the same enum.",
+      "addedBy": "RUN-DEC-001"
+    },
+    {
+      "id": "C-007",
+      "group": "Filter behaviour",
+      "text": "An empty value — `GET /tasks?priority=` — returns HTTP 400 under C-003, and is NOT treated as if the parameter had been omitted. Only an absent `priority` parameter reaches C-001's return-everything path.",
+      "addedBy": "RUN-DEC-001"
+    }
+  ]
+}

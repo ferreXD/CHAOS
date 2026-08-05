@@ -1,0 +1,671 @@
+diff --git a/README.md b/README.md
+index 2753d3a..0fcad98 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # Task Tracker API
+ 
+-A small ASP.NET Core (net8.0) minimal API for managing work items: create, list, update and
+-delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low`, `Medium`,
++A small ASP.NET Core (net8.0) minimal API for managing work items: create, list, update, archive
++and delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low`, `Medium`,
+ `High`), an optional due date and timestamps. Storage is an in-memory store seeded with a few
+ sample tasks; all `/tasks` routes require a bearer token.
+ 
+@@ -38,6 +38,47 @@ and returned on every task. It is optional on both POST and PUT: omit it, or sen
+ task has no due date. Because PUT replaces the whole task, a PUT body without `dueDate` clears any
+ due date the task had - send the current value back to keep it.
+ 
++## Archiving
++
++A task that is finished with, but worth keeping, can be filed away instead of deleted:
++
++```bash
++curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:5080/tasks/$ID/archive
++curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:5080/tasks/$ID/unarchive
++```
++
++Both return the task; both are idempotent, so a retry is never an error. Archiving a task that is
++already archived does **not** move its `archivedAt` - the field records when the task was filed
++away, not when the button was last pressed.
++
++Every task carries a nullable `archivedAt`: `null` while it is on the working list, an ISO-8601
++instant once it is archived. Archiving is independent of `status` - `Done` says the work finished,
++archiving says the task should stop cluttering the list, and a task can be either without being
++the other. Nothing is destroyed: an archived task keeps its content and stays readable at
++`GET /tasks/{id}`.
++
++`GET /tasks` takes `?archived=`, which decides which side of the archive a listing shows:
++
++| Value | Returns |
++| --- | --- |
++| omitted, or `false` | the working list - archived tasks left out |
++| `true` | only archived tasks |
++| `all` | both |
++
++The value is case-insensitive, and those three words are the whole vocabulary: anything else
++(`yes`, `1`, an empty value) is a **400**, the same strictness `?priority=` already applies. The
++two filters combine - `?archived=true&priority=High` is the high-priority part of the archive - and
++neither widens the ownership scope: the archive is still only ever the caller's own.
++
++`DELETE /tasks/{id}` is unchanged and still destroys the task, archived or not. Archiving is the
++reversible way to clear the list; delete is for when the task really should be gone.
++
++One seeded sample task ("Write the project README") ships archived, so a fresh checkout shows both
++sides of the feature rather than an empty archive that looks broken.
++
++> **Behaviour change.** `GET /tasks` no longer returns every task the caller owns: archived ones
++> are left out unless asked for. A client that wants the previous listing sends `?archived=all`.
++
+ ## Layout
+ 
+ ```text
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 9a5ea35..6ca9f32 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -34,6 +34,13 @@ public enum TaskPriority
+ /// a caller only ever receives tasks it already owns, so echoing its own subject back tells it
+ /// nothing. Exposing it would be an additive contract change to reverse later.
+ /// </para>
++/// <para>
++/// <paramref name="ArchivedAt"/> is when the task was filed away, or <c>null</c> while it is still
++/// on the working list. It is a timestamp rather than a flag so the archive can be ordered and
++/// audited later without another contract change, and it is deliberately independent of
++/// <paramref name="Status"/>: <see cref="TaskState.Done"/> says the work finished, archiving says
++/// the task should stop cluttering the list - a task can be either without being the other.
++/// </para>
+ /// </remarks>
+ public record TaskItem(
+     Guid Id,
+@@ -42,4 +49,5 @@ public record TaskItem(
+     TaskState Status,
+     TaskPriority Priority,
+     DateTimeOffset CreatedAt,
+-    DateTimeOffset? DueDate);
++    DateTimeOffset? DueDate,
++    DateTimeOffset? ArchivedAt);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index c3ef9d6..5c3a620 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -31,9 +31,11 @@ public class TaskStore
+         // Seed a few tasks (with fixed, realistic timestamps so creation order is stable)
+         // so GET /tasks returns something on first run.
+         // Some seeds carry a due date and some do not, so GET /tasks shows both shapes of the
+-        // field on first run.
++        // field on first run. One seed ships archived for the same reason: a fresh checkout should
++        // show both sides of the archive, not an empty one that looks broken.
+         var seedBase = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+-        AddAt(SeedOwnerId, "Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null);
++        AddAt(SeedOwnerId, "Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null,
++            archivedAt: seedBase.AddDays(3));
+         AddAt(SeedOwnerId, "Add query-param filters to GET /tasks", TaskState.Open, TaskPriority.High,
+             seedBase.AddHours(2), seedBase.AddDays(7));
+         AddAt(SeedOwnerId, "Review the design proposal", TaskState.InProgress, TaskPriority.High,
+@@ -41,7 +43,11 @@ public class TaskStore
+         AddAt(SeedOwnerId, "Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2), null);
+     }
+ 
+-    /// <summary>The owner's tasks, in creation order.</summary>
++    /// <summary>
++    /// The owner's tasks, in creation order - archived ones included. Which side of the archive a
++    /// listing shows is a question for the endpoint's <c>?archived=</c> filter; the store stays a
++    /// plain container, exactly as it does for <c>?priority=</c>.
++    /// </summary>
+     public IReadOnlyList<TaskItem> All(string ownerId) =>
+         _tasks.Values.Where(t => t.OwnerId == ownerId).OrderBy(t => t.CreatedAt).ToList();
+ 
+@@ -63,25 +69,64 @@ public class TaskStore
+         if (Get(id, ownerId) is not { } existing)
+             return null;
+ 
+-        // `with` carries OwnerId and CreatedAt across untouched: a PUT replaces the task's content,
+-        // never its owner.
++        // `with` carries OwnerId, CreatedAt and ArchivedAt across untouched: a PUT replaces the
++        // task's content, never its owner and never its place in or out of the archive.
+         var updated = existing with { Title = title, Status = status, Priority = priority, DueDate = dueDate };
+         _tasks[id] = updated;
+         return updated;
+     }
+ 
++    /// <summary>
++    /// Files the owner's task away, or <c>null</c> if it is missing or owned by someone else.
++    /// </summary>
++    /// <remarks>
++    /// Archiving an already-archived task returns it untouched rather than restamping it: the
++    /// timestamp records when the task was filed away, not when a client last retried the call.
++    /// </remarks>
++    public TaskItem? Archive(Guid id, string ownerId) =>
++        SetArchivedAt(id, ownerId, DateTimeOffset.UtcNow, whenAlready: existing => existing.ArchivedAt is not null);
++
++    /// <summary>
++    /// Puts the owner's task back on the working list, or <c>null</c> if it is missing or owned by
++    /// someone else. Unarchiving a task that was never archived leaves it as it is.
++    /// </summary>
++    public TaskItem? Unarchive(Guid id, string ownerId) =>
++        SetArchivedAt(id, ownerId, null, whenAlready: existing => existing.ArchivedAt is null);
++
+     public bool Remove(Guid id, string ownerId) =>
+         Get(id, ownerId) is not null && _tasks.TryRemove(id, out _);
+ 
++    /// <summary>
++    /// Shared body of <see cref="Archive"/> and <see cref="Unarchive"/>: both are idempotent, and
++    /// <paramref name="whenAlready"/> is what each one calls "already in the requested state".
++    /// </summary>
++    private TaskItem? SetArchivedAt(
++        Guid id,
++        string ownerId,
++        DateTimeOffset? archivedAt,
++        Func<TaskItem, bool> whenAlready)
++    {
++        if (Get(id, ownerId) is not { } existing)
++            return null;
++
++        if (whenAlready(existing))
++            return existing;
++
++        var updated = existing with { ArchivedAt = archivedAt };
++        _tasks[id] = updated;
++        return updated;
++    }
++
+     private TaskItem AddAt(
+         string ownerId,
+         string title,
+         TaskState status,
+         TaskPriority priority,
+         DateTimeOffset createdAt,
+-        DateTimeOffset? dueDate)
++        DateTimeOffset? dueDate,
++        DateTimeOffset? archivedAt = null)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), ownerId, title, status, priority, createdAt, dueDate);
++        var task = new TaskItem(Guid.NewGuid(), ownerId, title, status, priority, createdAt, dueDate, archivedAt);
+         _tasks[task.Id] = task;
+         return task;
+     }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 2811251..e42d4f2 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -25,16 +25,33 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks[?priority=Low|Medium|High] — the caller's own tasks, optionally narrowed
+-        // to one priority. The filter is applied here rather than in TaskStore, which stays a
+-        // plain container; the ownership scope is not, because it must not be optional.
+-        group.MapGet("/", (TaskStore store, ClaimsPrincipal user, string? priority) =>
++        // GET /tasks[?priority=Low|Medium|High][?archived=true|false|all] — the caller's own
++        // tasks, optionally narrowed to one priority. Archived tasks are left out unless asked
++        // for, so the working list stays the default view. The filters are applied here rather
++        // than in TaskStore, which stays a plain container; the ownership scope is not, because
++        // it must not be optional.
++        group.MapGet("/", (TaskStore store, ClaimsPrincipal user, string? priority, string? archived) =>
+         {
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
++            var archivedFilter = ArchivedFilter.Active;
++            if (archived is not null && !TryParseArchivedFilter(archived, out archivedFilter))
++            {
++                return Results.BadRequest(new
++                {
++                    error = $"Unknown archived filter '{archived}'. Valid values: true, false, all."
++                });
++            }
++
+             IReadOnlyList<TaskItem> tasks = store.All(ownerId);
+ 
++            if (archivedFilter is not ArchivedFilter.All)
++            {
++                var wantArchived = archivedFilter is ArchivedFilter.Archived;
++                tasks = tasks.Where(t => (t.ArchivedAt is not null) == wantArchived).ToList();
++            }
++
+             if (priority is not null)
+             {
+                 if (!TryParsePriority(priority, out var wanted))
+@@ -88,7 +105,28 @@ public static class TaskEndpoints
+                 : Results.NotFound();
+         });
+ 
+-        // DELETE /tasks/{id}
++        // POST /tasks/{id}/archive — files a task away instead of destroying it. A POST rather
++        // than a PUT because it acts on the task's state without the caller restating its
++        // content, and both routes are idempotent: sending either twice is not an error.
++        group.MapPost("/{id:guid}/archive", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            return store.Archive(id, ownerId) is { } task ? Results.Ok(task) : Results.NotFound();
++        });
++
++        // POST /tasks/{id}/unarchive
++        group.MapPost("/{id:guid}/unarchive", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            return store.Unarchive(id, ownerId) is { } task ? Results.Ok(task) : Results.NotFound();
++        });
++
++        // DELETE /tasks/{id} — still a hard delete. Archiving is the reversible way to clear the
++        // list; this stays for callers that really do want the task gone.
+         group.MapDelete("/{id:guid}", (Guid id, TaskStore store, ClaimsPrincipal user) =>
+         {
+             if (!user.TryGetOwnerId(out var ownerId))
+@@ -150,4 +188,37 @@ public static class TaskEndpoints
+         priority = default;
+         return false;
+     }
++
++    /// <summary>Which side of the archive a listing should show.</summary>
++    private enum ArchivedFilter
++    {
++        /// <summary>Only tasks still on the working list. What an absent <c>?archived=</c> means.</summary>
++        Active,
++        Archived,
++        All
++    }
++
++    /// <summary>
++    /// Parses an <c>?archived=</c> value. Case-insensitive, like <c>?priority=</c>, and equally
++    /// strict about what it accepts: "true", "false" and "all" are the whole vocabulary, so
++    /// "yes" or "1" is a 400 rather than a filter that quietly does something else.
++    /// </summary>
++    private static bool TryParseArchivedFilter(string value, out ArchivedFilter filter)
++    {
++        switch (value.ToLowerInvariant())
++        {
++            case "true":
++                filter = ArchivedFilter.Archived;
++                return true;
++            case "false":
++                filter = ArchivedFilter.Active;
++                return true;
++            case "all":
++                filter = ArchivedFilter.All;
++                return true;
++            default:
++                filter = default;
++                return false;
++        }
++    }
+ }
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index 2a3a1dc..12b3bb0 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -318,12 +318,16 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Contains(tasks!, t => t.DueDate is null);
+     }
+ 
+-    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
++    /// <summary>
++    /// Mirror of the API's task shape; enums arrive as strings ("Open", "High"). Shared with the
++    /// ownership and archive tests, so the whole suite reads one description of the wire contract.
++    /// </summary>
+     internal record TaskDto(
+         Guid Id,
+         string Title,
+         string Status,
+         string Priority,
+         DateTimeOffset CreatedAt,
+-        DateTimeOffset? DueDate);
++        DateTimeOffset? DueDate,
++        DateTimeOffset? ArchivedAt);
+ }
+diff --git a/tests/TaskTracker.Tests/TaskArchiveTests.cs b/tests/TaskTracker.Tests/TaskArchiveTests.cs
+new file mode 100644
+index 0000000..8a9ef4b
+--- /dev/null
++++ b/tests/TaskTracker.Tests/TaskArchiveTests.cs
+@@ -0,0 +1,345 @@
++using System.Net;
++using System.Net.Http.Json;
++using Xunit;
++
++namespace TaskTracker.Tests;
++
++/// <summary>
++/// Covers archiving: filing a task away so it leaves the working list without being destroyed,
++/// getting it back, and how <c>?archived=</c> decides which side of the archive a listing shows.
++/// </summary>
++/// <remarks>
++/// Like the ownership tests, these run against a process-lifetime store shared by the whole class,
++/// so each test uses a subject unique to itself. A test that asserts on a whole listing would
++/// otherwise depend on what its neighbours left behind.
++/// </remarks>
++public class TaskArchiveTests : IClassFixture<TestApiFactory>
++{
++    private readonly TestApiFactory _factory;
++
++    public TaskArchiveTests(TestApiFactory factory) => _factory = factory;
++
++    [Fact]
++    public async Task A_new_task_is_not_archived()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-fresh");
++
++        var created = await Create(client, "Brand new");
++
++        Assert.Null(created.ArchivedAt);
++    }
++
++    [Fact]
++    public async Task Archiving_takes_a_task_out_of_the_default_listing()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-hides");
++        var stale = await Create(client, "Old news");
++        var current = await Create(client, "Still relevant");
++
++        var response = await client.PostAsync($"/tasks/{stale.Id}/archive", null);
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++
++        var archived = await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>();
++        Assert.NotNull(archived!.ArchivedAt);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++        Assert.DoesNotContain(listed!, t => t.Id == stale.Id);
++        Assert.Contains(listed!, t => t.Id == current.Id);
++    }
++
++    /// <summary>
++    /// The whole point of archiving over deleting: the task is still there afterwards, content
++    /// intact, reachable by anyone holding its id.
++    /// </summary>
++    [Fact]
++    public async Task An_archived_task_is_still_readable_by_id_and_keeps_its_content()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-keeps");
++        var due = new DateTimeOffset(2026, 12, 1, 9, 0, 0, TimeSpan.Zero);
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Shipped last quarter", status = "Done", priority = "High", dueDate = due }))
++            .Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>();
++
++        await Archive(client, created!.Id);
++
++        var fetched = await client.GetFromJsonAsync<TaskEndpointsTests.TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Shipped last quarter", fetched!.Title);
++        Assert.Equal("Done", fetched.Status);
++        Assert.Equal("High", fetched.Priority);
++        Assert.Equal(due, fetched.DueDate);
++        Assert.Equal(created.CreatedAt, fetched.CreatedAt);
++        Assert.NotNull(fetched.ArchivedAt);
++    }
++
++    [Fact]
++    public async Task Archived_true_lists_the_archive_and_nothing_else()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-only");
++        var filed = await Create(client, "Filed away");
++        var active = await Create(client, "On the list");
++        await Archive(client, filed.Id);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=true");
++
++        Assert.Contains(listed!, t => t.Id == filed.Id);
++        Assert.DoesNotContain(listed!, t => t.Id == active.Id);
++        Assert.All(listed!, t => Assert.NotNull(t.ArchivedAt));
++    }
++
++    [Fact]
++    public async Task Archived_all_lists_both_sides()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-all");
++        var filed = await Create(client, "Filed away");
++        var active = await Create(client, "On the list");
++        await Archive(client, filed.Id);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=all");
++
++        Assert.Contains(listed!, t => t.Id == filed.Id);
++        Assert.Contains(listed!, t => t.Id == active.Id);
++    }
++
++    /// <summary>Explicit <c>archived=false</c> asks for what an absent parameter already gives.</summary>
++    [Fact]
++    public async Task Archived_false_matches_the_default()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-false");
++        var filed = await Create(client, "Filed away");
++        await Create(client, "On the list");
++        await Archive(client, filed.Id);
++
++        var explicitly = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=false");
++        var byDefault = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++
++        Assert.Equal(
++            byDefault!.Select(t => t.Id).ToList(),
++            explicitly!.Select(t => t.Id).ToList());
++        Assert.DoesNotContain(explicitly!, t => t.Id == filed.Id);
++    }
++
++    [Theory]
++    [InlineData("TRUE")]
++    [InlineData("True")]
++    [InlineData("ALL")]
++    public async Task The_archived_filter_is_case_insensitive(string archived)
++    {
++        var client = _factory.CreateAuthenticatedClient($"archive-case-{archived}");
++        var filed = await Create(client, "Filed away");
++        await Archive(client, filed.Id);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>($"/tasks?archived={archived}");
++
++        Assert.Contains(listed!, t => t.Id == filed.Id);
++    }
++
++    [Theory]
++    [InlineData("yes")]      // not one of the three accepted words
++    [InlineData("1")]        // numeric text is not part of the contract, as with ?priority=
++    [InlineData("archived")] // the field's name is not one of its values
++    [InlineData("")]         // present but empty is a supplied value, not an omitted one
++    public async Task An_unrecognised_archived_value_is_rejected(string archived)
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-bad-filter");
++
++        var response = await client.GetAsync($"/tasks?archived={archived}");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("true, false, all", await response.Content.ReadAsStringAsync());
++    }
++
++    [Fact]
++    public async Task Unarchiving_puts_the_task_back_on_the_list()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-restore");
++        var task = await Create(client, "Back from the archive");
++        await Archive(client, task.Id);
++
++        var response = await client.PostAsync($"/tasks/{task.Id}/unarchive", null);
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++
++        var restored = await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>();
++        Assert.Null(restored!.ArchivedAt);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++        Assert.Contains(listed!, t => t.Id == task.Id);
++    }
++
++    /// <summary>
++    /// A retried archive call must not move the timestamp: it records when the task was filed
++    /// away, not when someone last pressed the button.
++    /// </summary>
++    [Fact]
++    public async Task Archiving_an_already_archived_task_keeps_the_original_timestamp()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-idempotent");
++        var task = await Create(client, "Archive me twice");
++
++        var first = await Archive(client, task.Id);
++        var second = await Archive(client, task.Id);
++
++        Assert.NotNull(first.ArchivedAt);
++        Assert.Equal(first.ArchivedAt, second.ArchivedAt);
++    }
++
++    [Fact]
++    public async Task Unarchiving_a_task_that_is_not_archived_is_a_no_op()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-restore-noop");
++        var task = await Create(client, "Never archived");
++
++        var response = await client.PostAsync($"/tasks/{task.Id}/unarchive", null);
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        var body = await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>();
++        Assert.Null(body!.ArchivedAt);
++        Assert.Equal("Never archived", body.Title);
++    }
++
++    /// <summary>
++    /// PUT replaces the task's content, not its archive state - otherwise any client still sending
++    /// bodies written before archiving existed would quietly refile every task it edited.
++    /// </summary>
++    [Fact]
++    public async Task Put_edits_an_archived_task_without_unarchiving_it()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-put");
++        var task = await Create(client, "Filed, then edited");
++        var archived = await Archive(client, task.Id);
++
++        var update = await client.PutAsJsonAsync(
++            $"/tasks/{task.Id}", new { title = "Edited while archived", status = "Done", priority = "High" });
++        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
++
++        var fetched = await client.GetFromJsonAsync<TaskEndpointsTests.TaskDto>($"/tasks/{task.Id}");
++        Assert.Equal("Edited while archived", fetched!.Title);
++        Assert.Equal(archived.ArchivedAt, fetched.ArchivedAt);
++        Assert.DoesNotContain(
++            (await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks"))!,
++            t => t.Id == task.Id);
++    }
++
++    [Fact]
++    public async Task Deleting_an_archived_task_still_works()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-then-delete");
++        var task = await Create(client, "Archived, then binned");
++        await Archive(client, task.Id);
++
++        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/tasks/{task.Id}")).StatusCode);
++        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/tasks/{task.Id}")).StatusCode);
++    }
++
++    [Fact]
++    public async Task The_priority_filter_and_the_archived_filter_combine()
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-with-priority");
++        var archivedHigh = await Create(client, "Archived high", priority: "High");
++        var archivedLow = await Create(client, "Archived low", priority: "Low");
++        var activeHigh = await Create(client, "Active high", priority: "High");
++        await Archive(client, archivedHigh.Id);
++        await Archive(client, archivedLow.Id);
++
++        var listed = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>(
++            "/tasks?archived=true&priority=High");
++
++        Assert.Contains(listed!, t => t.Id == archivedHigh.Id);
++        Assert.DoesNotContain(listed!, t => t.Id == archivedLow.Id);
++        Assert.DoesNotContain(listed!, t => t.Id == activeHigh.Id);
++    }
++
++    [Fact]
++    public async Task Archiving_another_owners_task_is_404_and_leaves_it_on_their_list()
++    {
++        var alice = _factory.CreateAuthenticatedClient("archive-owner-a");
++        var bob = _factory.CreateAuthenticatedClient("archive-owner-b");
++        var alices = await Create(alice, "Alice's task");
++
++        var response = await bob.PostAsync($"/tasks/{alices.Id}/archive", null);
++
++        // 404, not 403: archiving must not become a way to probe for another owner's task ids.
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++
++        var stillListed = await alice.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++        Assert.Contains(stillListed!, t => t.Id == alices.Id);
++    }
++
++    [Fact]
++    public async Task Unarchiving_another_owners_task_is_404_and_leaves_it_archived()
++    {
++        var alice = _factory.CreateAuthenticatedClient("archive-restore-owner-a");
++        var bob = _factory.CreateAuthenticatedClient("archive-restore-owner-b");
++        var alices = await Create(alice, "Alice's archived task");
++        await Archive(alice, alices.Id);
++
++        var response = await bob.PostAsync($"/tasks/{alices.Id}/unarchive", null);
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++
++        var stillArchived = await alice.GetFromJsonAsync<TaskEndpointsTests.TaskDto>($"/tasks/{alices.Id}");
++        Assert.NotNull(stillArchived!.ArchivedAt);
++    }
++
++    [Fact]
++    public async Task The_archived_filter_does_not_widen_the_scope()
++    {
++        var alice = _factory.CreateAuthenticatedClient("archive-scope-a");
++        var bob = _factory.CreateAuthenticatedClient("archive-scope-b");
++        var bobs = await Create(bob, "Bob's task");
++        await Archive(bob, bobs.Id);
++        await Create(alice, "Alice's task");
++
++        var alicesArchive = await alice.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=true");
++        var alicesEverything = await alice.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=all");
++
++        Assert.DoesNotContain(alicesArchive!, t => t.Id == bobs.Id);
++        Assert.DoesNotContain(alicesEverything!, t => t.Id == bobs.Id);
++    }
++
++    [Theory]
++    [InlineData("archive")]
++    [InlineData("unarchive")]
++    public async Task Archiving_a_task_that_does_not_exist_is_404(string action)
++    {
++        var client = _factory.CreateAuthenticatedClient("archive-missing");
++
++        var response = await client.PostAsync($"/tasks/{Guid.NewGuid()}/{action}", null);
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++    }
++
++    /// <summary>
++    /// One seed ships archived, so a fresh checkout shows both sides of the feature rather than an
++    /// empty archive that looks broken.
++    /// </summary>
++    [Fact]
++    public async Task The_seeded_archive_is_visible_to_the_seed_owner()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var archive = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks?archived=true");
++        var active = await client.GetFromJsonAsync<List<TaskEndpointsTests.TaskDto>>("/tasks");
++
++        Assert.Contains(archive!, t => t.Title == "Write the project README");
++        Assert.DoesNotContain(active!, t => t.Title == "Write the project README");
++    }
++
++    private static async Task<TaskEndpointsTests.TaskDto> Create(
++        HttpClient client,
++        string title,
++        string priority = "Low")
++    {
++        var response = await client.PostAsJsonAsync("/tasks", new { title, status = "Open", priority });
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++
++        return (await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>())!;
++    }
++
++    private static async Task<TaskEndpointsTests.TaskDto> Archive(HttpClient client, Guid id)
++    {
++        var response = await client.PostAsync($"/tasks/{id}/archive", null);
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++
++        return (await response.Content.ReadFromJsonAsync<TaskEndpointsTests.TaskDto>())!;
++    }
++}

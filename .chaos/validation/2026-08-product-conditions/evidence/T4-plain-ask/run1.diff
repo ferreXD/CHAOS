@@ -1,0 +1,157 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 12f5907..2811251 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -67,8 +67,8 @@ public static class TaskEndpoints
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             var task = store.Add(ownerId, request.Title, request.Status, request.Priority, request.DueDate);
+             return Results.Created($"/tasks/{task.Id}", task);
+@@ -80,8 +80,8 @@ public static class TaskEndpoints
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
+-            if (string.IsNullOrWhiteSpace(request.Title))
+-                return Results.BadRequest(new { error = "Title is required." });
++            if (ValidateTitle(request.Title) is { } invalid)
++                return invalid;
+ 
+             return store.Update(id, ownerId, request.Title, request.Status, request.Priority, request.DueDate) is { } updated
+                 ? Results.Ok(updated)
+@@ -100,6 +100,33 @@ public static class TaskEndpoints
+         return app;
+     }
+ 
++    /// <summary>
++    /// Longest title the API accepts. A title of exactly this length is valid; the check is on
++    /// the string's length in characters, not on the encoded byte count - the body-size limit in
++    /// Program.cs is what bounds bytes.
++    /// </summary>
++    private const int MaxTitleLength = 200;
++
++    /// <summary>
++    /// The 400 for a title POST and PUT would both reject, or <c>null</c> if the title is usable.
++    /// Shared so the two verbs cannot drift into accepting different titles.
++    /// </summary>
++    private static IResult? ValidateTitle(string? title)
++    {
++        if (string.IsNullOrWhiteSpace(title))
++            return Results.BadRequest(new { error = "Title is required." });
++
++        if (title.Length > MaxTitleLength)
++        {
++            return Results.BadRequest(new
++            {
++                error = $"Title must be {MaxTitleLength} characters or fewer, but was {title.Length}."
++            });
++        }
++
++        return null;
++    }
++
+     /// <summary>
+     /// Parses a <c>?priority=</c> value. Case-insensitive, matching how the same enum is read
+     /// from request bodies by JsonStringEnumConverter.
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index f312df2..2a3a1dc 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -142,6 +142,92 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+     }
+ 
++    [Fact]
++    public async Task Post_with_a_title_at_the_length_limit_is_accepted()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var title = new string('a', 200);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
++        var created = await response.Content.ReadFromJsonAsync<TaskDto>();
++        Assert.Equal(title, created!.Title);
++    }
++
++    [Fact]
++    public async Task Post_with_an_overlong_title_is_rejected_and_creates_nothing()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var title = new string('b', 201);
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("200 characters", await response.Content.ReadAsStringAsync());
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++        Assert.DoesNotContain(tasks!, t => t.Title.StartsWith("bbb"));
++    }
++
++    [Fact]
++    public async Task Put_with_a_title_at_the_length_limit_is_accepted()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Short", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++        var title = new string('c', 200);
++
++        var response = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}", new { title, status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal(title, fetched!.Title);
++    }
++
++    /// <summary>
++    /// A rejected update must leave the stored task alone, not half-apply the other fields.
++    /// </summary>
++    [Fact]
++    public async Task Put_with_an_overlong_title_is_rejected_and_leaves_the_task_unchanged()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++        var created = await (await client.PostAsJsonAsync(
++            "/tasks", new { title = "Keep me", status = "Open", priority = "Low" }))
++            .Content.ReadFromJsonAsync<TaskDto>();
++
++        var response = await client.PutAsJsonAsync(
++            $"/tasks/{created!.Id}",
++            new { title = new string('d', 201), status = "Done", priority = "High" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("200 characters", await response.Content.ReadAsStringAsync());
++
++        var fetched = await client.GetFromJsonAsync<TaskDto>($"/tasks/{created.Id}");
++        Assert.Equal("Keep me", fetched!.Title);
++        Assert.Equal("Open", fetched.Status);
++    }
++
++    /// <summary>
++    /// The length check must not shadow the pre-existing blank-title rejection: a blank title is
++    /// still reported as missing, not as too long.
++    /// </summary>
++    [Fact]
++    public async Task Post_with_blank_title_still_reports_a_missing_title()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var response = await client.PostAsJsonAsync(
++            "/tasks", new { title = "   ", status = "Open", priority = "Low" });
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("Title is required", await response.Content.ReadAsStringAsync());
++    }
++
+     [Fact]
+     public async Task Post_with_a_due_date_round_trips_it()
+     {

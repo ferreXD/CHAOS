@@ -1,0 +1,464 @@
+diff --git a/src/TaskTracker.Api/Domain/TaskItem.cs b/src/TaskTracker.Api/Domain/TaskItem.cs
+index 9a5ea35..fce025c 100644
+--- a/src/TaskTracker.Api/Domain/TaskItem.cs
++++ b/src/TaskTracker.Api/Domain/TaskItem.cs
+@@ -34,6 +34,20 @@ public enum TaskPriority
+ /// a caller only ever receives tasks it already owns, so echoing its own subject back tells it
+ /// nothing. Exposing it would be an additive contract change to reverse later.
+ /// </para>
++/// <para>
++/// <paramref name="ArchivedAt"/> carries the whole archive state: <c>null</c> is an active task,
++/// a timestamp is an archived one. One nullable field rather than a bool plus a date, so
++/// "archived with no date" and "dated but not archived" are unrepresentable. It records when the
++/// task was archived, not when it was last touched - re-archiving an archived task leaves it
++/// alone. Like <paramref name="OwnerId"/> and <paramref name="CreatedAt"/> it survives a PUT
++/// untouched: archiving is its own explicit action, not a field of the task's content.
++/// </para>
++/// <para>
++/// Archived is deliberately not a fourth <see cref="TaskState"/>. Status says how far the work
++/// got; archiving says whether the caller still wants to see it. Folding them together would
++/// make "archive this without pretending it is Done" impossible, and would silently change what
++/// <c>Done</c> means to every existing caller.
++/// </para>
+ /// </remarks>
+ public record TaskItem(
+     Guid Id,
+@@ -42,4 +56,5 @@ public record TaskItem(
+     TaskState Status,
+     TaskPriority Priority,
+     DateTimeOffset CreatedAt,
+-    DateTimeOffset? DueDate);
++    DateTimeOffset? DueDate,
++    DateTimeOffset? ArchivedAt);
+diff --git a/src/TaskTracker.Api/Domain/TaskStore.cs b/src/TaskTracker.Api/Domain/TaskStore.cs
+index c3ef9d6..93c302e 100644
+--- a/src/TaskTracker.Api/Domain/TaskStore.cs
++++ b/src/TaskTracker.Api/Domain/TaskStore.cs
+@@ -8,11 +8,18 @@ namespace TaskTracker.Api.Domain;
+ /// </summary>
+ /// <remarks>
+ /// Every read and write is scoped to an owner. There is deliberately no unscoped overload of
+-/// <see cref="All"/>, <see cref="Get"/>, <see cref="Update"/> or <see cref="Remove"/>: a caller
+-/// cannot reach another owner's task by forgetting an argument, because there is no argument to
+-/// forget. A task that exists but belongs to someone else is reported exactly as one that does
+-/// not exist - <c>null</c>/<c>false</c>, which the endpoints answer with 404 - so the store never
+-/// gives an endpoint the material to distinguish the two cases.
++/// <see cref="All"/>, <see cref="Get"/>, <see cref="Update"/>, <see cref="Remove"/>,
++/// <see cref="Archive"/> or <see cref="Unarchive"/>: a caller cannot reach another owner's task
++/// by forgetting an argument, because there is no argument to forget. A task that exists but
++/// belongs to someone else is reported exactly as one that does not exist - <c>null</c>/
++/// <c>false</c>, which the endpoints answer with 404 - so the store never gives an endpoint the
++/// material to distinguish the two cases.
++/// <para>
++/// The store holds archived and active tasks alike and never hides either: <see cref="All"/>
++/// returns both. Which of them a caller sees is a question about one request, answered by the
++/// endpoint's <c>?archived=</c> filter, and burying that default here would make an archived
++/// task unreachable by the layer that has to be able to un-archive it.
++/// </para>
+ /// </remarks>
+ public class TaskStore
+ {
+@@ -33,15 +40,18 @@ public class TaskStore
+         // Some seeds carry a due date and some do not, so GET /tasks shows both shapes of the
+         // field on first run.
+         var seedBase = new DateTimeOffset(2026, 7, 13, 9, 0, 0, TimeSpan.Zero);
+-        AddAt(SeedOwnerId, "Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null);
++        // The finished README is seeded archived, so a fresh checkout shows what archiving is for:
++        // GET /tasks leaves it out, GET /tasks?archived=true is where it went.
++        AddAt(SeedOwnerId, "Write the project README", TaskState.Done, TaskPriority.Medium, seedBase, null,
++            seedBase.AddDays(4));
+         AddAt(SeedOwnerId, "Add query-param filters to GET /tasks", TaskState.Open, TaskPriority.High,
+-            seedBase.AddHours(2), seedBase.AddDays(7));
++            seedBase.AddHours(2), seedBase.AddDays(7), null);
+         AddAt(SeedOwnerId, "Review the design proposal", TaskState.InProgress, TaskPriority.High,
+-            seedBase.AddDays(1), seedBase.AddDays(3));
+-        AddAt(SeedOwnerId, "Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2), null);
++            seedBase.AddDays(1), seedBase.AddDays(3), null);
++        AddAt(SeedOwnerId, "Clean up sample data", TaskState.Open, TaskPriority.Low, seedBase.AddDays(2), null, null);
+     }
+ 
+-    /// <summary>The owner's tasks, in creation order.</summary>
++    /// <summary>The owner's tasks, archived ones included, in creation order.</summary>
+     public IReadOnlyList<TaskItem> All(string ownerId) =>
+         _tasks.Values.Where(t => t.OwnerId == ownerId).OrderBy(t => t.CreatedAt).ToList();
+ 
+@@ -49,8 +59,9 @@ public class TaskStore
+     public TaskItem? Get(Guid id, string ownerId) =>
+         _tasks.TryGetValue(id, out var task) && task.OwnerId == ownerId ? task : null;
+ 
++    /// <summary>Adds an active task. A task is never born archived - there is nothing to file away yet.</summary>
+     public TaskItem Add(string ownerId, string title, TaskState status, TaskPriority priority, DateTimeOffset? dueDate) =>
+-        AddAt(ownerId, title, status, priority, DateTimeOffset.UtcNow, dueDate);
++        AddAt(ownerId, title, status, priority, DateTimeOffset.UtcNow, dueDate, archivedAt: null);
+ 
+     public TaskItem? Update(
+         Guid id,
+@@ -63,13 +74,53 @@ public class TaskStore
+         if (Get(id, ownerId) is not { } existing)
+             return null;
+ 
+-        // `with` carries OwnerId and CreatedAt across untouched: a PUT replaces the task's content,
+-        // never its owner.
++        // `with` carries OwnerId, CreatedAt and ArchivedAt across untouched: a PUT replaces the
++        // task's content, never its owner, and never files it away or pulls it back out.
+         var updated = existing with { Title = title, Status = status, Priority = priority, DueDate = dueDate };
+         _tasks[id] = updated;
+         return updated;
+     }
+ 
++    /// <summary>
++    /// Files the task away, or returns <c>null</c> if it is missing or owned by someone else.
++    /// </summary>
++    /// <remarks>
++    /// Idempotent, and deliberately does not refresh <c>ArchivedAt</c> on a task that is already
++    /// archived: the field answers "when was this filed away", and a retried or duplicated call
++    /// must not rewrite that answer. The caller gets the stored task back either way, so it cannot
++    /// tell a first archive from a repeat - there is nothing to tell it that it did not already
++    /// know.
++    /// </remarks>
++    public TaskItem? Archive(Guid id, string ownerId, DateTimeOffset archivedAt)
++    {
++        if (Get(id, ownerId) is not { } existing)
++            return null;
++
++        if (existing.ArchivedAt is not null)
++            return existing;
++
++        var archived = existing with { ArchivedAt = archivedAt };
++        _tasks[id] = archived;
++        return archived;
++    }
++
++    /// <summary>
++    /// Pulls the task back out of the archive, or returns <c>null</c> if it is missing or owned by
++    /// someone else. Idempotent: un-archiving an active task is a no-op that returns it unchanged.
++    /// </summary>
++    public TaskItem? Unarchive(Guid id, string ownerId)
++    {
++        if (Get(id, ownerId) is not { } existing)
++            return null;
++
++        if (existing.ArchivedAt is null)
++            return existing;
++
++        var restored = existing with { ArchivedAt = null };
++        _tasks[id] = restored;
++        return restored;
++    }
++
+     public bool Remove(Guid id, string ownerId) =>
+         Get(id, ownerId) is not null && _tasks.TryRemove(id, out _);
+ 
+@@ -79,9 +130,10 @@ public class TaskStore
+         TaskState status,
+         TaskPriority priority,
+         DateTimeOffset createdAt,
+-        DateTimeOffset? dueDate)
++        DateTimeOffset? dueDate,
++        DateTimeOffset? archivedAt)
+     {
+-        var task = new TaskItem(Guid.NewGuid(), ownerId, title, status, priority, createdAt, dueDate);
++        var task = new TaskItem(Guid.NewGuid(), ownerId, title, status, priority, createdAt, dueDate, archivedAt);
+         _tasks[task.Id] = task;
+         return task;
+     }
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index 2811251..d3f11d1 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -11,9 +11,16 @@ namespace TaskTracker.Api.Endpoints;
+ /// <remarks>
+ /// Every route here is scoped to the caller: the owner is the JWT subject, and the store is only
+ /// reachable through owner-scoped methods. GET /tasks returns the caller's own tasks (optionally
+-/// narrowed by <c>?priority=</c>), and a task belonging to someone else is answered with 404 -
+-/// the same as one that does not exist, so the API does not confirm the existence of another
+-/// owner's task to a caller that may not name it.
++/// narrowed by <c>?priority=</c> and <c>?archived=</c>), and a task belonging to someone else is
++/// answered with 404 - the same as one that does not exist, so the API does not confirm the
++/// existence of another owner's task to a caller that may not name it.
++/// <para>
++/// Archiving is the way to clear finished work out of the list without destroying it, so it gets
++/// its own routes (<c>POST /tasks/{id}/archive</c> and <c>.../unarchive</c>) rather than a field
++/// on the PUT body. A whole-resource PUT that carried the flag would un-archive a task every time
++/// an older client replayed a body written before the field existed, and archiving would then be
++/// as easy to undo by accident as DELETE is - which is the very thing it exists to avoid.
++/// </para>
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -25,16 +32,32 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks[?priority=Low|Medium|High] — the caller's own tasks, optionally narrowed
+-        // to one priority. The filter is applied here rather than in TaskStore, which stays a
+-        // plain container; the ownership scope is not, because it must not be optional.
+-        group.MapGet("/", (TaskStore store, ClaimsPrincipal user, string? priority) =>
++        // GET /tasks[?priority=Low|Medium|High][?archived=true|false|all] — the caller's own
++        // tasks, optionally narrowed to one priority. Archived tasks are left out unless asked
++        // for. Both filters are applied here rather than in TaskStore, which stays a plain
++        // container; the ownership scope is not, because it must not be optional.
++        group.MapGet("/", (TaskStore store, ClaimsPrincipal user, string? priority, string? archived) =>
+         {
+             if (!user.TryGetOwnerId(out var ownerId))
+                 return Results.Unauthorized();
+ 
++            if (!TryParseArchiveFilter(archived, out var archiveFilter))
++            {
++                return Results.BadRequest(new
++                {
++                    error = $"Unknown archived value '{archived}'. Valid values: true, false, all."
++                });
++            }
++
+             IReadOnlyList<TaskItem> tasks = store.All(ownerId);
+ 
++            tasks = archiveFilter switch
++            {
++                ArchiveFilter.ActiveOnly => tasks.Where(t => t.ArchivedAt is null).ToList(),
++                ArchiveFilter.ArchivedOnly => tasks.Where(t => t.ArchivedAt is not null).ToList(),
++                _ => tasks,
++            };
++
+             if (priority is not null)
+             {
+                 if (!TryParsePriority(priority, out var wanted))
+@@ -51,7 +74,8 @@ public static class TaskEndpoints
+             return Results.Ok(tasks);
+         });
+ 
+-        // GET /tasks/{id}
++        // GET /tasks/{id} — archived tasks included. Archiving hides a task from the list, not
++        // from a caller that holds its id; a link to an archived task must not rot into a 404.
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store, ClaimsPrincipal user) =>
+         {
+             if (!user.TryGetOwnerId(out var ownerId))
+@@ -97,6 +121,34 @@ public static class TaskEndpoints
+             return store.Remove(id, ownerId) ? Results.NoContent() : Results.NotFound();
+         });
+ 
++        // POST /tasks/{id}/archive — file a task away: it drops out of GET /tasks but keeps its
++        // id, its content and its history. No request body, because there is nothing to say
++        // beyond "archive this"; the timestamp is the server's to set, not the caller's to claim.
++        // 200 with the task rather than 204, so the caller can show when it was archived without
++        // a follow-up GET.
++        group.MapPost("/{id:guid}/archive", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            return store.Archive(id, ownerId, DateTimeOffset.UtcNow) is { } archived
++                ? Results.Ok(archived)
++                : Results.NotFound();
++        });
++
++        // POST /tasks/{id}/unarchive — the way back. Archiving is only a safe alternative to
++        // DELETE if it is reversible, so this is not optional: without it the archive is a
++        // slower-acting bin.
++        group.MapPost("/{id:guid}/unarchive", (Guid id, TaskStore store, ClaimsPrincipal user) =>
++        {
++            if (!user.TryGetOwnerId(out var ownerId))
++                return Results.Unauthorized();
++
++            return store.Unarchive(id, ownerId) is { } restored
++                ? Results.Ok(restored)
++                : Results.NotFound();
++        });
++
+         return app;
+     }
+ 
+@@ -127,6 +179,58 @@ public static class TaskEndpoints
+         return null;
+     }
+ 
++    /// <summary>Which side of the archive a <c>GET /tasks</c> is asking about.</summary>
++    private enum ArchiveFilter
++    {
++        /// <summary>Only tasks that are not archived. What a caller gets by default.</summary>
++        ActiveOnly,
++
++        /// <summary>Only archived tasks - the archive itself, for browsing or restoring from.</summary>
++        ArchivedOnly,
++
++        /// <summary>Both, i.e. the whole list the API returned before archiving existed.</summary>
++        All,
++    }
++
++    /// <summary>
++    /// Parses an <c>?archived=</c> value. Case-insensitive, like <c>?priority=</c>.
++    /// </summary>
++    /// <remarks>
++    /// An absent parameter means <see cref="ArchiveFilter.ActiveOnly"/>: hiding archived tasks by
++    /// default is the entire point of the feature, so it cannot be something the caller has to
++    /// remember to ask for. An empty <c>?archived=</c> is a supplied value, not an omitted one,
++    /// and is rejected - the same reading <c>?priority=</c> already gives it.
++    /// <para>
++    /// <c>all</c> sits alongside the two booleans so the pre-archiving behaviour of GET /tasks
++    /// stays reachable in one request; without it, a caller wanting everything would have to make
++    /// two calls and merge them, and would get it wrong the moment a task is archived in between.
++    /// </para>
++    /// </remarks>
++    private static bool TryParseArchiveFilter(string? value, out ArchiveFilter filter)
++    {
++        if (value is null)
++        {
++            filter = ArchiveFilter.ActiveOnly;
++            return true;
++        }
++
++        switch (value.ToLowerInvariant())
++        {
++            case "false":
++                filter = ArchiveFilter.ActiveOnly;
++                return true;
++            case "true":
++                filter = ArchiveFilter.ArchivedOnly;
++                return true;
++            case "all":
++                filter = ArchiveFilter.All;
++                return true;
++            default:
++                filter = default;
++                return false;
++        }
++    }
++
+     /// <summary>
+     /// Parses a <c>?priority=</c> value. Case-insensitive, matching how the same enum is read
+     /// from request bodies by JsonStringEnumConverter.
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index 2a3a1dc..e06bd04 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -318,12 +318,17 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Contains(tasks!, t => t.DueDate is null);
+     }
+ 
+-    /// <summary>Mirror of the API's task shape; enums arrive as strings ("Open", "High").</summary>
++    /// <summary>
++    /// Mirror of the API's task shape; enums arrive as strings ("Open", "High").
++    /// <c>ArchivedAt</c> is <c>null</c> for an active task and the time it was filed away for an
++    /// archived one.
++    /// </summary>
+     internal record TaskDto(
+         Guid Id,
+         string Title,
+         string Status,
+         string Priority,
+         DateTimeOffset CreatedAt,
+-        DateTimeOffset? DueDate);
++        DateTimeOffset? DueDate,
++        DateTimeOffset? ArchivedAt);
+ }
+diff --git a/tests/TaskTracker.Tests/TaskOwnershipTests.cs b/tests/TaskTracker.Tests/TaskOwnershipTests.cs
+index 93a1e6d..5553dfa 100644
+--- a/tests/TaskTracker.Tests/TaskOwnershipTests.cs
++++ b/tests/TaskTracker.Tests/TaskOwnershipTests.cs
+@@ -175,12 +175,14 @@ public class TaskOwnershipTests : IClassFixture<TestApiFactory>
+         { "POST", "/tasks" },
+         { "PUT", "/tasks/11111111-1111-1111-1111-111111111111" },
+         { "DELETE", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "POST", "/tasks/11111111-1111-1111-1111-111111111111/archive" },
++        { "POST", "/tasks/11111111-1111-1111-1111-111111111111/unarchive" },
+     };
+ 
+     /// <summary>
+     /// A correctly signed token that names no subject passes authentication but identifies nobody,
+     /// so there is no owner to scope to. Every route must refuse it rather than fall back to a
+-    /// shared or empty owner - on all five, not just the one someone remembered to guard.
++    /// shared or empty owner - on all of them, not just the one someone remembered to guard.
+     /// </summary>
+     [Theory]
+     [MemberData(nameof(TaskRoutes))]
+diff --git a/tests/TaskTracker.Tests/AuthenticationTests.cs b/tests/TaskTracker.Tests/AuthenticationTests.cs
+index 8005bdf..d4ca3ee 100644
+--- a/tests/TaskTracker.Tests/AuthenticationTests.cs
++++ b/tests/TaskTracker.Tests/AuthenticationTests.cs
+@@ -24,6 +24,8 @@ public class AuthenticationTests : IClassFixture<TestApiFactory>
+         { "POST", "/tasks" },
+         { "PUT", "/tasks/11111111-1111-1111-1111-111111111111" },
+         { "DELETE", "/tasks/11111111-1111-1111-1111-111111111111" },
++        { "POST", "/tasks/11111111-1111-1111-1111-111111111111/archive" },
++        { "POST", "/tasks/11111111-1111-1111-1111-111111111111/unarchive" },
+     };
+ 
+     [Theory]
+diff --git a/README.md b/README.md
+index 2753d3a..9bf6639 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # Task Tracker API
+ 
+-A small ASP.NET Core (net8.0) minimal API for managing work items: create, list, update and
+-delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low`, `Medium`,
++A small ASP.NET Core (net8.0) minimal API for managing work items: create, list, update, archive
++and delete tasks, each with a state (`Open`, `InProgress`, `Done`), a priority (`Low`, `Medium`,
+ `High`), an optional due date and timestamps. Storage is an in-memory store seeded with a few
+ sample tasks; all `/tasks` routes require a bearer token.
+ 
+@@ -29,7 +29,56 @@ add later.
+ > holds an id for another caller's task now gets 404 where it previously got the task.
+ 
+ The four seeded sample tasks are owned by `dev-user`, the same subject `POST /dev/token` issues,
+-so a local run with a development token still shows them.
++so a local run with a development token still shows them. One of the four ("Write the project
++README", already `Done`) ships archived, so a fresh checkout shows both sides of the archive: three
++tasks in `GET /tasks` and the fourth under `GET /tasks?archived=true`.
++
++## Archiving
++
++Finished work should leave the list without leaving the system. A task carries a nullable
++`archivedAt`: `null` is an active task, a timestamp is an archived one, recording when it was
++filed away.
++
++```http
++POST /tasks/{id}/archive      200, the task with archivedAt set
++POST /tasks/{id}/unarchive    200, the task with archivedAt back to null
++```
++
++Both take no request body and both are idempotent - archiving an already-archived task returns it
++with its **original** `archivedAt`, because the field says when the task was filed away, not when
++someone last pressed the button. As everywhere else on this API, a task owned by someone else, or
++one that does not exist, is answered with 404.
++
++`GET /tasks` leaves archived tasks out. That default is the feature; it is not something a caller
++has to remember to ask for. To see them, use `?archived=`:
++
++| `?archived=` | returns |
++| --- | --- |
++| *(omitted)* or `false` | active tasks only |
++| `true` | the archive only |
++| `all` | both, i.e. what `GET /tasks` returned before archiving existed |
++
++The value is case-insensitive, and anything else - including an empty `?archived=` - is a **400**,
++the same reading `?priority=` gives a value it does not recognise. The two filters combine:
++`?archived=true&priority=High` is the high-priority part of the archive.
++
++`GET /tasks/{id}` returns archived tasks as usual. Archiving hides a task from the list, not from
++a caller holding its id, so a saved link does not rot into a 404.
++
++Archive state is **not** part of the PUT body, and a PUT never changes it - `archivedAt` survives
++an update the way `createdAt` and the owner do. If it were a field on the whole-resource PUT, any
++client still sending bodies written before the field existed would silently un-archive every task
++it edited, and archiving would become as easy to undo by accident as `DELETE` is. It is also not a
++fourth `TaskState`: status says how far the work got, archiving says whether you still want to see
++it, and folding them together would make "archive this without calling it Done" impossible.
++
++`DELETE` is untouched and still destroys a task outright. Archiving is the reversible option, not a
++replacement.
++
++> **Contract change.** Every task response now carries an `archivedAt` field, and `GET /tasks` no
++> longer returns archived tasks by default. Nothing is archived unless a caller archives it, so
++> existing lists are unaffected until someone uses the feature - `?archived=all` is the way back to
++> the old listing.
+ 
+ ## Due dates
+ 
+@@ -55,4 +104,4 @@ dotnet run --project src/TaskTracker.Api
+ ```
+ 
+ The API listens on the default Kestrel ports; `GET /` is an unauthenticated health check,
+-`GET /tasks` lists the authenticated caller's own tasks.
++`GET /tasks` lists the authenticated caller's own active tasks.

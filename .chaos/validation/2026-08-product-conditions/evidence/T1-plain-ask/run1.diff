@@ -1,0 +1,153 @@
+diff --git a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+index dcc5093..5d25c17 100644
+--- a/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
++++ b/src/TaskTracker.Api/Endpoints/TaskEndpoints.cs
+@@ -7,7 +7,7 @@ namespace TaskTracker.Api.Endpoints;
+ /// CRUD endpoints for tasks, mounted under <c>/tasks</c>.
+ /// </summary>
+ /// <remarks>
+-/// GET /tasks currently returns EVERY task, unfiltered.
++/// GET /tasks returns every task unless a <c>?priority=</c> filter narrows it.
+ /// </remarks>
+ public static class TaskEndpoints
+ {
+@@ -19,8 +19,28 @@ public static class TaskEndpoints
+             .RequireAuthorization()
+             .RequireRateLimiting(Policies.TaskRateLimit);
+ 
+-        // GET /tasks — returns every task in the store. No filtering (yet).
+-        group.MapGet("/", (TaskStore store) => Results.Ok(store.All()));
++        // GET /tasks[?priority=Low|Medium|High] — every task in the store, optionally narrowed
++        // to one priority. The filter is applied here rather than in TaskStore, which stays a
++        // plain container.
++        group.MapGet("/", (TaskStore store, string? priority) =>
++        {
++            IReadOnlyList<TaskItem> tasks = store.All();
++
++            if (priority is not null)
++            {
++                if (!TryParsePriority(priority, out var wanted))
++                {
++                    return Results.BadRequest(new
++                    {
++                        error = $"Unknown priority '{priority}'. Valid values: Low, Medium, High."
++                    });
++                }
++
++                tasks = tasks.Where(t => t.Priority == wanted).ToList();
++            }
++
++            return Results.Ok(tasks);
++        });
+ 
+         // GET /tasks/{id}
+         group.MapGet("/{id:guid}", (Guid id, TaskStore store) =>
+@@ -53,4 +73,28 @@ public static class TaskEndpoints
+ 
+         return app;
+     }
++
++    /// <summary>
++    /// Parses a <c>?priority=</c> value. Case-insensitive, matching how the same enum is read
++    /// from request bodies by JsonStringEnumConverter.
++    /// </summary>
++    /// <remarks>
++    /// Deliberately not <see cref="Enum.TryParse{TEnum}(string, bool, out TEnum)"/>: that also
++    /// accepts numeric text ("0", and even out-of-range "42"), which is not part of this API's
++    /// contract. Only the declared names are valid.
++    /// </remarks>
++    private static bool TryParsePriority(string value, out TaskPriority priority)
++    {
++        foreach (var candidate in Enum.GetValues<TaskPriority>())
++        {
++            if (string.Equals(candidate.ToString(), value, StringComparison.OrdinalIgnoreCase))
++            {
++                priority = candidate;
++                return true;
++            }
++        }
++
++        priority = default;
++        return false;
++    }
+ }
+diff --git a/src/TaskTracker.Api/TaskTracker.Api.http b/src/TaskTracker.Api/TaskTracker.Api.http
+index b198da0..92eb011 100644
+--- a/src/TaskTracker.Api/TaskTracker.Api.http
++++ b/src/TaskTracker.Api/TaskTracker.Api.http
+@@ -6,6 +6,12 @@ GET {{host}}/
+ ### List all tasks
+ GET {{host}}/tasks
+ 
++### List only high-priority tasks (Low | Medium | High, case-insensitive)
++GET {{host}}/tasks?priority=High
++
++### An unrecognised priority is a 400
++GET {{host}}/tasks?priority=Urgent
++
+ ### Get one task (paste an id from the list above)
+ GET {{host}}/tasks/00000000-0000-0000-0000-000000000000
+ 
+diff --git a/tests/TaskTracker.Tests/TaskEndpointsTests.cs b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+index e6fd47e..9aea385 100644
+--- a/tests/TaskTracker.Tests/TaskEndpointsTests.cs
++++ b/tests/TaskTracker.Tests/TaskEndpointsTests.cs
+@@ -28,6 +28,58 @@ public class TaskEndpointsTests : IClassFixture<TestApiFactory>
+         Assert.Contains(tasks!, t => t.Title == "Add query-param filters to GET /tasks");
+     }
+ 
++    [Fact]
++    public async Task Get_tasks_filtered_by_priority_returns_only_that_priority()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks?priority=High");
++
++        Assert.NotNull(tasks);
++        Assert.NotEmpty(tasks!);
++        Assert.All(tasks!, t => Assert.Equal("High", t.Priority));
++    }
++
++    [Theory]
++    [InlineData("low")]
++    [InlineData("LOW")]
++    [InlineData("Low")]
++    public async Task Get_tasks_priority_filter_is_case_insensitive(string priority)
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>($"/tasks?priority={priority}");
++
++        Assert.NotNull(tasks);
++        Assert.NotEmpty(tasks!);
++        Assert.All(tasks!, t => Assert.Equal("Low", t.Priority));
++    }
++
++    [Fact]
++    public async Task Get_tasks_without_priority_still_returns_every_priority()
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var tasks = await client.GetFromJsonAsync<List<TaskDto>>("/tasks");
++
++        Assert.NotNull(tasks);
++        Assert.True(tasks!.Select(t => t.Priority).Distinct().Count() > 1);
++    }
++
++    [Theory]
++    [InlineData("Urgent")]   // not a member
++    [InlineData("0")]        // numeric text is not part of the contract
++    [InlineData("42")]       // out of range
++    [InlineData("")]         // present but empty is a supplied value, not an omitted one
++    public async Task Get_tasks_with_an_unrecognised_priority_is_rejected(string priority)
++    {
++        var client = _factory.CreateAuthenticatedClient();
++
++        var response = await client.GetAsync($"/tasks?priority={priority}");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++    }
++
+     [Fact]
+     public async Task Post_creates_a_task_and_get_by_id_returns_it()
+     {
