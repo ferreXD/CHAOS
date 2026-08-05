@@ -206,10 +206,10 @@ class TestPrimitives(unittest.TestCase):
 
 
 class TestClassify(unittest.TestCase):
-    def _run(self, sections, cps, adj=None):
+    def _run(self, sections, cps, adj=None, map_data=None):
         state, out = None, {}
         for cp in cps:
-            v, state = C.classify(sections, cp, state, (adj or {}).get(cp), MAP)
+            v, state = C.classify(sections, cp, state, (adj or {}).get(cp), map_data or MAP)
             out[cp] = v
         return out, state
 
@@ -249,7 +249,9 @@ class TestClassify(unittest.TestCase):
         base = {"frontmatter": "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n",
                 "intent": "x", "scope": "scope: src/App/Endpoints/E.cs, tests/T/",
                 "numstat": numstat, "patch": ""}
-        out, _ = self._run(base, ["K1", "K3"])
+        # m5ProximitySegments=0 keeps this a strict-M5 test: Domain/Store.cs shares
+        # src/App with the approved entry and would otherwise land in the proximity band.
+        out, _ = self._run(base, ["K1", "K3"], map_data=dict(MAP, m5ProximitySegments=0))
         trigs = {f["trigger"] for f in out["K3"]["newlyFired"]}
         self.assertEqual(trigs, {"M2", "M5"})
         self.assertEqual(out["K3"]["newStops"], 1)  # folded: one stop for both
@@ -497,6 +499,87 @@ class TestCorpusHarnessFailsClosed(unittest.TestCase):
         adj = os.path.join(run_corpus.DEFAULT_CORPUS, "evidence-adjudication-results.json")
         self.assertTrue(os.path.isfile(adj), "corpus adjudication evidence is missing")
         self.assertEqual(self._run(["--adjudication", adj])[0], 0)
+
+
+class TestM5ProximityBand(unittest.TestCase):
+    """B-arena repair (2026-08-05): near spills are recorded, only far spills stop.
+
+    3/3 M5 stops in the B1+B3 governed runs fired on helper files completing approved
+    work in the same product area; the operator asked for the band."""
+
+    FRONT = "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n"
+
+    def _k3(self, scope, numstat, map_data=None):
+        sections = {"frontmatter": self.FRONT, "intent": "x", "scope": scope,
+                    "numstat": numstat, "patch": ""}
+        state = None
+        for cp in ("K1", "K3"):
+            v, state = C.classify(sections, cp, state, None, map_data or MAP)
+        return v, state
+
+    def test_near_spill_is_recorded_but_fires_no_m5(self):
+        # New helper beside the approved file, same first-2-segment prefix -> band.
+        v, state = self._k3("scope: src/App/Endpoints/E.cs",
+                            "12\t2\tsrc/App/Endpoints/E.cs\n7\t0\tsrc/App/Helpers/Guard.cs\n")
+        self.assertNotIn("M5", {f["trigger"] for f in v["newlyFired"]})
+        self.assertEqual(v["nearSpills"], ["src/App/Helpers/Guard.cs"])
+        self.assertEqual(state["nearSpills"], ["src/App/Helpers/Guard.cs"])
+
+    def test_far_spill_still_fires_m5_and_cites_near_context(self):
+        v, _ = self._k3("scope: src/App/Endpoints/E.cs",
+                        "12\t2\tsrc/App/Endpoints/E.cs\n7\t0\tsrc/App/Helpers/Guard.cs\n"
+                        "3\t0\tdeploy/pipeline.yml\n")
+        m5 = [f for f in v["newlyFired"] if f["trigger"] == "M5"]
+        self.assertEqual(len(m5), 1)
+        self.assertIn("deploy/pipeline.yml", m5[0]["cite"])
+        self.assertIn("near-scope", m5[0]["cite"])
+        self.assertIn("src/App/Helpers/Guard.cs", m5[0]["cite"])
+
+    def test_band_zero_restores_strict_behaviour(self):
+        v, _ = self._k3("scope: src/App/Endpoints/E.cs",
+                        "12\t2\tsrc/App/Endpoints/E.cs\n7\t0\tsrc/App/Helpers/Guard.cs\n",
+                        map_data=dict(MAP, m5ProximitySegments=0))
+        m5 = [f for f in v["newlyFired"] if f["trigger"] == "M5"]
+        self.assertEqual(len(m5), 1)
+        self.assertIn("src/App/Helpers/Guard.cs", m5[0]["cite"])
+
+    def test_short_root_entry_creates_no_band(self):
+        # A 1-segment entry (README.md) must not put arbitrary root dirs in the band.
+        v, _ = self._k3("scope: README.md",
+                        "1\t1\tREADME.md\n5\t0\tdocs/notes.md\n")
+        self.assertIn("M5", {f["trigger"] for f in v["newlyFired"]})
+
+
+class TestAdjudicationSurfaceDedup(unittest.TestCase):
+    """VFY-004 (B3, 2026-08-05): two raises of the SAME trigger with DISTINCT surfaces are
+    two facts; the second used to be dropped, making the depth-2 openspec rule
+    (len(surfaces) >= 2) unreachable via adjudication."""
+
+    FRONT = "chaosMetadata:\n  mode: null\n  declaredTriggers: []\n"
+
+    def _k1(self, raises):
+        sections = {"frontmatter": self.FRONT, "intent": "x", "scope": "scope: src/App/"}
+        v, state = C.classify(sections, "K1", None,
+                              {"raises": raises}, MAP)
+        return v, state
+
+    def test_two_m2_surfaces_both_fire_and_reach_openspec_depth_2(self):
+        v, state = self._k1([
+            {"trigger": "M2", "surface": "auth", "cite": "forced-logout enforcement"},
+            {"trigger": "M2", "surface": "data-store", "cite": "durable on-device store"},
+        ])
+        m2 = [f for f in v["newlyFired"] if f["trigger"] == "M2"]
+        self.assertEqual(len(m2), 2)
+        self.assertEqual({f["surface"] for f in m2}, {"auth", "data-store"})
+        self.assertEqual(v["dimensions"]["openspec"], 2)
+
+    def test_same_trigger_same_surface_still_dedupes(self):
+        v, _ = self._k1([
+            {"trigger": "M2", "surface": "auth", "cite": "a"},
+            {"trigger": "M2", "surface": "auth", "cite": "b (duplicate)"},
+        ])
+        m2 = [f for f in v["newlyFired"] if f["trigger"] == "M2"]
+        self.assertEqual(len(m2), 1)
 
 
 if __name__ == "__main__":

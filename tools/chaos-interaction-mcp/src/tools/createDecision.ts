@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpTool } from "../protocol/tool.ts";
-import { stopResult } from "../protocol/toolResult.ts";
+import { stopResult, success } from "../protocol/toolResult.ts";
 import { ToolInputError } from "../protocol/errors.ts";
 import {
   INTERACTION_TYPES,
@@ -75,21 +75,37 @@ export const createDecisionTool: McpTool = {
     });
 
     const isDuplicate = result.status === "PENDING_DECISION_EXISTS";
+    const data = {
+      decisionId: result.decisionId,
+      commandRunId: result.commandRunId,
+      changeId: result.changeId ?? null,
+      decisionPath: decisionPath(ctx.runtime, result.decisionId),
+      resumeInstruction:
+        "After the user answers, call chaos_get_decision_response with this decisionId; when ANSWERED, incorporate it and call chaos_mark_decision_consumed.",
+      uiHint: UI_HINT,
+    };
+    if (result.status === "ANSWERED_DECISION_EXISTS") {
+      // The human already answered an identical decision (typically: a retry after a
+      // transient error on the original create). Do NOT stop and do NOT re-ask anywhere —
+      // fetch the existing answer and continue.
+      return success({
+        status: result.status,
+        mustStop: false,
+        message:
+          `An equivalent decision was already answered (${result.decisionId}). ` +
+          `Do not re-ask in chat or elsewhere — call chaos_get_decision_response with this decisionId, ` +
+          `incorporate the answer, and call chaos_mark_decision_consumed.`,
+        warnings: result.warnings,
+        data,
+      });
+    }
     return stopResult({
       status: result.status,
       message: isDuplicate
         ? `An equivalent pending decision already exists (${result.decisionId}). Stop and wait for the human response.`
         : `Decision created. Stop now and wait for the human response.`,
       warnings: result.warnings,
-      data: {
-        decisionId: result.decisionId,
-        commandRunId: result.commandRunId,
-        changeId: result.changeId ?? null,
-        decisionPath: decisionPath(ctx.runtime, result.decisionId),
-        resumeInstruction:
-          "After the user answers, call chaos_get_decision_response with this decisionId; when ANSWERED, incorporate it and call chaos_mark_decision_consumed.",
-        uiHint: UI_HINT,
-      },
+      data,
     });
   },
 };

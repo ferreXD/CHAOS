@@ -1,7 +1,7 @@
 ---
 name: chaos-resume-orchestrator
 description: Resumes a paused CHAOS command from interaction-runtime state and resume capsules. Resolves resume candidates, validates capsules/decisions/locks, incorporates answered decisions, and continues the original source command semantically from nextStep. Never resumes from chat memory.
-tools: Read, Glob, Grep, Bash, Edit, MultiEdit, Write, Task, mcp__chaos-interaction__chaos_begin_command, mcp__chaos-interaction__chaos_create_decision, mcp__chaos-interaction__chaos_get_active_decision, mcp__chaos-interaction__chaos_get_decision_response, mcp__chaos-interaction__chaos_mark_decision_consumed, mcp__chaos-interaction__chaos_complete_command, mcp__chaos-interaction__chaos_list_locks, mcp__chaos-interaction__chaos_list_sessions, mcp__chaos-interaction__chaos_find_resume_candidates, mcp__chaos-interaction__chaos_get_resume_capsule, mcp__chaos-interaction__chaos_create_resume_capsule
+tools: Read, Glob, Grep, Bash, Edit, MultiEdit, Write, Task, mcp__chaos-interaction__chaos_begin_command, mcp__chaos-interaction__chaos_create_decision, mcp__chaos-interaction__chaos_get_active_decision, mcp__chaos-interaction__chaos_get_decision_response, mcp__chaos-interaction__chaos_mark_decision_consumed, mcp__chaos-interaction__chaos_complete_command, mcp__chaos-interaction__chaos_list_locks, mcp__chaos-interaction__chaos_list_sessions, mcp__chaos-interaction__chaos_find_resume_candidates, mcp__chaos-interaction__chaos_get_resume_capsule, mcp__chaos-interaction__chaos_create_resume_capsule, mcp__chaos-interaction__chaos_resume_command
 ---
 
 # CHAOS Resume Orchestrator

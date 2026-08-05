@@ -19,6 +19,16 @@ decisions C-1..C-14). Stdlib only, no dependencies, own test suite — house sty
   breaking heuristic, M4 ledger scan rule, M5 scope spill, X1 thresholds, X2 verdict, X3 dep
   churn, C-14 rename-shape guard, dimension assembly (max-of, stop folding, floors, C-13
   distinct-surface openspec), confidence, monotone state.
+- **M5 proximity band** (`m5ProximitySegments` in `path-class-map.json`, default `2`): a
+  touched path outside the approved scope that shares its first N path segments with an
+  approved entry is a *near* spill — recorded in the verdict/state (`nearSpills`) and the
+  scan digest, but it fires no M5 and demands no stop. Only *far* spills fire M5. `0`
+  restores strict per-file matching (the fidelity corpus pins `0` to keep testing the strict
+  mechanism). Rationale: 3/3 M5 stops in the 2026-08 B-arena governed runs fired on helper
+  files completing approved work in the same product area.
+- **Adjudication dedup is per (trigger, surface)**: two raises of the same trigger with
+  distinct surfaces both fire (B3 VFY-004 repair — the second surface used to be dropped,
+  making the C-13 depth-2 openspec rule unreachable via adjudication).
 - **Adjudication (a model, never this tool):** may only RAISE materiality triggers, with cites;
   runs at K1/K3 (C-12). Supplied to the tool as a results file — in corpus runs, produced by
   **blind** judges from sanitized packets (no Expected sections).

@@ -18,8 +18,16 @@ running -> waiting-for-decision -> ready-to-resume -> resumed -> running -> comp
 Administrative terminal edges `ready-to-resume -> completed|cancelled` exist for
 runtime cleanup / no-runner environments. **Normal resumed execution should
 prefer `ready-to-resume -> resumed -> completed`.** When `chaos:resume`
-successfully continues, transition the session to `resumed`, and to `completed`
-only when the resumed command actually finishes.
+successfully continues, transition the session with `chaos_resume_command`
+(CLI: `resume-command --run <id>`) — it performs
+`ready-to-resume -> resumed -> running` atomically — and to `completed` only
+when the resumed command actually finishes.
+
+**This flip is mandatory before any further stop.** A session left at
+`ready-to-resume` rejects `chaos_create_decision` with
+`INVALID_STATE_TRANSITION`; before this tool existed, that forced resumed runs
+to surface their second stop through the chat fallback (measured live,
+2026-08-05 B3).
 
 ## Decision states relevant to resume
 

@@ -10,6 +10,7 @@ import { markDecisionConsumedTool } from "./markDecisionConsumed.ts";
 import { createResumeCapsuleTool } from "./createResumeCapsule.ts";
 import { getResumeCapsuleTool } from "./getResumeCapsule.ts";
 import { findResumeCandidatesTool } from "./findResumeCandidates.ts";
+import { resumeCommandTool } from "./resumeCommand.ts";
 import { completeCommandTool } from "./completeCommand.ts";
 import { cancelCommandTool } from "./cancelCommand.ts";
 import { listLocksTool } from "./listLocks.ts";
@@ -25,6 +26,7 @@ export const ALL_TOOLS: McpTool[] = [
   createResumeCapsuleTool,
   getResumeCapsuleTool,
   findResumeCandidatesTool,
+  resumeCommandTool,
   completeCommandTool,
   cancelCommandTool,
   listLocksTool,

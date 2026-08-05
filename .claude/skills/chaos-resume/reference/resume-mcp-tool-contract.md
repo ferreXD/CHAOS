@@ -14,6 +14,7 @@ result envelope `{ ok, status, mustStop, message, data, warnings, nextAction? }`
 | `chaos_get_active_decision` | Detect any still-pending decision before resuming. |
 | `chaos_get_decision_response` | Read the answered response to incorporate. |
 | `chaos_mark_decision_consumed` | Mark a decision consumed **after** incorporation. |
+| `chaos_resume_command` | Flip the session `ready-to-resume -> resumed -> running` **after** incorporating/consuming the answered decisions and **before** continuing execution. A session left at `ready-to-resume` rejects any further `chaos_create_decision` with `INVALID_STATE_TRANSITION`. Idempotent when already running. |
 | `chaos_complete_command` | Complete the session and release locks when the resumed command finishes. |
 
 ## Selection

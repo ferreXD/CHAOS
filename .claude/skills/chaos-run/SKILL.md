@@ -314,6 +314,12 @@ for **position only** — obligations are re-derived deterministically from
 `classification-state.json` on disk, and the audit gate re-asserts them at close regardless
 of what any capsule says.
 
+**Continuing after an answered stop:** once the answered decision(s) are incorporated and
+marked consumed, call `chaos_resume_command` (CLI: `resume-command --run <id>`) to flip the
+session `ready-to-resume -> running` **before** doing anything else. Skipping the flip
+leaves the session at `ready-to-resume`, where the next `chaos_create_decision` fails with
+`INVALID_STATE_TRANSITION` and no later stop can go through the runtime.
+
 ## Golden rules
 
 - The dimension vector — never mode words — sets the rigor; floors only raise; the system

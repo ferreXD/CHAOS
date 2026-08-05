@@ -216,6 +216,10 @@ def write_digest(change_dir, verdict, checkpoint, trg_ids, packet_path=None, inp
                      "'fired: none' does NOT mean no sensitive surface was touched.")
     if verdict.get("scanEcho"):
         lines.append("- echo (already fired, re-detected): %s" % ", ".join(verdict["scanEcho"]))
+    if verdict.get("nearSpills"):
+        lines.append("- near-scope (recorded, NO stop — within the M5 proximity band; widen "
+                     "scope via update-scope if these are completing approved work): %s"
+                     % ", ".join(verdict["nearSpills"]))
     for d in verdict.get("demotedCandidates", []):
         lines.append("- DEMOTED candidate: %s hit %s — %s (adjudication may raise it, cite required)"
                      % (d.get("class"), d.get("path"), d.get("reason")))

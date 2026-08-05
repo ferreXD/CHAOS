@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "provenance": "Authored 2026-08-02 for the Stage-C classifier corpus (assistant-authored; creator ratifies with the corpus). Subject: Task Tracker API @ demo/dotnet d27600f. A wrong map is the classifier's largest deterministic failure mode (design doc §12); ADV-03 tests the adjudication net behind it.",
+  "provenance": "Authored 2026-08-02 for the Stage-C classifier corpus (assistant-authored; creator ratifies with the corpus). Subject: Task Tracker API @ demo/dotnet d27600f. A wrong map is the classifier's largest deterministic failure mode (design doc \u00a712); ADV-03 tests the adjudication net behind it.",
   "surfaceClasses": {
     "auth": "credentials, keys, auth enforcement (C-13 surface class)",
     "data-store": "persistence, store shape, migrations, PII",
@@ -12,45 +12,103 @@
   "classes": {
     "auth": {
       "surface": "auth",
-      "paths": ["src/**/Security/**", "src/**/*Auth*", "src/**/*ApiKey*"],
-      "contentMarkers": ["BEGIN RSA PRIVATE KEY", "BEGIN PRIVATE KEY", "X-Api-Key"]
+      "paths": [
+        "src/**/Security/**",
+        "src/**/*Auth*",
+        "src/**/*ApiKey*"
+      ],
+      "contentMarkers": [
+        "BEGIN RSA PRIVATE KEY",
+        "BEGIN PRIVATE KEY",
+        "X-Api-Key"
+      ]
     },
     "secrets": {
       "surface": "auth",
-      "paths": ["**/*.pem", "**/*.pfx", "**/secrets/**"],
-      "configKeyMarkers": { "file": "**/appsettings*.json", "keys": ["ApiKey", "ConnectionString", "Secret", "Token", "Password", "SigningKey"] }
+      "paths": [
+        "**/*.pem",
+        "**/*.pfx",
+        "**/secrets/**"
+      ],
+      "configKeyMarkers": {
+        "file": "**/appsettings*.json",
+        "keys": [
+          "ApiKey",
+          "ConnectionString",
+          "Secret",
+          "Token",
+          "Password",
+          "SigningKey"
+        ]
+      }
     },
     "persistence": {
       "surface": "data-store",
-      "paths": ["src/**/Domain/**", "**/Migrations/**", "**/*.sql"]
+      "paths": [
+        "src/**/Domain/**",
+        "**/Migrations/**",
+        "**/*.sql"
+      ]
     },
     "pii": {
       "surface": "data-store",
       "paths": [],
-      "note": "Deliberately empty for the demo subject — no PII paths exist; corpus observation O-5."
+      "note": "Deliberately empty for the demo subject \u2014 no PII paths exist; corpus observation O-5."
     },
     "deploy": {
       "surface": "deploy-ops",
-      "paths": ["Dockerfile", "docker-compose*", ".github/workflows/**", "**/deploy/**", "**/*.tf"]
+      "paths": [
+        "Dockerfile",
+        "docker-compose*",
+        ".github/workflows/**",
+        "**/deploy/**",
+        "**/*.tf"
+      ]
     },
     "contract-artifacts": {
       "surface": "contract-dependency",
-      "paths": ["openspec/specs/**", "**/*.openapi.*", "**/*.proto", "**/*.avsc"]
+      "paths": [
+        "openspec/specs/**",
+        "**/*.openapi.*",
+        "**/*.proto",
+        "**/*.avsc"
+      ]
     },
     "api-surface-source": {
       "surface": "contract-dependency",
-      "paths": ["src/**/Endpoints/**", "src/**/Contracts/**"],
-      "routeMarkers": ["MapGet(", "MapPost(", "MapPut(", "MapDelete("],
-      "note": "M3 fires on route-marker DELTA in the patch (added/removed route registrations), never on bare path-touch — otherwise every endpoint edit (SC-06) would owe a delta spec."
+      "paths": [
+        "src/**/Endpoints/**",
+        "src/**/Contracts/**"
+      ],
+      "routeMarkers": [
+        "MapGet(",
+        "MapPost(",
+        "MapPut(",
+        "MapDelete("
+      ],
+      "note": "M3 fires on route-marker DELTA in the patch (added/removed route registrations), never on bare path-touch \u2014 otherwise every endpoint edit (SC-06) would owe a delta spec."
     },
     "dependency-manifests": {
       "surface": "contract-dependency",
-      "paths": ["**/*.csproj", "**/packages.lock.json"],
+      "paths": [
+        "**/*.csproj",
+        "**/packages.lock.json"
+      ],
       "note": "New direct package or major bump -> M3 (materiality, C-4); patch/minor bump -> X3 (mechanical)."
     }
   },
-  "m2Classes": ["auth", "secrets", "persistence", "pii", "deploy"],
-  "m3Classes": ["contract-artifacts", "api-surface-source", "dependency-manifests"],
+  "m2Classes": [
+    "auth",
+    "secrets",
+    "persistence",
+    "pii",
+    "deploy"
+  ],
+  "m3Classes": [
+    "contract-artifacts",
+    "api-surface-source",
+    "dependency-manifests"
+  ],
   "renameShapeGuard": {
     "note": "C-14: a rename-shaped diff demotes M2 class-path hits to adjudication candidates.",
     "minFiles": 6,
@@ -58,8 +116,15 @@
     "minFractionFilesWithBothAddsAndDeletes": 0.8
   },
   "x1Thresholds": {
-    "note": "Provisional (design doc §12: calibrated by corpus + step-5, not argued a priori).",
-    "review1": { "files": 8, "loc": 400 },
-    "review2": { "files": 20, "loc": 1000 }
-  }
+    "note": "Provisional (design doc \u00a712: calibrated by corpus + step-5, not argued a priori).",
+    "review1": {
+      "files": 8,
+      "loc": 400
+    },
+    "review2": {
+      "files": 20,
+      "loc": 1000
+    }
+  },
+  "m5ProximitySegments": 0
 }

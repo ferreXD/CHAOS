@@ -539,22 +539,39 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
             fire("X3", "scan", None,
                  "dependency manifest: patch/minor bump %s %s -> %s" % minor_bumps[0])
 
-        # M5: scope spill
+        # M5: scope spill — banded (2026-08-05, B-arena operator feedback). A path outside
+        # the approved scope that still shares its first `m5ProximitySegments` path segments
+        # with an approved entry is a NEAR spill: on real work these were overwhelmingly
+        # helper files completing approved work (3/3 M5 stops in B1+B3 fired on them), and
+        # each cost a confirmation stop. Near spills are recorded (state + verdict + scan
+        # note) but do not fire M5; only a FAR spill — outside the band — demands the stop.
+        # `m5ProximitySegments: 0` in path-class-map.json restores the strict behaviour.
         if scope["entries"]:
-            spilled = []
+            near_n = map_data.get("m5ProximitySegments", 2)
+            entry_paths = [e.replace("\\", "/").rstrip("/") for e in scope["entries"]]
+            far, near = [], []
             for row in numstat["rows"]:
                 path = row["path"].replace("\\", "/")
                 ok = False
-                for entry in scope["entries"]:
-                    e = entry.replace("\\", "/").rstrip("/")
+                for e in entry_paths:
                     if path == e or path.startswith(e + "/"):
                         ok = True
                         break
-                if not ok:
-                    spilled.append(path)
-            if spilled:
-                fire("M5", "scan", None,
-                     "diff touches %s, not in the approved scope" % ", ".join(sorted(spilled)))
+                if ok:
+                    continue
+                segs = path.split("/")
+                in_band = bool(near_n) and any(
+                    e.split("/")[:near_n] == segs[:near_n]
+                    for e in entry_paths if len(e.split("/")) >= near_n)
+                (near if in_band else far).append(path)
+            if far:
+                cite = "diff touches %s, not in the approved scope" % ", ".join(sorted(far))
+                if near:
+                    cite += ("; near-scope (within %d-segment band, no stop of their own): %s"
+                             % (near_n, ", ".join(sorted(near))))
+                fire("M5", "scan", None, cite)
+            if near:
+                state["nearSpills"] = sorted(set(state.get("nearSpills", []) + near))
 
         # X1 actual
         lvl = x1_level(numstat["files"], numstat["loc"], map_data.get("x1Thresholds", {}))
@@ -570,12 +587,30 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     if checkpoint == "K4" and fm.get("selfReview") and fm["selfReview"] != "clean":
         fire("X2", "scan", None, "self-review verdict '%s' != clean" % fm["selfReview"])
 
-    # -- adjudication merge (raise-only; C-6/C-7)
+    # -- adjudication merge (raise-only; C-6/C-7). Dedup is per (trigger, surface), not per
+    # trigger alone: two M2 raises with DISTINCT surfaces are two facts, and dropping the
+    # second silently under-counted len(surfaces) — the depth-2 openspec rule was unreachable
+    # via adjudication (B3 VFY-004, 2026-08-05). fire() still dedupes same-trigger scan
+    # firings; this override applies only to adjudication raises.
     adj_used = False
     for raise_ in (adjudication or {}).get("raises", []):
         trig = raise_.get("trigger")
-        if trig in MATERIALITY and trig not in already and trig not in {f["trigger"] for f in newly}:
-            fire(trig, "adjudication", raise_.get("surface"),
+        surf = raise_.get("surface")
+        if trig not in MATERIALITY:
+            continue
+        fired_pairs = {(f["trigger"], f.get("surface"))
+                       for f in state["fired"] + newly}
+        if (trig, surf) in fired_pairs:
+            continue
+        if trig in already or trig in {f["trigger"] for f in newly}:
+            # Same trigger, new surface: record it directly (fire() would drop it).
+            newly.append({"trigger": trig, "by": "adjudication", "surface": surf,
+                          "cite": raise_.get("cite", ""), "checkpoint": checkpoint,
+                          **({"breaking": raise_["breaking"]}
+                             if raise_.get("breaking") is not None else {})})
+            adj_used = True
+        else:
+            fire(trig, "adjudication", surf,
                  raise_.get("cite", ""), breaking=raise_.get("breaking"))
             adj_used = True
 
@@ -653,6 +688,10 @@ def classify(sections, checkpoint, state=None, adjudication=None, map_data=None)
     }
     if checkpoint == "K3":
         verdict["newSurfacePaths"] = new_surface
+    if state.get("nearSpills"):
+        # Cumulative near-scope spills (outside the approved entries, inside the proximity
+        # band): visible in every verdict so they are never silent, but they demand no stop.
+        verdict["nearSpills"] = state["nearSpills"]
     if satisfied_by:
         verdict["stopSatisfiedBy"] = satisfied_by
     if absorbed_by:

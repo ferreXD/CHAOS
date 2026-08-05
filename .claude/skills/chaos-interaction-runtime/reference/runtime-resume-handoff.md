@@ -28,7 +28,11 @@ Fully-automatic "answer → auto-continue" is gated by
 4. **Record a Decision Event** if the command's contract requires one.
 5. **Mark the decision consumed** with `chaos_mark_decision_consumed` — only *after*
    incorporation, never before.
-6. **Continue from the capsule `nextStep`**, delegating to the original command's
+6. **Flip the session back to running** with `chaos_resume_command` (CLI:
+   `resume-command --run <id>`). A session left at `ready-to-resume` rejects every
+   later `chaos_create_decision` with `INVALID_STATE_TRANSITION`, which forces any
+   subsequent stop out of the runtime and into ad-hoc fallbacks.
+7. **Continue from the capsule `nextStep`**, delegating to the original command's
    skill/agent as appropriate.
 
 ## Consumption ordering (consistent across all commands)

@@ -104,7 +104,10 @@ export interface BeginCommandInput {
   metadata?: Record<string, unknown>;
 }
 
-export type CreateDecisionStatus = "WAITING_FOR_USER_DECISION" | "PENDING_DECISION_EXISTS";
+export type CreateDecisionStatus =
+  | "WAITING_FOR_USER_DECISION"
+  | "PENDING_DECISION_EXISTS"
+  | "ANSWERED_DECISION_EXISTS";
 
 export interface CreateDecisionResult extends Envelope {
   status: CreateDecisionStatus;
@@ -506,16 +509,22 @@ export class InteractionRuntime {
     const changeId = args.changeId ?? session.changeId;
     const sourceCommand = args.sourceCommand ?? session.sourceCommand;
 
-    // Idempotency: reuse an existing unresolved decision with the same purpose.
-    const existing = this.store.decisions
+    // Idempotency: reuse an existing decision with the same purpose. Two cases:
+    //  - still waiting: the original create succeeded (or persisted despite an error) —
+    //    point the caller at it instead of doubling the question in the Decision Center.
+    //  - already answered but not consumed: the human answered the first copy between the
+    //    caller's error and its retry (observed live in the 2026-08-05 B3 run, where the
+    //    retry filed a duplicate the operator had to answer twice). The retry must get the
+    //    existing answer, never a fresh copy of a question the human already settled.
+    const twins = this.store.decisions
       .list()
-      .find(
+      .filter(
         (d) =>
           d.commandRunId === args.commandRunId &&
-          d.state === "waiting" &&
           d.title === args.title &&
           normalizeCommand(d.sourceCommand) === normalizeCommand(sourceCommand),
       );
+    const existing = twins.find((d) => d.state === "waiting");
     if (existing) {
       return {
         status: "PENDING_DECISION_EXISTS",
@@ -528,6 +537,29 @@ export class InteractionRuntime {
         errors: [],
       };
     }
+    const answeredTwin = twins.find((d) => d.state === "answered");
+    if (answeredTwin) {
+      return {
+        status: "ANSWERED_DECISION_EXISTS",
+        mustStop: false,
+        commandRunId: args.commandRunId,
+        changeId,
+        decisionId: answeredTwin.decisionId,
+        message:
+          `An equivalent decision was already answered (${answeredTwin.decisionId}). ` +
+          `Fetch its response with getDecisionResponse and mark it consumed — do not re-ask.`,
+        warnings: ["Duplicate decision creation suppressed (answered twin exists)."],
+        errors: [],
+      };
+    }
+
+    // Validate the session transition BEFORE anything persists. transitionSession throws
+    // INVALID_STATE_TRANSITION for states that cannot enter waiting-for-decision (e.g. a
+    // post-resume session stranded at ready-to-resume); doing this first means a rejected
+    // create leaves NO decision record and NO lock behind. Previously the decision and lock
+    // were written before this check, so the caller saw an error while the Decision Center
+    // showed the question anyway — the duplicate-question defect measured in B1/B3.
+    const transitioned = transitionSession(session, "waiting-for-decision", now);
 
     const decisionInput: CreateDecisionInput = {
       decisionId: this.ids.decisionId(changeId, sourceCommand, args.title),
@@ -597,14 +629,13 @@ export class InteractionRuntime {
       });
     }
 
-    // Update the session: waiting-for-decision.
-    let updated = transitionSession(session, "waiting-for-decision", now);
-    updated = {
-      ...updated,
-      activeDecisionIds: addUnique(updated.activeDecisionIds, decision.decisionId),
-      lockIds: lockId ? addUnique(updated.lockIds, lockId) : updated.lockIds,
-      lastCompletedStep: args.lastCompletedStep ?? updated.lastCompletedStep,
-      nextStep: args.nextStep ?? updated.nextStep,
+    // Update the session: waiting-for-decision (validated up front, before any write).
+    const updated = {
+      ...transitioned,
+      activeDecisionIds: addUnique(transitioned.activeDecisionIds, decision.decisionId),
+      lockIds: lockId ? addUnique(transitioned.lockIds, lockId) : transitioned.lockIds,
+      lastCompletedStep: args.lastCompletedStep ?? transitioned.lastCompletedStep,
+      nextStep: args.nextStep ?? transitioned.nextStep,
     };
     this.store.sessions.write(updated);
 
