@@ -31,7 +31,7 @@ Follow the contract in:
 - `reference/question-bank.md`
 - `reference/toolchain-preflight.md`
 
-## Required output
+## Required output (lean core, 2026-08)
 
 Always generate or update:
 
@@ -39,14 +39,16 @@ Always generate or update:
 AGENTS.md
 .chaos/config.yaml
 .chaos/bootstrap-report.md
-.chaos/constitution.md
 .chaos/context.md
 .chaos/architecture.md
 .chaos/decisions/index.md
-.chaos/rules/index.md
-.chaos/commands/index.md
-.chaos/gates/index.md
 ```
+
+`architecture.md` (owner-confirmed postures) and `docs/adr/` are what the `chaos:run`
+pre-code stop checks intent against — record postures there deliberately. `AGENTS.md`
+must carry the ask-hard standing instruction: surface uncertainty at the stop rather
+than resolve it silently. Do not scaffold `constitution.md`, `rules/`, `gates/`,
+`commands/`, or `.chaos/changes/` (retired with the apparatus, tag `apparatus-final`).
 
 Optionally generate or update:
 
@@ -68,11 +70,11 @@ only when explicitly requested or allowed.
 - Require explicit confirmation before excluding a major available documentation track.
 - Require explicit confirmation before treating Proposed ADRs as accepted working posture.
 
-## Constitution confidence requirement
+## Confidence doctrine (carried in AGENTS.md)
 
-`chaos:init` must ensure `.chaos/constitution.md` includes a **confidence and knowledge classification doctrine**.
-
-The generated constitution must state that every CHAOS judgement, recommendation, approval, verification, gate result, or review finding distinguishes:
+`chaos:init` must ensure the generated `AGENTS.md` states the **confidence and knowledge
+classification doctrine**: every CHAOS judgement, recommendation, approval, verification,
+or review finding distinguishes:
 
 - `FACT`
 - `INFERENCE`

@@ -18,15 +18,15 @@ runtime exposes the official discovery API (Iteration 4).
    - many → present a numbered list and **STOP**;
    - none → report "no resumable session" and suggest next actions.
 5. **`--sourceCommand <name>`** (optional filter) — narrow candidates to a source
-   command (e.g. only `chaos:apply` sessions).
+   command (e.g. only `chaos:run` sessions).
 
 ## Multiple-candidate prompt (STOP after presenting)
 
 ```text
 Multiple resumable CHAOS sessions found.
 
-1. RUN-... chaos:apply request-context-middleware — ready-to-resume — next: continue compact implementation
-2. RUN-... chaos:todo public-alpha-roadmap — ready-to-resume — next: import blockers
+1. RUN-... chaos:run request-context-middleware — ready-to-resume — next: continue compact implementation
+2. RUN-... chaos:run public-alpha-roadmap — ready-to-resume — next: import blockers
 3. Stop
 
 Select one session to resume.

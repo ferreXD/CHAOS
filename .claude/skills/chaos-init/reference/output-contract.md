@@ -2,35 +2,29 @@
 
 This document defines the files that `chaos:init` must generate or update.
 
-## Required output
+## Required output (lean core, 2026-08)
 
 ```text
 AGENTS.md
 .chaos/
   config.yaml
   bootstrap-report.md
-  constitution.md
   context.md
   architecture.md
-  changes/
-    README.md          # canonical v0 collaboration contract (per-change layout, lifecycle manifest, naming, sync roles)
   decisions/
     index.md
-  rules/
-    index.md
-  commands/
-    index.md
-  gates/
-    index.md
+docs/adr/              # created if absent; existing ADRs discovered and indexed
 ```
 
-The generated `.chaos/changes/README.md` documents the v0 team-safe collaboration model:
-the per-change artifact layout (`.chaos/changes/<change-id>/`), the lifecycle manifest
-template, the artifact-naming policy (date-prefixed slug filenames; sequential IDs in indexes
-only), the team concurrency policy, and the `chaos:sync` role model. Generated `AGENTS.md` and
-`.chaos/commands/index.md` must reference this collaboration model (team concurrency + mainline
-sync). `chaos:init` scaffolds the `.chaos/changes/` workspace but does not create per-change
-folders or migrate any legacy scattered report folders.
+`architecture.md` and `docs/adr/` are the **crossing sources** the `chaos:run` pre-code
+stop checks intent against — recording owner-confirmed postures here is what makes a
+future stop able to catch a contradiction (the measured B2 pattern). `AGENTS.md` carries
+the ask-hard standing instruction: *surface uncertainty at the stop rather than resolve it
+silently*. `.chaos/decisions/` holds the one-page per-change decision records written by
+`chaos:run`.
+
+Not scaffolded anymore (retired with the apparatus, tag `apparatus-final`):
+`constitution.md`, `rules/`, `gates/`, `commands/`, `.chaos/changes/`.
 
 ## Optional output
 

@@ -2,9 +2,9 @@
 
 Run the CHAOS Doctor — the local runtime / tooling / repository readiness diagnostic.
 
-`chaos:doctor` is distinct from `chaos:status`:
+`chaos:doctor` is focused on runtime/tooling readiness:
 
-- `chaos:status` = governance/workspace health (are the `.chaos` artifacts coherent?).
+- the retired `chaos:status` audited governance artifacts; that concern is gone with the apparatus.
 - `chaos:doctor` = local execution readiness (tooling, hooks, MCP, repo/provider context).
 
 ## Non-negotiable execution contract
@@ -80,7 +80,7 @@ For this command:
 
 - sourceCommand: `chaos:doctor`
 - **Read-only + lock-compatible**: may run alongside a pending decision, but must report, not fix, and must not mutate blocked-change state (except confirmed `--fix` safe local setup edits, which never touch `.chaos` change state).
-- Preserve the Iteration 7 **detailed** `## Interaction Runtime` health section (runtime root/schemas, pending decisions, ready-to-resume sessions, stale locks, expired runner leases, malformed artifacts, MCP/Decision Center package presence, hook-violation activity, command-contract integration). This is the detailed counterpart to `chaos:status`'s compact summary.
+- Preserve the Iteration 7 **detailed** `## Interaction Runtime` health section (runtime root/schemas, pending decisions, ready-to-resume sessions, stale locks, expired runner leases, malformed artifacts, MCP/Decision Center package presence, hook-violation activity, command-contract integration). This is the authoritative interaction-runtime health view.
 - Never continue past `mustStop`; surface it. Never perform destructive auto-repair.
 
 ## Do not
@@ -89,4 +89,4 @@ For this command:
 - Apply broad auto-fixes or anything beyond safe local setup with confirmation.
 - Treat MCP absence as a universal failure.
 - Write secrets to any file or report.
-- Register the command in `.chaos/commands/index.md` from here — route that to `chaos:sync`.
+- Register commands anywhere — the command index was retired with the apparatus.

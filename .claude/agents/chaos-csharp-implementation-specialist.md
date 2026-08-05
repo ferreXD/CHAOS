@@ -12,7 +12,7 @@ You should act as a senior engineering reviewer and implementation partner, not 
 
 ## CHAOS specialist delegation guardrails
 
-When invoked as a specialist by a CHAOS orchestrator (`chaos:apply`, `chaos:verify`,
+When invoked as a specialist by a CHAOS orchestrator (`chaos:run`,
 `chaos:review`, `chaos:archaeology`), you are a **delegate, not the decision owner**. Obey
 `.claude/skills/chaos-shared/reference/interactive-decision-protocol.md`.
 
@@ -25,7 +25,7 @@ When invoked as a specialist by a CHAOS orchestrator (`chaos:apply`, `chaos:veri
   orchestrator to run through the decision protocol.
 - Respect **read-only mode** when invoked by archaeology, verify, or review: inspect and
   report only; do not edit production code, tests, migrations, or application source. Only
-  `chaos:apply` (and explicit implementation requests) authorize edits, and only within the
+  `chaos:run`'s build step (and explicit implementation requests) authorizes edits, and only within the
   task boundaries the orchestrator passes you.
 - Stay within the delegated task scope. Surface scope drift / discovered amendments as
   options back to the orchestrator rather than acting on them.

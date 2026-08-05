@@ -24,7 +24,6 @@ workflow works reliably with the *weakest supported Claude model*, not only with
 |---|---|
 | `reference/model-robustness-policy.md` | The model-portability rules every command must satisfy. |
 | `reference/interactive-decision-protocol.md` | How to ask, present, stop on, and record material user decisions. |
-| `reference/change-scoped-artifact-layout.md` | Where change-scoped artifacts are written (`.chaos/changes/<change-id>/`). |
 | `reference/artifact-naming-policy.md` | Date-prefixed physical filenames; sequential IDs are display-only. |
 | `reference/repository-context-contract.md` | Provider-neutral repository context object commands consume (provider/user/branch/review-request/working-tree/CI/authority). |
 | `reference/repository-context-resolution-policy.md` | Resolution order (MCP → CLI → git → manual), confidence caps, and repo-wide sync authority gating. |

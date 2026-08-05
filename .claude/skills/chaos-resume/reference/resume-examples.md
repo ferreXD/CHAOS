@@ -10,14 +10,14 @@ User: chaos:resume --latest
 ```
 
 1. `chaos_find_resume_candidates { latest: true }` → `FOUND` one candidate
-   `RUN-...-chaos-propose-request-context` (sourceCommand `chaos:propose`,
+   `RUN-...-chaos-propose-request-context` (sourceCommand `chaos:run`,
    change `request-context-middleware`, next `continue-with-selected-execution-profile`).
 2. `chaos_get_resume_capsule { commandRunId: RUN-... }` → capsule loaded and validated.
 3. `chaos_get_decision_response { decisionId: DEC-...-execution-profile }` →
    `ANSWERED`, selected `strict-risk-compact`.
 4. Incorporate the profile into the proposal plan.
 5. `chaos_mark_decision_consumed { decisionId: DEC-... }`.
-6. Continue `chaos:propose` from `nextStep`; write a resume report.
+6. Continue `chaos:run` from `nextStep`; write a resume report.
 
 ## Example 2 — multiple candidates, ask and STOP
 
@@ -30,8 +30,8 @@ User: chaos:resume
 ```text
 Multiple resumable CHAOS sessions found.
 
-1. RUN-a chaos:apply request-context-middleware — ready-to-resume — next: continue compact implementation
-2. RUN-b chaos:todo public-alpha-roadmap — ready-to-resume — next: import blockers
+1. RUN-a chaos:run request-context-middleware — ready-to-resume — next: continue compact implementation
+2. RUN-b chaos:run public-alpha-roadmap — ready-to-resume — next: import blockers
 3. Stop
 
 Select one session to resume.

@@ -9,9 +9,9 @@ Use this skill when the user invokes `chaos:doctor` (or `/chaos-doctor`) or asks
 local environment, tooling, MCP, and repository/provider context are ready to run CHAOS.
 
 `chaos:doctor` is the **local runtime / tooling / repository readiness** diagnostic. It is
-distinct from `chaos:status`:
+focused on runtime/tooling readiness:
 
-- `chaos:status` = governance/workspace health (are the `.chaos` artifacts coherent?).
+- the retired `chaos:status` audited governance artifacts; that concern is gone with the apparatus.
 - `chaos:doctor` = local execution readiness (tooling, hooks, MCP, repo/provider context).
 
 ## Non-negotiable execution contract (model robustness)
@@ -111,7 +111,7 @@ command-contract integration.
 material local tooling/repository-readiness gaps (e.g. a recurring `NOT_READY`/`BLOCKED`
 check, not an expected optional-capability warning), using the shared fields in
 `.claude/skills/chaos-todo/reference/todo-candidate-contract.md`. `chaos:doctor` does not
-create durable todo items — only `chaos:todo` curates `.chaos/todo/items/`. Interaction-runtime
+create durable todo items. Interaction-runtime
 findings (stale lock, malformed artifact, missing capsule, expired lease, long-pending decision)
 surface as Todo Candidates through this same section.
 
@@ -121,4 +121,4 @@ surface as Todo Candidates through this same section.
 - Apply broad auto-fixes or anything beyond safe local setup with confirmation.
 - Treat MCP absence as a universal failure.
 - Write secrets to any file or report.
-- Register the command in `.chaos/commands/index.md` from here — route that to `chaos:sync`.
+- Register commands anywhere — the command index was retired with the apparatus.

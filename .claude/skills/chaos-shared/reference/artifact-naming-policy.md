@@ -40,5 +40,4 @@ physical filename for newly generated artifacts.
 
 ## Related
 
-- `change-scoped-artifact-layout.md`
 - `model-robustness-policy.md`

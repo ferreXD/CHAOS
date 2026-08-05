@@ -414,3 +414,8 @@ mcpToolProfiles:
   apply:
     github: [repos, pull_requests]
     azureDevOps: [repositories, work-items]
+# Lean-core spec gate (chaos:run): when an OpenSpec change is owed.
+specGate:
+  files: 5
+  loc: 250
+  crossingsAlwaysOwe: true

@@ -65,9 +65,10 @@ runtime-preflight
 
 `chaos_begin_command`, `chaos_create_decision`, `chaos_get_active_decision`,
 `chaos_get_decision_response`, `chaos_find_resume_candidates`,
-`chaos_mark_decision_consumed`, `chaos_complete_command`, `chaos_list_locks`,
-`chaos_list_sessions`. If a tool is missing use the nearest equivalent; do not
-redesign MCP. If MCP is unavailable, follow `reference/fallback-protocol.md`.
+`chaos_mark_decision_consumed`, `chaos_resume_command`, `chaos_complete_command`,
+`chaos_list_locks`, `chaos_list_sessions`. If a tool is missing use the nearest
+equivalent; do not redesign MCP. If MCP is unavailable, follow
+`reference/fallback-protocol.md`.
 
 ## Continuation after a decision (in-session auto-resume) — non-negotiable
 
@@ -81,7 +82,14 @@ or re-ask the user. Your FIRST action is:
    (`chaos_get_active_decision` / `chaos_get_decision_response`).
 2. Incorporate the selected option into the command's work.
 3. Mark the decision consumed (`chaos_mark_decision_consumed`) — only AFTER incorporation.
-4. Continue the original command from its capsule `nextStep`.
+4. Flip the session back to running with `chaos_resume_command` — a session left at
+   `ready-to-resume` rejects every later `chaos_create_decision` with
+   `INVALID_STATE_TRANSITION`.
+5. Continue the original command from its capsule `nextStep`.
+
+If `chaos_create_decision` ever returns `ANSWERED_DECISION_EXISTS`, the human already
+answered an identical decision: fetch it with `chaos_get_decision_response`, incorporate,
+mark consumed, and continue — never re-ask in chat or create another copy.
 
 If no answered decision exists for the active run, continue/stop normally. See
 `.claude/hooks/reference/in-session-auto-resume-contract.md`.
@@ -99,6 +107,6 @@ Iteration 1 runtime is the source of truth; Iteration 2 MCP is the tool surface;
 Iteration 3 Decision Center is where humans answer; Iteration 4 `chaos:resume` is the
 authoritative manual resume; Iteration 5 is the live auto-resume runner (auto-resume
 only while its lease is live — never after runner death); **Iteration 7 diagnostics**
-(`tools/chaos-interaction-diagnostics`, surfaced by `chaos:doctor` / `chaos:status`)
+(`tools/chaos-interaction-diagnostics`, surfaced by `chaos:doctor`)
 observes the evidence commands leave behind. This iteration (6) makes commands
 produce/consume that state. It does not redesign any of them.
