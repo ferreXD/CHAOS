@@ -140,6 +140,148 @@ class TestMeasure(unittest.TestCase):
             S.measure([])
 
 
+def ask_question(seconds, tool_id="tu_1"):
+    return {"type": "assistant", "timestamp": at(seconds),
+            "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "id": tool_id, "name": "AskUserQuestion",
+                 "input": {"questions": []}}]}}
+
+
+def question_answer(seconds, tool_id="tu_1"):
+    return {"type": "user", "timestamp": at(seconds), "toolUseResult": {"ok": True},
+            "message": {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": tool_id, "content": "answered"}]}}
+
+
+def decision_center_hook(seconds):
+    """The runtime's isMeta record when a CHAOS stop is answered outside the chat."""
+    rec = prompt(seconds, "Stop hook feedback:\nThe pending CHAOS decision was answered in the "
+                          "Decision Center. Continue this command in-session.")
+    rec["isMeta"] = True
+    return rec
+
+
+class TestHumanGatesInsideATurn(unittest.TestCase):
+    """Both leaks that charged a person's thinking time to the gated number (2026-08-05).
+
+    Direction matters: this is the only code path that SUBTRACTS from `machine`, so a false
+    positive flatters CHAOS. Detection must fire on the two runtime mechanisms and nothing else.
+    """
+
+    def test_ask_user_question_wait_is_not_machine_time(self):
+        records = S.window([(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), assistant(5), ask_question(10), question_answer(70), assistant(80)]])
+        result = S.measure(records)
+        # 80 s wall, 60 s of it spent waiting on the person.
+        self.assertEqual(result["elapsed"], 80.0)
+        self.assertEqual(result["humanGateSeconds"], 60.0)
+        self.assertEqual(result["machine"], 20.0)
+        self.assertEqual(result["humanWait"], 60.0)
+        self.assertEqual(result["turns"], 1)
+
+    def test_decision_center_answer_is_not_machine_time(self):
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), assistant(30, "S1 — stopped, waiting on your answer"),
+            decision_center_hook(630), assistant(650, "resuming")]]
+        result = S.measure(records)
+        self.assertEqual(result["humanGateSeconds"], 600.0)
+        self.assertEqual(result["machine"], 50.0)
+        # The hook is isMeta, so it must not also open a turn.
+        self.assertEqual(result["turns"], 1)
+
+    def test_both_gates_in_one_run_are_both_removed(self):
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), ask_question(10), question_answer(40),
+            assistant(50, "stopped"), decision_center_hook(350), assistant(360)]]
+        result = S.measure(records)
+        self.assertEqual(result["humanGateSeconds"], 330.0)
+        self.assertEqual(result["machine"], 30.0)
+        self.assertEqual([g["kind"] for g in result["humanGates"]],
+                         ["askUserQuestion", "decisionCenter"])
+
+    def test_ordinary_model_thinking_is_never_treated_as_a_gate(self):
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), assistant(5), assistant(400, "long deliberation"), assistant(500)]]
+        result = S.measure(records)
+        self.assertEqual(result["humanGateSeconds"], 0.0)
+        self.assertEqual(result["machine"], 500.0)
+
+    def test_a_lookalike_sentence_from_the_model_is_not_a_gate(self):
+        """Only the runtime's isMeta hook counts — an assistant saying it is not enough."""
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0),
+            assistant(300, "Stop hook feedback: The pending CHAOS decision was answered"),
+            assistant(310)]]
+        self.assertEqual(S.measure(records)["humanGateSeconds"], 0.0)
+
+    def test_a_non_meta_user_turn_quoting_the_hook_is_a_turn_not_a_gate(self):
+        """A human pasting the sentence takes a turn; the wait before it is already excluded."""
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), assistant(20),
+            prompt(300, "Stop hook feedback:\nThe pending CHAOS decision was answered"),
+            assistant(320)]]
+        result = S.measure(records)
+        self.assertEqual(result["humanGateSeconds"], 0.0)
+        self.assertEqual(result["turns"], 2)
+        self.assertEqual(result["machine"], 40.0)
+
+    def test_an_unanswered_question_is_not_a_gate(self):
+        """No tool_result means the run was killed mid-question; nothing to subtract."""
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            prompt(0), ask_question(10), assistant(600, "never answered")]]
+        self.assertEqual(S.measure(records)["humanGateSeconds"], 0.0)
+
+    def test_a_gate_can_never_drive_machine_negative(self):
+        records = [(S.parse_ts(r["timestamp"]), r) for r in [
+            ask_question(0), question_answer(100), prompt(100, "go")]]
+        self.assertGreaterEqual(S.measure(records)["machine"], 0.0)
+
+
+def bookkeeping(seconds, rectype="queue-operation"):
+    return {"type": rectype, "timestamp": at(seconds)}
+
+
+class TestBookkeepingNeverClosesATurn(unittest.TestCase):
+    """queue-operation / attachment / file-history records are stamped at the HUMAN's submit
+    time when they accompany the next prompt, so letting one close the previous segment
+    charges the whole between-turn wait to `machine`. Measured: 2.8 min (T5 plain, trailing
+    queue-operations) and 8.4 hours (governed T2, overnight S1 stop resumed next morning)."""
+
+    def test_queue_operation_never_reaches_the_timeline(self):
+        write_jsonl(self._path, [prompt(0), assistant(30, "S1 stop, waiting"),
+                                 bookkeeping(30300), bookkeeping(30300),
+                                 prompt(30310, "chaos:resume --change x"),
+                                 assistant(30340, "resumed")])
+        result = S.measure(S.read_records(self._path))
+        # 8.4 h of overnight wait lands in humanWait, not machine.
+        self.assertEqual(result["machine"], 60.0)
+        self.assertEqual(result["turns"], 2)
+        self.assertEqual(result["humanWait"], 30280.0)
+
+    def setUp(self):
+        self._dir = tempfile.mkdtemp()
+        self._path = os.path.join(self._dir, "t.jsonl")
+
+    def tearDown(self):
+        shutil.rmtree(self._dir, ignore_errors=True)
+
+    def test_prompt_submission_attachments_do_not_close_the_previous_turn(self):
+        """The T5-plain shape: attachments stamped with the next prompt's submission."""
+        recs = [prompt(0), assistant(30, "done"),
+                bookkeeping(170, "attachment"), bookkeeping(170, "file-history-snapshot"),
+                prompt(171, "next task"), assistant(200)]
+        result = S.measure([(S.parse_ts(r["timestamp"]), r) for r in recs])
+        # turn 1 must close at the assistant record (30 s), not the attachment (170 s)
+        self.assertEqual(result["machine"], 59.0)  # 30 + (200-171)
+        self.assertEqual(result["turns"], 2)
+
+    def test_mid_activity_bookkeeping_changes_nothing(self):
+        recs = [prompt(0), bookkeeping(5, "file-history-delta"), assistant(6),
+                bookkeeping(10, "attachment"), assistant(40, "done")]
+        result = S.measure([(S.parse_ts(r["timestamp"]), r) for r in recs])
+        self.assertEqual(result["machine"], 40.0)
+
+
 class TestReadRecords(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()

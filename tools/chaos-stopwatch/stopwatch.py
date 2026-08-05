@@ -19,9 +19,9 @@ band-A bar of 5 minutes, which is why self-report was retired.
 
 THREE NUMBERS, and the gate is on `machine`:
   elapsed   last timestamp - first timestamp, over the measured window.
-  machine   the sum of turn segments: from each real user prompt to the last record before
-            the next one. This is time the *tool* is responsible for, including model
-            latency. THIS IS WHAT GATES.
+  machine   the sum of turn segments (each real user prompt to the last record before the
+            next one), MINUS any human-gate interval inside a segment (below). This is time
+            the *tool* is responsible for, including model latency. THIS IS WHAT GATES.
   humanWait elapsed - machine. Time a human spent thinking or typing — including answering a
             CHAOS stop. A governed run must not be failed for a human's deliberation; that
             stop is the product working. Reported, never gated.
@@ -29,6 +29,27 @@ THREE NUMBERS, and the gate is on `machine`:
 In a workflow arm there are no mid-run user prompts, so machine == elapsed. In a real
 `chaos:run` from chat/CLI — product conditions, the thing the bar is actually about — they
 differ, which is the whole reason the split exists.
+
+HUMAN GATES INSIDE A TURN (added 2026-08-05, after both leaks were measured):
+The turn-boundary rule above assumes a human only ever speaks by starting a new turn. Two
+runtime mechanisms break that assumption, and both were silently charging a person's thinking
+time to the gated number:
+
+  1. `AskUserQuestion` is a TOOL CALL. The question and the answer live inside one assistant
+     turn, so the segment never closes. Measured leak: 51.1 s, 10.4 s and 275.3 s on the three
+     product-conditions plain+ask arms (2026-08-04).
+  2. A CHAOS stop answered in the **Decision Center** returns as an `isMeta` user record
+     ("Stop hook feedback: The pending CHAOS decision was answered..."), which `is_real_prompt`
+     correctly refuses to treat as a turn — so the wait before it stayed in `machine`.
+     Measured leak: **1226.9 s (20.4 min) on governed T1 run 3**, which read 36.7 min instead
+     of 16.2. That is not a rounding error; it is the difference between two conclusions.
+
+Both intervals are bounded by records the RUNTIME writes, so they stay independent of the arm.
+
+THIS IS THE ONE PLACE THE MODULE SUBTRACTS TIME, so it is the one place the conservative
+promise below can be violated. Detection is therefore exact-match, never heuristic: a gate is
+recognised only from an `AskUserQuestion` tool_use/tool_result pair, or from the runtime's own
+stop-hook sentence. Anything else that merely looks like idling stays in `machine`.
 
 CONSERVATIVE BY DESIGN: a record is treated as a real user prompt only when it clearly is
 one. Misclassifying a system-injected record as a prompt would *remove* a gap from `machine`
@@ -121,6 +142,85 @@ def is_real_prompt(rec):
     return any(b.strip() and not _WRAPPER_RE.match(b) for b in blocks)
 
 
+# The runtime's own sentence when a CHAOS stop is answered outside the chat, in the Decision
+# Center. Matched exactly, on an isMeta user record only: this is the single string that proves
+# the run was blocked on a person rather than thinking. Loosening it would start deleting real
+# machine time.
+_DECISION_CENTER_RE = re.compile(
+    r"^\s*Stop hook feedback:\s*\n?\s*The pending CHAOS decision was answered", re.I)
+
+
+def _ask_user_question_gates(records):
+    """(start_i, end_i, kind) for every AskUserQuestion tool_use -> tool_result pair."""
+    pending = {}
+    out = []
+    for i, (_, rec) in enumerate(records):
+        message = rec.get("message")
+        if not isinstance(message, dict):
+            continue
+        content = message.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "tool_use" and block.get("name") == "AskUserQuestion":
+                pending[block.get("id")] = i
+            elif block.get("type") == "tool_result" and block.get("tool_use_id") in pending:
+                out.append((pending.pop(block["tool_use_id"]), i, "askUserQuestion"))
+    return out
+
+
+def _decision_center_gates(records):
+    """(start_i, end_i, kind) for every wait ending in a Decision Center stop-hook record.
+
+    The interval opens at the LAST record before the hook — the tightest honest attribution,
+    since any model work would itself have written a later record.
+    """
+    out = []
+    for i, (_, rec) in enumerate(records):
+        if i == 0 or rec.get("type") != "user" or not rec.get("isMeta"):
+            continue
+        message = rec.get("message")
+        if not isinstance(message, dict):
+            continue
+        if any(_DECISION_CENTER_RE.match(b) for b in _text_blocks(message)):
+            out.append((i - 1, i, "decisionCenter"))
+    return out
+
+
+def human_gates(records):
+    """-> [{kind, seconds, from, to}] — intervals inside a turn where a person was the blocker.
+
+    See HUMAN GATES INSIDE A TURN in the module docstring. Overlaps are impossible by
+    construction (one mechanism cannot be mid-flight while the other resolves), but they are
+    merged defensively so a future third mechanism cannot double-subtract.
+    """
+    spans = _ask_user_question_gates(records) + _decision_center_gates(records)
+    merged = []
+    for start, end, kind in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            prev_start, prev_end, prev_kind = merged[-1]
+            merged[-1] = (prev_start, max(prev_end, end), prev_kind)
+            continue
+        merged.append((start, end, kind))
+    return [{"kind": kind,
+             "seconds": round((records[end][0] - records[start][0]).total_seconds(), 1),
+             "from": records[start][0].isoformat(),
+             "to": records[end][0].isoformat()}
+            for start, end, kind in merged]
+
+
+# Record types stamped at the moment a HUMAN acts (submitting or queueing the next prompt),
+# not while the tool is working. They land in the file just before the prompt they belong to,
+# so if they stay on the timeline they close the PREVIOUS turn at the human's submit time and
+# charge the entire wait to `machine`. Measured twice before this was understood: 2.8 min on
+# T5 plain (trailing queue-operations), then 8.4 HOURS on governed T2 — an overnight S1 stop
+# resumed by a morning `chaos:resume`, where the queue-operation stamped 07:12 dragged the
+# whole night into the previous evening's turn.
+_HUMAN_ACTION_TYPES = {"queue-operation"}
+
+
 def read_records(path):
     """-> [(timestamp, record)] in file order, timestamped records only."""
     out = []
@@ -134,6 +234,8 @@ def read_records(path):
             except ValueError:
                 continue
             if not isinstance(rec, dict):
+                continue
+            if rec.get("type") in _HUMAN_ACTION_TYPES:
                 continue
             stamp = parse_ts(rec.get("timestamp"))
             if stamp is not None:
@@ -181,15 +283,37 @@ def measure(records):
     if not starts or starts[0] != 0:
         starts.insert(0, 0)  # a workflow arm opens with its task, not a user prompt
 
+    # A segment closes at the last CONVERSATION record (assistant output or a user-side tool
+    # result) before the next prompt — never at bookkeeping. `attachment`/`file-history-*`
+    # records that accompany the NEXT prompt's submission are stamped at the human's submit
+    # time; letting one of them close the previous segment charges the entire wait between
+    # turns to `machine` (measured: 2.8 min on T5 plain, 8.4 h on governed T2's overnight
+    # stop). During activity these bookkeeping records always sit within a second or two of a
+    # conversation record, so this restriction cannot meaningfully shorten a real segment.
+    def close_at(begin, limit):
+        for i in range(limit, begin, -1):
+            if records[i][1].get("type") in ("assistant", "user"):
+                return i
+        return begin
+
     machine = 0.0
     for n, begin in enumerate(starts):
-        close = (starts[n + 1] - 1) if n + 1 < len(starts) else len(records) - 1
+        limit = (starts[n + 1] - 1) if n + 1 < len(starts) else len(records) - 1
+        close = close_at(begin, limit)
         if close > begin:
             machine += (stamps[close] - stamps[begin]).total_seconds()
+
+    # A human gate always sits inside a segment (it is mid-turn by construction), so its
+    # seconds are already counted in `machine` above and are removed here exactly once.
+    gates = human_gates(records)
+    gated = sum(g["seconds"] for g in gates)
+    machine = max(0.0, machine - gated)
 
     return {"elapsed": round(elapsed, 1),
             "machine": round(machine, 1),
             "humanWait": round(elapsed - machine, 1),
+            "humanGateSeconds": round(gated, 1),
+            "humanGates": gates,
             "turns": len(starts),
             "records": len(records),
             "first": stamps[0].isoformat(),
@@ -334,6 +458,9 @@ def render(report):
         lines.append("elapsed   %8.0fs  = %5.1f min" % (r["elapsed"], report["elapsedMin"]))
         lines.append("humanWait %8.0fs  = %5.1f min   (never gated)"
                      % (r["humanWait"], report["humanWaitMin"]))
+        for gate in r.get("humanGates", []):
+            lines.append("  gate    %8.0fs  = %5.1f min   %s (inside a turn, removed from machine)"
+                         % (gate["seconds"], gate["seconds"] / 60.0, gate["kind"]))
         lines.append("turns     %8d   records %d" % (r["turns"], r["records"]))
         lines.append("verdict   %s" % (report["verdict"] or "(no bar given)"))
     return "\n".join(lines)
