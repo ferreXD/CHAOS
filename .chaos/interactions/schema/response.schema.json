@@ -33,15 +33,13 @@
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 6000
+      ]
     },
     "rationale": {
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 4000
+      ]
     },
     "selectedBy": {
       "type": "string",

@@ -14,8 +14,8 @@ CHAOS is a thin discipline around AI-driven changes, built on the three mechanis
    the Decision Center before implementation starts.
 2. **Honest verification** — checks actually run; delegated work independently reviewed;
    unverifiable claims labeled, never ticked.
-3. **A small decision record** — one page per change in `.chaos/decisions/`, so future
-   stops can catch crossings against what was decided.
+3. **A decision record** — one per change in `.chaos/decisions/`, so future stops can catch
+   crossings against what was decided. No length limit: it carries what a future reader needs.
 
 ## Commands
 

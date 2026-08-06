@@ -50,20 +50,17 @@
     },
     "title": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 240
+      "minLength": 1
     },
     "context": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 6000
+      "minLength": 1
     },
     "recommendation": {
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 2000
+      ]
     },
     "recommendedOptionId": {
       "type": [
@@ -84,29 +81,25 @@
           },
           "label": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 240
+            "minLength": 1
           },
           "description": {
             "type": [
               "string",
               "null"
-            ],
-            "maxLength": 2000
+            ]
           },
           "consequence": {
             "type": [
               "string",
               "null"
-            ],
-            "maxLength": 2000
+            ]
           },
           "risk": {
             "type": [
               "string",
               "null"
-            ],
-            "maxLength": 1000
+            ]
           },
           "recommended": {
             "type": "boolean",

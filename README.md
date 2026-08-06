@@ -4,7 +4,7 @@
 
 CHAOS is a **thin discipline** for AI-assisted changes: agents do the mechanical work,
 and every change passes through **one forced pre-code stop** where a human answers the
-open questions, honest verification, and a **one-page decision record**. Nothing more.
+open questions, honest verification, and a **decision record**. Nothing more.
 
 It got thin the honest way. A two-month measurement program (T-series on friendly
 terrain, then a hostile-terrain program on a real 7-year client codebase) falsified the
@@ -24,9 +24,10 @@ the retired apparatus is one checkout away at the git tag `apparatus-final`.
    real catch the validation program produced came from this.
 2. **The verify.** Checks actually run; delegated work gets an independent look;
    anything unverifiable is recorded as a *limit with a reason*, never as a pass.
-3. **The record.** One page per change in `.chaos/decisions/`, plus owner-confirmed
-   postures in `.chaos/architecture.md` and `docs/adr/` — which is what lets a *future*
-   stop catch a change that contradicts a recorded decision.
+3. **The record.** One per change in `.chaos/decisions/`, plus owner-confirmed postures in
+   `.chaos/architecture.md` and `docs/adr/` — which is what lets a *future* stop catch a
+   change that contradicts a recorded decision. Records carry what a future reader needs;
+   there is no length limit on them, on the stop, or on anything else CHAOS writes.
 
 ## Commands
 
