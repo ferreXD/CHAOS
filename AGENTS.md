@@ -1,16 +1,14 @@
-# AGENTS.md — Task Tracker API (CHAOS-governed)
+# AGENTS.md — Task Tracker API
 
-Agent-facing entrypoint. This repository runs under **CHAOS** (Controlled, Human-led,
-Agent-Orchestrated Software delivery): humans make the material decisions, agents do the
-orchestrated work, and every material decision is recorded and reviewable. Read this
+Agent-facing entrypoint. This repository is the demo subject for **CHAOS**: humans answer
+the material decisions, agents do the work, and every change leaves a record. Read this
 before editing anything.
 
-## Governed subject
+## The subject
 
 The **Task Tracker API** (.NET / ASP.NET Core Minimal API, `net8.0`) under
-`src/TaskTracker.Api/` with tests in `tests/TaskTracker.Tests/`. The CHAOS toolkit that
-hosts this workspace (`.claude/`, `.github/`, `tools/`) is context-only for governance
-(see the scope decision in the bootstrap report).
+`src/TaskTracker.Api/`, with tests in `tests/TaskTracker.Tests/`. That is the whole
+codebase — the CHAOS machinery is not vendored here; it arrives as a Claude Code plugin.
 
 ## Start here
 
@@ -18,52 +16,38 @@ hosts this workspace (`.claude/`, `.github/`, `tools/`) is context-only for gove
 |---|---|
 | [`.chaos/context.md`](.chaos/context.md) | project reality, domain, flows, constraints |
 | [`.chaos/architecture.md`](.chaos/architecture.md) | technical posture, boundaries, testing |
-| [`.chaos/constitution.md`](.chaos/constitution.md) | behavioral principles + confidence doctrine |
-| [`.chaos/decisions/index.md`](.chaos/decisions/index.md) | decisions & their consequences |
-| [`.chaos/rules/index.md`](.chaos/rules/index.md) | executable constraints (R-001 …) |
-| [`.chaos/gates/index.md`](.chaos/gates/index.md) | readiness gates (G-01 …) |
-| [`.chaos/commands/index.md`](.chaos/commands/index.md) | the workflow surface |
-| [`.chaos/bootstrap-report.md`](.chaos/bootstrap-report.md) | how this workspace was generated |
+| [`.chaos/decisions/index.md`](.chaos/decisions/index.md) | what was decided, and why |
+| [`docs/adr/`](docs/adr/) | accepted postures a change may not silently cross |
 
 ## Minimum pre-edit behavior
 
-1. **Locate the change.** Non-trivial work belongs to an OpenSpec change under
-   `openspec/changes/<id>/` with governance artifacts under `.chaos/changes/<id>/`. Don't
-   free-edit `src/**` outside a change.
-2. **Respect the rules.** Especially: keep the test baseline green (R-003), respect the
-   domain→HTTP boundary (R-004), keep the `TaskState` naming (R-005).
-3. **Never guess a material decision.** Create a runtime decision (Decision Center) and
-   **stop** — do not decide in chat. See the interaction runtime below.
-4. **Label everything.** Findings and verdicts carry knowledge type + confidence
-   (constitution confidence doctrine, R-002).
-5. **Validate.** `dotnet build` / `dotnet test` for the API; `openspec validate --strict`
-   for spec changes.
+1. **Stop before code.** Every non-trivial change goes through `chaos:run`: read the
+   terrain, fold every open question, doubt, and crossing into **one** decision, and wait
+   for the human. Never settle a material decision in chat on your own.
+2. **Respect the recorded postures.** `.chaos/architecture.md` and `docs/adr/` say what
+   must be true. Contradicting one is a *crossing*: surface it at the stop with real
+   alternatives, and if the human approves it, amend the crossed record in the same change.
+3. **Keep the baseline green.** `dotnet build TaskTracker.sln` and
+   `dotnet test TaskTracker.sln` must pass. Paste real results — never tick what you did
+   not run; record what you could not verify as a limit with its reason.
+4. **Keep the domain→HTTP boundary.** Domain types stay in `Domain/`; HTTP shapes stay in
+   `Contracts/`; endpoints translate between them.
+5. **Leave the record.** One page per change under `.chaos/decisions/`, plus a line in
+   its index. That record is the asset — it is what lets a future stop catch a change that
+   contradicts this one.
 
-## Review / gate expectations
+## Conventions worth knowing before you propose anything
 
-Changes pass the gates in [`.chaos/gates/index.md`](.chaos/gates/index.md): proposal
-readiness (G-01) → apply scope integrity (G-02) → verification (G-03) → archive & sync
-(G-04), on top of toolchain readiness (G-05). Rigor scales with blast radius
-(`--light` / `--standard` / `--strict`).
-
-## Interaction runtime (the source of truth)
-
-The chat thread is **not** the source of truth — the interaction runtime under
-`.chaos/interactions/` is, reached via the `chaos-interaction` MCP server, with the
-**Decision Center** (VS Code panel) as the human UI. A command that hits a material
-decision creates it in the runtime, holds a change lock, and **stops**; a human answers
-in the Decision Center; the command continues via `chaos:resume`. Never bypass a pending
-decision.
-
-## Team collaboration model (v0)
-
-Change artifacts live under `.chaos/changes/<change-id>/` (per-change layout, with a
-`lifecycle.md` manifest). Contributors run `chaos:sync --change <change-id>`
-(contributor-safe); repo-wide `chaos:sync --all` requires maintainer/repo-owner
-confirmation; a **mainline sync** is recommended after merge into `main`. Canonical
-contract: [`.chaos/changes/README.md`](.chaos/changes/README.md).
+- `TaskState` is the task status type's name (not `TaskStatus`, which collides with the
+  BCL type). Keep it.
+- Filter values are parsed **case-insensitively**, and an unrecognized value is a
+  **400** — never a silent ignore, never an empty list. This was a recorded human
+  decision; see [`.chaos/decisions/index.md`](.chaos/decisions/index.md).
+- Spec gate: an estimated ≥5 files or ≥250 LOC, or any crossing, owes an OpenSpec change
+  under `openspec/changes/<id>/`. Smaller work is optional and the human can flip it at
+  the stop.
 
 ## Protected files
 
-`AGENTS.md` and root `README.md` are protected: commands may **propose** patches (with a
-preview) but must not edit them silently (R-006, `policies.protectedFiles`).
+`AGENTS.md` and root `README.md` are protected: propose a patch with a preview and get
+explicit confirmation; never edit them silently.

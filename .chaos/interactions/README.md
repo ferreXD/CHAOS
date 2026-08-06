@@ -110,24 +110,20 @@ They are intended for:
 
 ## Implementation status (non-normative pointer)
 
-These contracts and schemas are the source of truth. Implementations live under
-`tools/` and do not change anything in this folder:
+These contracts and schemas are the source of truth for the state in this folder. The
+implementations are **not** in this repository — they install with the CHAOS toolkit:
 
-- Iteration 1 — file-backed runtime store: `tools/chaos-interaction-runtime/`.
-- Iteration 2 — local stdio MCP server over that runtime: `tools/chaos-interaction-mcp/`.
-- Iteration 3 — human-facing VS Code Decision Center UI: `extensions/chaos-decision-center/`.
-- Iteration 4 — Claude-native explicit resume: `.claude/commands/chaos-resume.md`.
-- Iteration 5 — local live auto-resume runner: `tools/chaos-interaction-runner/`
-  (writes `runners/<runnerId>.json` leases; auto-resume only while the lease is live,
-  otherwise the session stays `ready-to-resume` for `chaos:resume`).
-- Iteration 7 — read-only health/doctor/status diagnostics + advisory hook
-  enforcement: `tools/chaos-interaction-diagnostics/` (12 probes, doctor/status/JSON
-  reporters, Todo Candidates, and a runtime-contract guard that reports to
-  `.chaos/runtime/hook-violations.jsonl`). Read-only; never performs destructive repair.
-- Iteration 6 — CHAOS command-contract integration (backfilled after Iteration 7):
-  shared protocol `.claude/skills/chaos-interaction-runtime/` + per-command
-  `## Interaction Runtime Obligations` sections. Commands preflight the runtime, create
-  material decisions and stop on `mustStop`, hand off to `chaos:resume`, and complete/
-  release locks so Iteration 7 diagnostics stay clean.
+- **Decision runtime + stdio MCP server** — the npm package
+  [`@ferrexd-chaos/interaction-mcp`](https://www.npmjs.com/package/@ferrexd-chaos/interaction-mcp),
+  launched via `npx` by the CHAOS Claude Code plugin. It owns the file-backed store here:
+  sessions, decisions, responses, locks, and resume capsules.
+- **Decision Center** — the VS Code extension (publisher `ferreXD`), the human-facing UI
+  over this same state.
+- **Commands** — `chaos:run` creates its pre-code decision through the runtime and stops
+  on `mustStop`; `chaos:resume` continues from the capsule and the answered decision,
+  never from chat memory.
+
+Schemas under `schema/` are seeded by the MCP server on first use and are yours to keep;
+runtime state files are gitignored.
 
 This subsection is an additive pointer only; the contracts above are unchanged.

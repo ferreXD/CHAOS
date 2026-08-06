@@ -101,7 +101,8 @@ No external integrations. All effects are in-process against the in-memory store
   issuance gates — that boot the app in-memory via `WebApplicationFactory<Program>`.
   `Program` is exposed as `public partial class Program { }` specifically to enable this.
   `[FACT]`.
-- This green baseline is what `chaos:apply` extends and `chaos:verify` traces against.
+- This green baseline is what every governed change must keep green, and what its
+  verification step is traced against.
 - Default validation commands: `dotnet build`, `dotnet test`. `[FACT]` — `.chaos/config.yaml`.
 
 ## Non-goals
@@ -117,8 +118,11 @@ No external integrations. All effects are in-process against the in-memory store
 
 - Overall architecture description: `confidence: HIGH`, `evidence_coverage: COMPLETE`,
   `assumption_load: LOW` — all layers were inspected directly.
-- `[CONFLICT · LOW]` Two on-disk copies of the app (tracked `examples/` vs untracked
-  root). Resolved operationally by treating the root solution as the active subject; flag
-  for unification on merge (context OQ-001).
-- Open: invalid-filter-value behaviour (context OQ-002) is an architecture-relevant API
-  contract question, deferred to the first `chaos:propose`.
+- Resolved 2026-08-06: the duplicate `examples/` copy of the app was deleted when this
+  branch was aligned to the plugin era. The root solution is the only copy (context
+  OQ-001 closed).
+- Invalid-filter-value behaviour (context OQ-002) is **decided and recorded** —
+  unrecognized values return `400`, values parse case-insensitively
+  (`.chaos/decisions/2026-07-19-task-filter-validation.md`) — but not yet implemented,
+  since `GET /tasks` has no filtering. A change that adds filtering follows that record
+  instead of re-deciding it.

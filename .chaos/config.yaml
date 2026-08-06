@@ -1,10 +1,15 @@
 version: 0.1
 
+# Lockstep version of the CHAOS machinery this workspace was initialized/migrated against.
+# The machinery itself is NOT vendored here — it is installed as a Claude Code plugin.
+machineryVersion: "0.2.0"
+
+# Repository conventions for the Task Tracker demo. Conventions only: where things live,
+# which tools exist, and the non-secret policy switches. Never a second source of
+# architectural truth (that lives in .chaos/architecture.md and docs/adr/).
+
 project:
-  name: "CHAOS"
-  # Governed subject: the .NET Task Tracker API (chaos:init --guided Decision #1,
-  # 2026-07-19). Reconciled node/typescript -> dotnet/csharp so validation
-  # (dotnet build/test) is consistent with the governed subject. Repo name kept "CHAOS".
+  name: "TaskTracker"
   type: dotnet
   primaryLanguage: csharp
   specEngine: openspec
@@ -13,409 +18,73 @@ paths:
   chaos: .chaos
   openspec: openspec
   adrs: docs/adr
-  decisionLogs: docs/decision-log
-  rules: .chaos/rules
-  gates: .chaos/gates
-  commands: .chaos/commands
-  archaeology: .chaos/archaeology
-  # v0 collaboration model: change-scoped artifacts live under .chaos/changes/<change-id>/
-  changes: .chaos/changes
-  # Global (repository-wide) report folder; chaos:sync --all writes repo-sync-YYYY-MM-DD.md here
-  syncReports: .chaos/sync-reports
-  # Non-change-scoped chaos:code-review reports: .chaos/code-reviews/YYYY-MM-DD-<slug>-code-review.md
-  codeReviews: .chaos/code-reviews
-  # Non-change-scoped chaos:doctor reports: .chaos/doctor/doctor-report-YYYY-MM-DD-<slug>.md
-  doctor: .chaos/doctor
-  # chaos:todo backlog workspace. Durable items (paths.todoItems) are Markdown source of truth;
-  # generated digest views (paths.todoViews) are static HTML, never source of truth.
-  todo: .chaos/todo
-  todoItems: .chaos/todo/items
-  todoViews: .chaos/todo/views
-  # Legacy scattered report folders — READ for compatibility only; not the preferred output location.
-  # New per-change artifacts are written under paths.changes. Do not migrate these here.
-  # Only legacy folders that actually exist on disk are listed; the other legacy report types
-  # (proposals, approvals, apply-reports, verification) were never created pre-migration and were
-  # pruned from this map on 2026-06-30 (chaos:sync config-drift) to keep paths coherent.
-  legacy:
-    reviews: .chaos/reviews
-    archiveReports: .chaos/archive-reports
-    retros: .chaos/retros
-
-agents:
-  copilot:
-    # CHAOS-integrated C# specialist (parity with claude.csharpSpecialist);
-    # generic CSharpExpert.agent.md retained as fallback.
-    csharpExpert: .github/agents/chaos-csharp-implementation-specialist.agent.md
-    csharpExpertFallback: .github/agents/CSharpExpert.agent.md
-  claude:
-    csharpSpecialist: chaos-csharp-implementation-specialist
+  # One decision record per chaos:run change (plus index.md).
+  decisions: .chaos/decisions
 
 toolchain:
   git:
     required: true
     command: git --version
 
-  node:
+  dotnet:
     required: true
+    minimumVersion: "8.0.0"
+    command: dotnet --version
+
+  node:
+    # Only needed for the CHAOS interaction runtime, which the plugin launches via npx.
+    required: false
     minimumVersion: "20.19.0"
     command: node --version
-
-  npm:
-    required: true
-    command: npm --version
 
   openspec:
     required: true
     command: openspec --version
     installCommand: npm install -g @fission-ai/openspec@latest
-    # The OpenSpec CLI (above) is distinct from an initialized OpenSpec *project*.
-    # chaos:propose wraps OpenSpec and writes under `openspec/changes/<id>/`, so the
-    # project must exist before the first propose. chaos:init scaffolds it automatically by
-    # running `initCommand` when the `projectMarker` directory is absent (the spec engine is
-    # swappable via project.specEngine); doctor CD-RT-07 is only the safety net if init was
-    # skipped (e.g. tooling copied by hand).
     projectMarker: openspec
     initCommand: openspec init
 
 validation:
   build:
-    defaultCommand: dotnet build
+    defaultCommand: dotnet build TaskTracker.sln
     allowPrompt: true
 
   test:
-    defaultCommand: dotnet test
+    defaultCommand: dotnet test TaskTracker.sln --nologo
     allowPrompt: true
 
   openspec:
     validateCommand: openspec validate
     strictFlag: --strict
 
-policies:
-  generatedReadme:
-    defaultTarget: .chaos/README.md
-    protectRootReadme: true
-    writeRequiresConfirmation: true
-    skipIfUpToDate: true
-
-  # Policy KEPT per chaos:init --guided config-reconciliation decision 2/2 =
-  # "keep-current-policy" (2026-07-19): AGENTS.md and root README.md remain editable by
-  # status/sync, guarded by requirePatchPreview=true (edits require a shown patch preview +
-  # confirmation; never a silent write).
-  protectedFiles:
-    agentsMd:
-      path: AGENTS.md
-      allowStatusToEdit: true
-      allowSyncToEdit: true
-      requirePatchPreview: true
-
-    rootReadme:
-      path: README.md
-      allowStatusToEdit: true
-      allowSyncToEdit: true
-      requirePatchPreview: true
-
-  commandExecution:
-    inferModeWhenMissing: true
-    defaultMode: standard
-    allowStrictDowngradeWithRationale: true
-
-  # Collapsed light lifecycle (Stage A — docs/design/2026-07-24-artifact-model-roadmap.md).
-  # Light = FRAME (chaos:propose --light) -> human answers -> DELIVER (chaos:apply, mode
-  # inferred from change.md). Same decisions, same human weight; less ceremony.
-  lightMode:
-    collapsedWorkflow: true
-    maxMaterialDecisions: 2       # exceeding this auto-escalates light -> standard
-    autoEscalate: true            # never ask; always announce + record (escalatedFrom, ESC-*)
-    allowStandaloneApplyEntry: true
-
-  decisions:
-    requireDecisionEvents: true
-    requireSyncAction: true
-
-  confidence:
-    requireKnowledgeType: true
-    requireConfidence: true
-    requireEvidenceCoverage: true
-
-  # v0 team-safe collaboration model. Canonical contract: .chaos/changes/README.md
-  changeArtifacts:
-    layout: ".chaos/changes/<change-id>"
-    writePerChangeReportsUnderChangeFolder: true
-    readLegacyReportFolders: true
-    migrateLegacyReportsAutomatically: false
-    lifecycleManifest: lifecycle.md
-
-  sync:
-    changeScopedAllowedForContributors: true
-    repoWideSyncRequiresMaintainerConfirmation: true
-    repoWideSyncCommand: "chaos:sync --all"
-    repoWideSyncReport: ".chaos/sync-reports/repo-sync-YYYY-MM-DD.md"
-    mainlineSyncRecommended: true
-    # The public repository mainline is `main` (origin/main).
-    mainlineBranch: main
-    roles:
-      developerSafe:
-        - "chaos:sync --change <change-id>"
-      maintainer:
-        - "chaos:sync --since <ref>"
-        - "chaos:sync --adrs"
-        - "chaos:sync --rules"
-        - "chaos:sync --gates"
-        - "chaos:sync --agents"
-      repoOwnerOnly:
-        - "chaos:sync --all"
-
-  artifactNaming:
-    physicalFilenamesUseDatePrefix: true
-    sequentialIdsAssignedInIndexesOnly: true
-    dateFormat: "YYYY-MM-DD"
-    requireSlug: true
-
-  # chaos:todo backlog curation policy. Canonical contract: .claude/skills/chaos-todo/.
-  # Durable items are Markdown under paths.todoItems; generated digest views (paths.todoViews)
-  # are static, self-contained HTML and are never source of truth.
-  todo:
-    defaultWriteMode: confirm
-    requireSourceEvidence: true
-    dedupeBeforeWrite: true
-    allowGlobalTodoWritesForContributors: false
-    maintainerConfirmationRequiredForAllWrite: true
-    scanCodeMarkers: false
-    htmlViews:
-      enabled: true
-      selfContained: true          # inline CSS + inline JS; fully offline
-      externalAssetsAllowed: false # no external/CDN/network assets
-      singlePage: true             # one consolidated dashboard: views/index.html
-      generator: "node tools/chaos-todo-views/generate.mjs"
-      regenerateOnlyWhenSourcesChange: true
-
-  # Claude <-> Copilot surface parity. Canonical mechanism: tools/chaos-parity-check/.
-  # Deterministic, zero-dependency check that the two adapter surfaces (.claude/ and .github/)
-  # stay in structural parity; intentional asymmetries are declared in parity-exceptions.json.
-  # Enforced in CI via .github/workflows/parity-check.yml. Non-secret intent only.
-  parity:
-    enabled: true
-    checker: "node tools/chaos-parity-check/check.mjs"
-    exceptions: tools/chaos-parity-check/parity-exceptions.json
-    ci: .github/workflows/parity-check.yml
-    surfaces:
-      claude: [.claude/commands, .claude/skills, .claude/agents]
-      copilot: [.github/prompts, .github/skills, .github/agents]
-
-  # vNext repository-context / MCP authority policy. Canonical contracts:
-  # .claude/skills/chaos-shared/reference/repository-context-contract.md and
-  # repository-context-resolution-policy.md. No secrets here — non-secret intent only.
-  repositoryContext:
-    repoWideSyncRequiresProviderContext: true
-    fallbackToGitCapsAuthorityToLow: true
-    unknownUserCannotApproveRepoWideSyncInStrict: true
-    allowManualMaintainerConfirmationInStandard: true
-
-  # Claude Code hook capability: CHAOS-owned Markdown artifact provenance metadata.
-  # Canonical contract: .claude/hooks/reference/artifact-metadata-hook-policy.md.
-  # Hooks are OPTIONAL tooling — this policy declares intent only; no hook is wired into
-  # committed settings.json by default (see .claude/hooks/settings.artifact-metadata.example.json).
-  artifactMetadata:
-    enabled: true
-    requireOnChaosMarkdown: true
-    identityMode: provider-username # provider-username | git-name | git-email | configured-alias | anonymous
-    configuredAlias: ""
-    includeRepositoryContext: true
-    updateTimestampOnlyOnMaterialChange: true
-    allowAuditOnlyStamp: false
-    stampSharedNonChaosFiles: false
-    failOnMissingMetadataInStrictHooks: true
-    warnOnMissingMetadataInContributorHooks: true
-
-  artifactMetadataManagedFiles:
-    # Manage ONLY command-generated CHAOS lifecycle/governance artifacts whose type the hook can
-    # infer (see infer_artifact() in scripts/chaos-artifact-metadata-hook.py). A broad
-    # ".chaos/**/*.md" first-stamps hand-authored docs (assessments/validation/todo/roadmap) as
-    # artifactType:unknown — see F5 in .chaos/validation/2026-07-ea-v2/ea-x1-cold-start/.
-    include:
-      - ".chaos/changes/**/*.md"
-      - ".chaos/doctor/**/*.md"
-      - ".chaos/sync-reports/**/*.md"
-      - ".chaos/archaeology/**/*.md"
-      - ".chaos/rules/**/*.md"
-      - ".chaos/gates/**/*.md"
-      - ".chaos/decisions/**/*.md"
-      - ".chaos/commands/**/*.md"
-      - ".chaos/status-report.md"
-      - ".chaos/bootstrap-report.md"
-      - ".chaos/architecture.md"
-      - ".chaos/context.md"
-      - ".chaos/constitution.md"
-      - ".chaos/README.md"
-    optional:
-      - "docs/adr/**/*.md"
-      - "docs/decision-log/**/*.md"
-    exclude:
-      - "README.md"
-      - "AGENTS.md"
-      - ".chaos/assessments/**/*.md"
-      - ".chaos/validation/**/*.md"
-      - ".chaos/todo/**/*.md"
-      - ".chaos/roadmap/**/*.md"
-      - ".chaos/interactions/**/*.md"
-
-  # Claude Code hook capability: local runtime observability backbone (session/repository
-  # context, active command, touched files, hook warnings, decision waits). Canonical
-  # contract: .claude/hooks/reference/hook-runtime-policy.md. Report-only by default; this
-  # is observability only, not command-boundary/protected-file/sync-authority enforcement.
-  # Hooks are OPTIONAL tooling — this policy declares intent only; no hook is wired into
-  # committed settings.json by default (see
-  # .claude/hooks/settings.runtime-observability.example.json).
-  hooks:
-    runtimeObservability:
-      enabled: true
-      runtimePath: ".chaos/runtime"
-      writeSessionContext: true
-      writeActiveCommand: true
-      auditTouchedFiles: true
-      logHookViolations: true
-      logDecisionWaits: true
-      strictByDefault: false
-      blockOnRuntimeErrors: false
-      gitignoreRuntimePath: true
-
-  # Iteration 7 interaction-runtime health diagnostics + advisory enforcement.
-  # Canonical implementation: tools/chaos-interaction-diagnostics/. Read-only by
-  # default; enforcement is report-first (advisory) and never performs destructive
-  # repair. Violations reuse the existing hooks.runtimeObservability stream at
-  # runtimePath/hook-violations.jsonl (additive superset — no duplicate stream).
-  interactionRuntime:
-    # Command-side integration switches (Iteration 6). Canonical contract:
-    # .claude/skills/chaos-interaction-runtime/. These let a user opt OUT of the
-    # runtime/Decision Center flow without removing the runtime.
-    commands:
-      # Master switch. true → CHAOS commands preflight the runtime, create material
-      # decisions through it, and hand off to the Decision Center / chaos:resume.
-      # false → commands fall back to classic in-chat interactive decisions and do
-      # NOT create runtime decisions or require the Decision Center.
-      enabled: true
-      # sequential → stop on the first material decision (one at a time).
-      # batch-independent → create ALL independent material decisions known up front,
-      # then stop once so they can be answered together. Dependent decisions still
-      # require a later round. Contract: reference/decision-batching-policy.md.
-      decisionBatching: batch-independent
-      # Behaviour when commands.enabled is false.
-      fallbackWhenDisabled: chat-interactive
-    autoResume:
-      # Master feature flag for the fully-automatic "answer → auto-continue" loop.
-      # Ships OFF. Auto-resume only happens when this is true AND a concrete
-      # mechanism below is selected/able to drive the session.
-      enabled: true
-      # Headless runner adapter. none → manual chaos:resume only. mock → test/demo
-      # adapter. claude-code → live headless Claude Code session adapter
-      # (tools/chaos-interaction-runner/, gated so it ships opt-in).
-      adapter: none
-      # In-session auto-resume for a NORMAL interactive chat: when enabled (with
-      # `enabled: true`), the chaos-auto-resume Stop hook keeps a chat-invoked
-      # command running in the SAME session across decisions — it waits for your
-      # Decision Center answer and continues automatically, no manual chaos:resume,
-      # all command output stays in the chat. Independent of `adapter` (that is the
-      # headless runner path). See .claude/hooks/reference/in-session-auto-resume-contract.md.
-      inSessionResume: true
-    diagnostics:
-      enabled: true
-      staleDecisionAgeHours: 24
-      staleLockAgeHours: 24
-      expiredRunnerLeaseGraceMs: 30000
-      includeTodoCandidates: true
-      validateArtifacts: true
-      checkMcpPackage: true
-      checkDecisionCenterPackage: true
-    enforcement:
-      mode: advisory        # advisory | strict | off
-      strictBlocksOnBlocker: true
-      writeHookViolations: true
-      blockOnPendingDecisionSameChange: false
-      blockOnMalformedState: false
-
-# vNext provider-neutral repository context + MCP integration. CHAOS is GitHub-native by
-# default; Azure DevOps / Azure Repos is a first-class internal provider. MCP is OPTIONAL —
-# it improves context quality but is never a hard dependency. Local git fallback always works.
-# Do NOT store secrets/tokens/PATs/connection strings here; declare non-secret intent only.
-integrations:
-  repository:
-    provider: auto            # auto | github | azure-devops | local-git
-    contextResolution:
-      preferMcp: true
-      allowCliFallback: true
-      allowGitFallback: true
-      requireProviderContextForRepoWideSync: true
-
-    github:
-      enabled: true            # public/default provider
-      mcp:
-        preferred: true
-        toolsets:
-          - repos
-          - pull_requests
-          - issues
-          - code_security
-      cli:
-        command: gh
-
-    azureDevOps:
-      enabled: false         # opt-in; first-class internal provider
-      organization: "<your-azure-devops-org>"     # non-secret org name (or supplied via environment)
-      project: "<your-azure-devops-project>"       # non-secret project name
-      mcp:
-        preferred: true
-        mode: remote          # remote | local
-        domains:
-          - core
-          - repositories
-          - work-items
-          - builds
-      cli:
-        command: az devops
-
-# MCP security posture. Canonical contract:
-# .claude/skills/chaos-shared/reference/mcp-security-policy.md
-mcp:
-  defaultMode: read-only
-  remoteWritesRequireExplicitConfirmation: true
-  preferLeastPrivilegeToolsets: true
-  commandSpecificToolProfiles: true
-
-# Command-specific least-privilege capability profiles. Canonical contract:
-# .claude/skills/chaos-shared/reference/mcp-tool-profiles.md
-mcpToolProfiles:
-  doctor:
-    github: [repos, pull_requests]
-    azureDevOps: [core, repositories]
-  status:
-    github: [repos, pull_requests]
-    azureDevOps: [core, repositories]
-  codeReview:
-    github: [repos, pull_requests, issues, code_security]
-    azureDevOps: [repositories, work-items, builds]
-  syncChange:
-    github: [repos, pull_requests, issues]
-    azureDevOps: [repositories, work-items]
-  syncAll:
-    github: [repos, pull_requests, issues]
-    azureDevOps: [repositories, work-items, builds]
-  archive:
-    github: [repos, pull_requests]
-    azureDevOps: [repositories, work-items]
-  verify:
-    github: [repos, pull_requests]
-    azureDevOps: [repositories, builds]
-  propose:
-    github: [repos]
-    azureDevOps: [core, repositories]
-  review:
-    github: [repos, pull_requests]
-    azureDevOps: [repositories, work-items]
-  apply:
-    github: [repos, pull_requests]
-    azureDevOps: [repositories, work-items]
-# Lean-core spec gate (chaos:run): when an OpenSpec change is owed.
+# When chaos:run owes an OpenSpec change (evaluated and shown at the pre-code stop).
 specGate:
   files: 5
   loc: 250
   crossingsAlwaysOwe: true
+
+policies:
+  protectedFiles:
+    agentsMd:
+      path: AGENTS.md
+      requirePatchPreview: true
+      writeRequiresConfirmation: true
+
+    rootReadme:
+      path: README.md
+      requirePatchPreview: true
+      writeRequiresConfirmation: true
+
+  interactionRuntime:
+    commands:
+      # true → chaos:run creates its folded pre-code decision through the runtime and
+      # hands off to the Decision Center / chaos:resume. Requires the MCP server, which
+      # the CHAOS plugin launches via npx. Without it the stop runs chat-interactive and
+      # the decision record is still written.
+      enabled: true
+      decisionBatching: batch-independent
+      fallbackWhenDisabled: chat-interactive
+    autoResume:
+      enabled: true
+      adapter: none
+      inSessionResume: true

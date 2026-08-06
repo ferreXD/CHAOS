@@ -115,15 +115,16 @@ A **task** is an immutable record: `Id` (GUID), `Title`, `Status`, `Priority`,
 ## Scope decisions and track handling
 
 - **Active governed subject:** the .NET Task Tracker API (Decision #1). `[FACT]`
-- **CHAOS toolkit itself** (`.claude/`, `.github/`, `tools/`, skills, agents) — the
-  repository that *hosts* this workspace — is treated as **context-only / excluded from
-  active governance scope** by Decision #1 ("dotnet demo only"). This is the explicit
-  human confirmation required before setting aside a major track. See the bootstrap
-  report scope table.
+- **The CHAOS toolkit is no longer part of this repository.** Decision #1 ("dotnet demo
+  only") set it aside as context-only; on 2026-08-06 it was removed outright — the
+  machinery now installs as a Claude Code plugin, so the Task Tracker API is the entire
+  codebase here, not merely the governed part of it.
 
 ## Open questions
 
-- OQ-001 — Should the tracked `examples/` copy and the untracked root copy be unified
-  before this branch merges? (see the `[ASSUMPTION]` above).
-- OQ-002 — What should an **invalid** filter value return once filtering is added
-  (`400` vs ignore)? This is the first material decision the demo `chaos:propose` raises.
+- OQ-001 — **Closed 2026-08-06.** The duplicate `examples/` copy was deleted when this
+  branch was aligned to the plugin era; the root solution is the only copy.
+- OQ-002 — **Answered and recorded, not yet implemented.** An invalid filter value returns
+  `400` (unknown names and numeric out-of-range; values parse case-insensitively) —
+  `.chaos/decisions/2026-07-19-task-filter-validation.md`. `GET /tasks` still has no
+  filtering, so a change that adds it should *follow* that record, not re-ask it.

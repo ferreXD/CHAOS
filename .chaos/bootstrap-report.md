@@ -26,6 +26,19 @@ chaosMetadata:
 
 Mandatory audit trail for the `chaos:init` run that generated this workspace.
 
+> **Historical record — read with a date in mind.** This report describes the 2026-07-19
+> init, performed by the multi-command CHAOS "apparatus" that was later measured against
+> real terrain and deleted. Its artifact inventory and command-availability tables name
+> files and commands that **no longer exist** (`constitution.md`, `rules/`, `gates/`,
+> `chaos:propose`/`review`/`apply`/`verify`/`archive`/`sync`, …). It is kept unedited
+> because a bootstrap report is an audit trail, not a living document.
+>
+> **What is true now (2026-08-06):** this workspace was migrated to the lean core — five
+> commands (`chaos:init`, `chaos:run`, `chaos:resume`, `chaos:doctor`, `chaos:help`), one
+> pre-code stop per change, and one record per change under `.chaos/decisions/`. The
+> machinery is no longer vendored in this repository; it installs as a Claude Code plugin
+> (`machineryVersion` in `.chaos/config.yaml` pins the version this workspace expects).
+
 ## Run metadata
 
 - Command: `chaos:init`

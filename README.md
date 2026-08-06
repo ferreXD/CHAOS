@@ -1,156 +1,71 @@
-# CHAOS
+# Task Tracker — the CHAOS demo repository
 
-**Controlled, Human-led, Agent-Orchestrated Software delivery.**
+A small, **runnable** ASP.NET Core Minimal API (`net8.0`) that exists for one purpose: to be
+a realistic subject for [CHAOS](https://github.com/ferreXD/CHAOS) — a thin discipline for
+AI-assisted changes, where every change passes through one forced pre-code stop, honest
+verification, and a decision record.
 
-CHAOS is an experimental, opinionated workflow for running an AI-assisted software
-development lifecycle where **humans make the decisions and agents do the orchestrated
-work** — with every material decision written down, traceable, and reviewable.
+> **This branch is the demo, not the toolkit.** The CHAOS machinery is no longer vendored
+> here — it installs as a Claude Code plugin. What remains in this repository is the app,
+> its `.chaos/` workspace, and the recorded decisions that make the loop demonstrable.
 
-It is **not** a universal AI-SDLC framework. It is a specific, human-led governance overlay
-for teams that want control and auditability over agent-driven change — whether you're
-evolving an existing **brownfield** codebase or starting a new **greenfield** project.
+## Try it
 
-> **Status: experimental / public alpha.** CHAOS is opinionated, still evolving, and not
-> production-proven yet. Expect rough edges and incomplete packaging.
+1. **Install the plugin** (in Claude Code):
 
-## What CHAOS actually is
+   ```text
+   /plugin marketplace add ferreXD/CHAOS
+   /plugin install chaos
+   ```
 
-CHAOS wraps your normal change lifecycle — propose → review → apply → verify → archive — in
-a set of governed commands. Each command:
+2. **Clone this branch and open it:**
 
-- stops for **material human decisions** instead of guessing;
-- records **decision events** with confidence and evidence, so choices aren't lost in chat;
-- keeps a **per-change audit trail** under `.chaos/changes/<change-id>/`.
+   ```bash
+   git clone -b demo/dotnet https://github.com/ferreXD/CHAOS.git task-tracker-demo
+   cd task-tracker-demo
+   dotnet test TaskTracker.sln     # green baseline before you start
+   ```
 
-The intent is simple: let agents move fast on the mechanical work, while a human stays in
-control of scope, architecture, and risk.
+3. **Run a governed change:**
 
-## How the interaction runtime works
+   ```text
+   /chaos:run "add an optional ?status= filter to GET /tasks"
+   ```
 
-Every material decision travels the same loop. The chat thread is **never** the source of
-truth — the **interaction runtime** is: a file-backed store under `.chaos/interactions/`,
-exposed to the agent over the `chaos-interaction` MCP server. The **Decision Center** (a VS
-Code panel) is the human-facing UI onto that same state. This is what keeps a paused run
-resumable and every choice auditable.
+   The agent reads the terrain, then **stops** with every open question and crossing folded
+   into a single decision. You answer (in the VS Code Decision Center, or in chat), it
+   builds, verifies honestly, and writes a record to `.chaos/decisions/`.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Human as Human driver
-    participant Agent as CHAOS command<br/>(agent)
-    participant Runtime as Interaction runtime<br/>(MCP · .chaos/interactions)
-    participant DC as Decision Center<br/>(VS Code panel)
+The [guided walkthrough](docs/demo/README.md) narrates that loop end to end, including the
+decision that makes it worth doing.
 
-    Human->>Agent: Invoke a command (e.g. chaos:propose)
-    Agent->>Runtime: chaos_begin_command — preflight
-    Runtime-->>Agent: READY · session + change lock acquired
+## What's in here
 
-    Note over Agent: Agent does the mechanical work…<br/>then hits a material decision
+| Path | What |
+|---|---|
+| `src/TaskTracker.Api/` | the API: in-memory CRUD over tasks, `GET /tasks` with filters |
+| `tests/TaskTracker.Tests/` | the test suite — the baseline every governed change must keep green |
+| `.chaos/` | the CHAOS workspace: context, architecture posture, decision records |
+| `docs/adr/` | architecture decision records (the postures a future stop checks against) |
+| `docs/demo/README.md` | the guided walkthrough |
+| `openspec/` | the spec engine's project — specs and changes for gated work |
 
-    Agent->>Runtime: chaos_create_decision (options + context)
-    Runtime-->>Agent: WAITING_FOR_USER_DECISION · mustStop
-    Agent-->>Human: STOP — "answer in the Decision Center"
+## Why the decisions matter more than the code
 
-    Runtime-->>DC: Pending decision surfaced (watch / poll)
-    DC-->>Human: Notify: 1 decision pending
-    Human->>DC: Pick an option + rationale, Submit
-    DC->>Runtime: answerDecision (validated write)
-    Note over Runtime: Session → ready-to-resume<br/>+ resume capsule written
-    DC-->>Human: Copy resume instruction
+The change in the walkthrough is about a dozen lines of LINQ. The point is the
+**decision**: *what should happen when a client sends an invalid filter value?* — surfaced
+before code was written, answered by a human, recorded in
+[`.chaos/decisions/`](.chaos/decisions/index.md), and available to catch a future change
+that contradicts it. That trail is what CHAOS is for; the API is just something real to
+have opinions about.
 
-    Human->>Agent: chaos:resume (--run / --change / --latest)
-    Agent->>Runtime: Load resume capsule + answered decision
-    Note over Agent: Incorporate the chosen option<br/>+ record a decision event
-    Agent->>Runtime: chaos_mark_decision_consumed (only after use)
-    Agent->>Runtime: chaos_complete_command — release lock
-    Agent-->>Human: Result + next command
-```
+## Requirements
 
-A few properties fall out of that loop:
-
-- **The change is locked while you decide.** The lock taken at `chaos_create_decision` is
-  held until `chaos_complete_command` (or cancel) — not released merely because the decision
-  was answered — so no other command can mutate the change mid-decision.
-- **Answers are used before they're retired.** The order is always *incorporate → mark
-  consumed → complete*; a run never consumes a decision before acting on it, which is what
-  lets a resumed run trust the recorded answer.
-- **Resume can be automatic.** With `policies.interactionRuntime.autoResume` enabled and a
-  live runner (or the in-session Stop hook) driving it, answering in the Decision Center
-  continues the **same** session — the manual `chaos:resume` step is skipped. Otherwise the
-  session stays `ready-to-resume` for you to resume by hand.
-
-## CHAOS and OpenSpec
-
-If you've never seen either tool:
-
-- **OpenSpec** is the *spec engine*. It owns each change's proposal, design, specs, and tasks
-  as the source of truth.
-- **CHAOS** is the *governance overlay* on top. It decides when work may proceed, prompts for
-  human decisions, records the audit trail, and routes review and verification.
-
-CHAOS **uses** OpenSpec — it does not replace it. A CHAOS proposal is an OpenSpec change with
-governance wrapped around it.
-
-## Is CHAOS a fit for you?
-
-**A good fit if you:**
-
-- work on a **brownfield or greenfield** codebase and want agents to help *without* silently
-  changing architecture;
-- want an explicit, written trail of *why* each change was made;
-- are comfortable staying in the loop and answering decision prompts;
-- use Claude Code (first-class) or GitHub Copilot (experimental adapter).
-
-**Probably not a fit if you:**
-
-- want a fully autonomous "build it for me" agent with no human gates;
-- want a zero-config, universal framework that behaves identically for every stack;
-- are prototyping throwaway code where governance overhead isn't worth it;
-- need a production-hardened, turnkey product today.
-
-## Maturity & limitations
-
-- **Posture:** public alpha. Core governance and lifecycle commands work; standalone packaging
-  (install guide, demo, worked examples) is still in progress.
-- **Not production-proven** as a general-purpose tool — treat it as a serious experiment, not
-  a finished product.
-- **Adapters:** the Claude Code surface is the reference implementation. The **GitHub Copilot
-  adapter is experimental** and not yet at parity.
-- **Works for brownfield and greenfield**, though its decision-tracking governance is
-  especially valuable where existing architecture must be respected.
-
-## Getting started
-
-> These guides are new and still evolving — expect gaps, and see the roadmap for status.
-
-- **Understand it in 5 minutes:** [`docs/overview.md`](docs/overview.md) — the lifecycle,
-  commands, modes, and artifact layout on one page.
-- **Per-command reference:** [`docs/command-matrix.md`](docs/command-matrix.md) — modes,
-  confidence labels, Copilot status, and next-command for every command; plus
-  [`docs/command-flags.md`](docs/command-flags.md) for every flag each command accepts.
-- **Install & onboarding:** [`docs/installation.md`](docs/installation.md)
-- **Worked end-to-end example:** a runnable [`examples/task-tracker/dotnet/`](examples/task-tracker/dotnet/README.md)
-  Task API, taken through the lifecycle (propose → review → apply → verify → archive → sync) in
-  the [demo walkthrough](docs/demo/README.md).
-- **Where this is going:** [project roadmap](.chaos/roadmap/roadmap.md)
-
-## Governance (CHAOS workspace)
-
-This repository is itself run under CHAOS. The agent-facing entrypoint is
-[`AGENTS.md`](AGENTS.md), and the governance workspace lives in [`.chaos/`](.chaos/):
-the [constitution](.chaos/constitution.md) (principles + confidence doctrine),
-[context](.chaos/context.md) and [architecture](.chaos/architecture.md) for the governed
-subject, the [decisions](.chaos/decisions/index.md), [rules](.chaos/rules/index.md),
-[gates](.chaos/gates/index.md), and [commands](.chaos/commands/index.md) indexes, and the
-[bootstrap report](.chaos/bootstrap-report.md) recording how the workspace was generated.
-The team collaboration model is in [`.chaos/changes/README.md`](.chaos/changes/README.md).
-
-## Contributing
-
-CHAOS is public alpha and contributions are welcome. Contributing is a normal pull-request
-workflow — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to report issues, set up a dev
-environment, and open a PR.
+- **.NET SDK 8.0+** — to build and test the API.
+- **Claude Code** with the CHAOS plugin — to run the governed loop.
+- Node.js ≥ 20.19 (optional) — the plugin uses it to launch the durable decision runtime;
+  without it the stop still happens in chat and the record is still written.
 
 ## License
 
-See [LICENSE](LICENSE).
+See [LICENSE](LICENSE). The `task-tracker` domain is fictional and contains no private data.
