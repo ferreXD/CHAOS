@@ -22,7 +22,7 @@
     "node": ">=20.19.0"
   },
   "bin": {
-    "chaos-interaction-mcp": "./dist/chaos-interaction-mcp.mjs"
+    "chaos-interaction-mcp": "dist/chaos-interaction-mcp.mjs"
   },
   "files": [
     "dist/chaos-interaction-mcp.mjs",
