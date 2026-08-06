@@ -29,6 +29,21 @@ the retired apparatus is one checkout away at the git tag `apparatus-final`.
    change that contradicts a recorded decision. Records carry what a future reader needs;
    there is no length limit on them, on the stop, or on anything else CHAOS writes.
 
+## Install
+
+CHAOS installs as a **ladder** — each level works on its own; the next one upgrades it.
+Full walkthrough: [docs/quickstart.md](docs/quickstart.md).
+
+| Level | Install | What you get |
+|---|---|---|
+| **L0 — plugin** | `/plugin marketplace add ferreXD/CHAOS` then `/plugin install chaos` in Claude Code | All 5 commands as `/chaos:*`. Without Node the stop runs chat-interactive — **the decision record is still written**. |
+| **L1 — runtime** | Nothing extra — the plugin wires `npx -y @ferrexd/chaos-interaction-mcp` (needs Node ≥ 20.19) | Durable decisions, locks, resume capsules, real `chaos:resume`. |
+| **L2 — panel** | Install **CHAOS Decision Center** (VS Code Marketplace / OpenVSX, publisher `ferreXD`) | One-click answering, pending-decision notifications, history. |
+
+`chaos:doctor` reports which level you're at and the one command that reaches the next.
+Working from a checkout of this repo (no plugin) also works — the commands live in
+[`.claude/`](.claude/) and the MCP wiring in [`.mcp.json`](.mcp.json).
+
 ## Commands
 
 | Command | What it does |
@@ -115,12 +130,13 @@ human can flip it either way. Thresholds live in `.chaos/config.yaml` (`specGate
 
 - Public alpha. The lean core is new (2026-08); the runtime + Decision Center underneath
   it are the most exercised parts of the codebase (abuse-tested, live-validated).
-- This README, `chaos:help`, and
+- This README, [docs/quickstart.md](docs/quickstart.md), `chaos:help`, and
   [`.claude/skills/chaos-run/SKILL.md`](.claude/skills/chaos-run/SKILL.md) are the
   authoritative description of the workflow. The guides that described the retired full
   lifecycle were removed with it (they remain in git history at the tag `apparatus-final`).
-- The measurement series that produced the lean core is under
-  [`.chaos/validation/`](.chaos/validation/); dated design history under
+- **The measured case for (and against) CHAOS** — multipliers, catches, caveats, and the
+  rival-hypothesis kit — is one page: [docs/evidence.md](docs/evidence.md). The raw series
+  is under [`.chaos/validation/`](.chaos/validation/); dated design history under
   [`docs/design/`](docs/design/) and [`docs/perf/`](docs/perf/) records how it got here.
 
 ## Contributing
