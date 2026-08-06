@@ -4,10 +4,13 @@ CHAOS installs as a ladder. Every level is useful on its own; each next level up
 ergonomics, never gates the loop. You need [Claude Code](https://claude.com/claude-code)
 (CLI, desktop, or the VS Code extension) — that's the only hard requirement.
 
-> Time-to-first-stop is the number this guide is accountable to. It is measured per
-> release on a machine that has never seen this repo (see the release checklist in
-> [docs/design/2026-08-06-distribution-surface.md](design/2026-08-06-distribution-surface.md));
-> the measured number will be printed here when the first packaged release ships.
+> Time-to-first-stop is the number this guide is accountable to. **First measurement
+> (v0.2.0, 2026-08-06): ~15 minutes** from `/plugin install` to the first answered stop
+> on a real repository — including a full interactive `chaos:init` — and ~20 minutes to
+> the first completed, test-verified change. Caveats stated plainly: one machine, a warm
+> npm cache, and an operator who knows the tool. A cold-machine measurement replaces
+> this number when we have one (protocol in the
+> [release checklist](design/2026-08-06-distribution-surface.md)).
 
 ## L0 — the plugin (the whole discipline)
 
