@@ -57,7 +57,7 @@ Collect into ONE decision:
 
 Create the decision through the interaction runtime (`chaos_begin_command` →
 `chaos_create_decision`, one decision, `folds: <n>`), write the resume capsule, and STOP
-(`mustStop`). Follow `.claude/skills/chaos-interaction-runtime/SKILL.md` for the protocol,
+(`mustStop`). Follow `${CLAUDE_PLUGIN_ROOT}/skills/chaos-interaction-runtime/SKILL.md` for the protocol,
 including: never re-ask (`ANSWERED_DECISION_EXISTS` → fetch, incorporate, consume), no
 silent bypass, and `chaos_resume_command` after consuming — a session left at
 `ready-to-resume` rejects the next decision.

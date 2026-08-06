@@ -17,7 +17,7 @@ focused on runtime/tooling readiness:
 ## Non-negotiable execution contract (model robustness)
 
 Executable by the weakest supported Claude model. Obey
-`.claude/skills/chaos-shared/reference/model-robustness-policy.md` and
+`${CLAUDE_PLUGIN_ROOT}/skills/chaos-shared/reference/model-robustness-policy.md` and
 `interactive-decision-protocol.md`.
 
 1. **Read-only by default.** Diagnose; do not mutate. `--fix-plan` only *proposes*; `--fix`
@@ -52,10 +52,10 @@ Read before executing:
 
 - `reference/doctor-contract.md` (report shape, verdicts, fix policy)
 - `reference/check-catalog.md` (the diagnostic checks)
-- `.claude/skills/chaos-shared/reference/repository-context-contract.md`
-- `.claude/skills/chaos-shared/reference/repository-context-resolution-policy.md`
-- `.claude/skills/chaos-shared/reference/mcp-security-policy.md`
-- `.claude/skills/chaos-shared/reference/mcp-tool-profiles.md` (profile `doctor`)
+- `${CLAUDE_PLUGIN_ROOT}/skills/chaos-shared/reference/repository-context-contract.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/chaos-shared/reference/repository-context-resolution-policy.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/chaos-shared/reference/mcp-security-policy.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/chaos-shared/reference/mcp-tool-profiles.md` (profile `doctor`)
 
 ## Behaviour
 

@@ -1,0 +1,19 @@
+{
+  "name": "chaos",
+  "displayName": "CHAOS",
+  "version": "0.2.0",
+  "description": "One forced pre-code stop with durable decision state, honest verification, and a decision record future stops check against.",
+  "author": {
+    "name": "Pablo Ferreira",
+    "url": "https://github.com/ferreXD"
+  },
+  "homepage": "https://github.com/ferreXD/CHAOS",
+  "repository": "https://github.com/ferreXD/CHAOS",
+  "license": "MIT",
+  "keywords": [
+    "governance",
+    "decision-record",
+    "workflow",
+    "agent-discipline"
+  ]
+}
