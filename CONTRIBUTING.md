@@ -33,13 +33,15 @@ with CHAOS installed, `chaos:help` explains the workflow in place.
 
 - **Node.js ≥ 22.6** and **npm**, **git**, and **OpenSpec**
   (`npm install -g @fission-ai/openspec@latest`).
-- Build the interaction runtime: `cd tools/chaos-interaction-mcp && npm install && npm run build`.
+- Set up the MCP server package: `cd tools/chaos-interaction-mcp && npm install` (it runs its
+  TypeScript sources directly; `npm run bundle` builds the published single-file artifact).
 - Build the Decision Center: `cd extensions/chaos-decision-center && npm install && npm run build`.
 - **.NET SDK** if you touch the C#/.NET example or specialist.
 
 Run `chaos:doctor` to confirm your environment is ready. Much of CHAOS is command/skill content
 under `.claude/` — if you change a command or skill, exercise it by running it against the
-[example project](examples/task-tracker/).
+[example project](examples/task-tracker/), and regenerate the distributable plugin with
+`node scripts/build-plugin.mjs` (CI fails on drift between `.claude/` and `plugins/chaos/`).
 
 ---
 

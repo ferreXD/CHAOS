@@ -15,6 +15,7 @@ release branches yet, so fixes land on `main`.
 | Version | Supported |
 |---|---|
 | `main` (public alpha) | ✅ Best-effort |
+| Latest tagged release (currently `v0.2.0`) | ✅ Best-effort — fixes still land on `main` and ship with the next tag |
 | Any earlier commit / tag | ❌ |
 
 ## Reporting a vulnerability
@@ -42,7 +43,7 @@ The more of this you can provide, the faster we can triage:
   `extensions/chaos-decision-center`, a CHAOS command/skill, or the example project).
 - **How to reproduce** — steps, a proof-of-concept, or a failing case.
 - **Impact** — what an attacker could do, and any preconditions.
-- **Environment** — OS, Node version, and whether you were on the Claude Code or Copilot surface.
+- **Environment** — OS, Node version, and how CHAOS was installed (plugin, or repository checkout).
 
 Please share only what you're comfortable putting in the advisory, and give us a reasonable window
 to respond before any public disclosure.
@@ -64,7 +65,7 @@ SLA-backed:
 
 - the interaction-runtime MCP server (`tools/chaos-interaction-mcp/`);
 - the Decision Center VS Code extension (`extensions/chaos-decision-center/`);
-- the CHAOS command/skill content under `.claude/` and its `.github/` mirror;
+- the CHAOS command/skill content under `.claude/` and its packaged form under `plugins/chaos/`;
 - handling of the git-backed runtime state under `.chaos/`.
 
 **Out of scope:**
