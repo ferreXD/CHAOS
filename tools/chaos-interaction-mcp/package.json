@@ -1,20 +1,45 @@
 {
-  "name": "@chaos/interaction-mcp",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Local MCP server exposing CHAOS Interaction Runtime decision/session tools (Iteration 2).",
+  "name": "@ferrexd/chaos-interaction-mcp",
+  "version": "0.2.0",
+  "description": "Local MCP server for the CHAOS interaction runtime: durable decisions, sessions, locks, and resume capsules, file-backed under .chaos/interactions.",
+  "license": "MIT",
+  "homepage": "https://github.com/ferreXD/CHAOS#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ferreXD/CHAOS.git",
+    "directory": "tools/chaos-interaction-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "chaos",
+    "agent-governance",
+    "decision-record"
+  ],
   "type": "module",
   "engines": {
-    "node": ">=22.6.0"
+    "node": ">=20.19.0"
   },
   "bin": {
-    "chaos-interaction-mcp": "./src/cli/chaos-interaction-mcp.ts"
+    "chaos-interaction-mcp": "./dist/chaos-interaction-mcp.mjs"
+  },
+  "files": [
+    "dist/chaos-interaction-mcp.mjs",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "start": "node src/cli/chaos-interaction-mcp.ts",
     "test": "node --test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "generate:schemas": "node scripts/generate-embedded-schemas.mjs",
+    "smoke:bundle": "node scripts/smoke-bundle.mjs",
+    "bundle": "esbuild src/cli/chaos-interaction-mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/chaos-interaction-mcp.mjs --log-level=warning",
+    "prepublishOnly": "npm run generate:schemas && npm run typecheck && npm run bundle"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -22,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
+    "esbuild": "^0.24.0",
     "typescript": "^5.7.2"
   }
 }
