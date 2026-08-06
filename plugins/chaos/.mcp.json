@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@ferrexd/chaos-interaction-mcp",
+        "@ferrexd-chaos/interaction-mcp",
         "--repo-root",
         "${CLAUDE_PROJECT_DIR}",
         "--log-level",

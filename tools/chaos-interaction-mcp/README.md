@@ -1,4 +1,4 @@
-# @ferrexd/chaos-interaction-mcp
+# @ferrexd-chaos/interaction-mcp
 
 Local **MCP server** for the [CHAOS](https://github.com/ferreXD/CHAOS) interaction
 runtime: durable decisions, sessions, locks, and resume capsules, file-backed
@@ -22,7 +22,7 @@ No install step — run it with `npx` from your repository root:
       "command": "npx",
       "args": [
         "-y",
-        "@ferrexd/chaos-interaction-mcp",
+        "@ferrexd-chaos/interaction-mcp",
         "--repo-root",
         ".",
         "--log-level",
@@ -46,7 +46,7 @@ package and seeded automatically:
 - On startup, if the interactions root (`.chaos/interactions/`) exists but the
   schema directory is missing or empty, the server seeds it. A repository where
   CHAOS was never initialized is left untouched.
-- Explicitly: `npx -y @ferrexd/chaos-interaction-mcp --seed-schemas` (add
+- Explicitly: `npx -y @ferrexd-chaos/interaction-mcp --seed-schemas` (add
   `--force` to overwrite existing files). Existing files are never overwritten
   without `--force` — once seeded, the workspace copy is yours.
 

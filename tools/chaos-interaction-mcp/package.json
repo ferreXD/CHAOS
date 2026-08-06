@@ -1,5 +1,5 @@
 {
-  "name": "@ferrexd/chaos-interaction-mcp",
+  "name": "@ferrexd-chaos/interaction-mcp",
   "version": "0.2.0",
   "description": "Local MCP server for the CHAOS interaction runtime: durable decisions, sessions, locks, and resume capsules, file-backed under .chaos/interactions.",
   "license": "MIT",

@@ -55,7 +55,7 @@ jobs:
   distribution:
     # The install-ladder reality check: generated plugin in sync with .claude/,
     # one version everywhere, and the published-shape bundle boots cold on every
-    # OS (this is what `npx -y @ferrexd/chaos-interaction-mcp` will run).
+    # OS (this is what `npx -y @ferrexd-chaos/interaction-mcp` will run).
     name: distribution (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:

@@ -92,7 +92,7 @@ function buildInto(outDir) {
         command: "npx",
         args: [
           "-y",
-          "@ferrexd/chaos-interaction-mcp",
+          "@ferrexd-chaos/interaction-mcp",
           "--repo-root",
           "${CLAUDE_PROJECT_DIR}",
           "--log-level",
@@ -139,7 +139,7 @@ Install:
 
 Commands land namespaced: \`/chaos:init\`, \`/chaos:run\`, \`/chaos:resume\`,
 \`/chaos:doctor\`, \`/chaos:help\`. The MCP server (durable decisions) is wired
-automatically via \`npx -y @ferrexd/chaos-interaction-mcp\`; without Node the
+automatically via \`npx -y @ferrexd-chaos/interaction-mcp\`; without Node the
 stop degrades to chat-interactive and the decision record is still written.
 
 Hooks are NOT shipped in the plugin (they auto-enable on install and require

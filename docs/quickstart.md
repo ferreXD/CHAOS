@@ -41,7 +41,7 @@ next month's stop checks new changes against what you decided today.
 ## L1 — the durable runtime (free if you have Node)
 
 Nothing to do: the plugin wires the `chaos-interaction` MCP server via
-`npx -y @ferrexd/chaos-interaction-mcp`. If Node **≥ 20.19** is on your PATH, you're
+`npx -y @ferrexd-chaos/interaction-mcp`. If Node **≥ 20.19** is on your PATH, you're
 already here. This upgrades the stop from chat-interactive to **durable**:
 
 - decisions, sessions, and locks live as files under `.chaos/interactions/` —

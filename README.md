@@ -37,7 +37,7 @@ Full walkthrough: [docs/quickstart.md](docs/quickstart.md).
 | Level | Install | What you get |
 |---|---|---|
 | **L0 — plugin** | `/plugin marketplace add ferreXD/CHAOS` then `/plugin install chaos` in Claude Code | All 5 commands as `/chaos:*`. Without Node the stop runs chat-interactive — **the decision record is still written**. |
-| **L1 — runtime** | Nothing extra — the plugin wires `npx -y @ferrexd/chaos-interaction-mcp` (needs Node ≥ 20.19) | Durable decisions, locks, resume capsules, real `chaos:resume`. |
+| **L1 — runtime** | Nothing extra — the plugin wires `npx -y @ferrexd-chaos/interaction-mcp` (needs Node ≥ 20.19) | Durable decisions, locks, resume capsules, real `chaos:resume`. |
 | **L2 — panel** | Install **CHAOS Decision Center** (VS Code Marketplace / OpenVSX, publisher `ferreXD`) | One-click answering, pending-decision notifications, history. |
 
 `chaos:doctor` reports which level you're at and the one command that reaches the next.
