@@ -14,6 +14,7 @@ import type { Adapter, CommandSession, RequestedMode } from "../model/commandSes
 import { canTransitionSession, isTerminalSessionState } from "../model/commandSession.ts";
 import type { Decision, DecisionOption, InteractionType } from "../model/decision.ts";
 import type { AuditEvent, AuditEventType, AuditSource } from "../model/auditEvent.ts";
+import { auditSourceForResponse } from "../model/auditEvent.ts";
 import type { ChangeLock } from "../model/lock.ts";
 import type { DecisionResponse, ResponseStatus } from "../model/response.ts";
 import { normalizeResponseSource } from "../model/response.ts";
@@ -718,7 +719,7 @@ export class InteractionRuntime {
       decisionId: decision.decisionId,
       changeId: decision.changeId,
       actor: args.selectedBy,
-      source: "vscode-decision-center",
+      source: auditSourceForResponse(response.source),
       data: {
         selectedOptionId: answer.selectedOptionId,
         selectedOptionIds: answer.selectedOptionIds,

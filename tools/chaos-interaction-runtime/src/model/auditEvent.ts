@@ -43,3 +43,23 @@ export interface AuditEvent {
   message: string;
   data: Record<string, unknown>;
 }
+
+/**
+ * Map a response's writer source to the audit-event source vocabulary, so the
+ * audit trail reports who actually wrote the answer (the Decision Center, an
+ * MCP tool, a manual/CLI writer) instead of assuming one writer.
+ */
+export function auditSourceForResponse(source: string): AuditSource {
+  switch (source) {
+    case "vscode-decision-center":
+      return "vscode-decision-center";
+    case "mcp-tool":
+      return "mcp";
+    case "manual-file":
+      return "manual";
+    case "prompt-fallback":
+      return "chaos-command";
+    default:
+      return "unknown";
+  }
+}

@@ -97,6 +97,47 @@ test("4. answerDecision writes response.json and marks decision answered", () =>
   }
 });
 
+test("4b. decision-answered audit event reports the ACTUAL writer source", () => {
+  const { runtime, root, cleanup } = makeRuntime();
+  try {
+    const answeredAuditSource = (decisionId: string): string => {
+      const lines = fs.readFileSync(`${root}/audit.jsonl`, "utf8").trim().split("\n");
+      const event = lines
+        .map((l) => JSON.parse(l))
+        .find((e) => e.eventType === "decision-answered" && e.decisionId === decisionId);
+      return event.source;
+    };
+
+    const cases: Array<[string | undefined, string]> = [
+      ["cli", "manual"],
+      ["vscode-webview", "vscode-decision-center"],
+      ["mcp", "mcp"],
+      [undefined, "unknown"],
+    ];
+    for (const [given, expected] of cases) {
+      const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: `src-${expected}` });
+      const dec = runtime.createDecision({
+        commandRunId: begin.commandRunId!,
+        title: "Pick one",
+        context: "Because.",
+        options: SAMPLE_OPTIONS,
+      });
+      runtime.answerDecision({
+        decisionId: dec.decisionId,
+        selectedOptionId: "strict-risk-compact",
+        selectedBy: "ferrexd",
+        source: given,
+      });
+      assert.equal(answeredAuditSource(dec.decisionId), expected, `source ${given} -> ${expected}`);
+      runtime.markDecisionConsumed(dec.decisionId);
+      runtime.resumeCommand(begin.commandRunId!);
+      runtime.completeCommand(begin.commandRunId!);
+    }
+  } finally {
+    cleanup();
+  }
+});
+
 test("5. answerDecision rejects an option that is not declared", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
