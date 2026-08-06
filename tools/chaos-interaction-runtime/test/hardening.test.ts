@@ -26,7 +26,7 @@ const OPTS = [
 test("reconcile heals F1: a stranded waiting decision re-flips the session and recovers nextStep", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    runtime.beginCommand({ sourceCommand: "chaos:apply", changeId: "c1", commandRunId: "RUN-1" });
+    runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1", commandRunId: "RUN-1" });
     const dec = runtime.createDecision({
       commandRunId: "RUN-1",
       changeId: "c1",
@@ -62,7 +62,7 @@ test("reconcile heals F1: a stranded waiting decision re-flips the session and r
 test("reconcile heals F2: an answered decision with a lost session flip becomes ready-to-resume", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    runtime.beginCommand({ sourceCommand: "chaos:apply", changeId: "c1", commandRunId: "RUN-2" });
+    runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1", commandRunId: "RUN-2" });
     const dec = runtime.createDecision({
       commandRunId: "RUN-2",
       changeId: "c1",
@@ -108,7 +108,7 @@ test("reconcile heals F2: an answered decision with a lost session flip becomes 
 test("reconcile is a strict no-op on a healthy store", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const b = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const b = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const d = runtime.createDecision({
       commandRunId: b.commandRunId!,
       title: "Pick",
@@ -144,7 +144,7 @@ test("reconcile is a strict no-op on a healthy store", () => {
 test("resume capsules carry a valid metadata.contentHash (EA-I09)", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const b = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const b = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const d = runtime.createDecision({
       commandRunId: b.commandRunId!,
       title: "Pick",
@@ -167,7 +167,7 @@ test("resume capsules carry a valid metadata.contentHash (EA-I09)", () => {
 test("a tampered capsule is detected as 'tampered'", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const b = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const b = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const d = runtime.createDecision({
       commandRunId: b.commandRunId!,
       title: "Pick",
@@ -250,7 +250,7 @@ test("withFileLock breaks a lock held by a dead pid (never wedges after a hard k
 test("two runtimes over the same root serialise without wedging (lock released each op)", () => {
   const { runtime: rtA, root, cleanup } = makeRuntime();
   try {
-    rtA.beginCommand({ sourceCommand: "chaos:apply", changeId: "c1", commandRunId: "RUN-A" });
+    rtA.beginCommand({ sourceCommand: "chaos:run", changeId: "c1", commandRunId: "RUN-A" });
 
     // A second runtime instance over the SAME root operates on the same store.
     const rtB = new InteractionRuntime({

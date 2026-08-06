@@ -26,7 +26,7 @@ type-stripping) — note the `.ts` extension, not `.js`. The default root is
 
 ```powershell
 $cli = "tools/chaos-interaction-runtime/src/cli/chaos-interaction-runtime.ts"
-$begin = node $cli begin-command --command chaos:propose --change smoke-change | ConvertFrom-Json
+$begin = node $cli begin-command --command chaos:run --change smoke-change | ConvertFrom-Json
 $RUN = $begin.commandRunId
 node $cli create-decision --run $RUN --title "Choose execution profile" `
   --option full-strict --option strict-risk-compact --recommended strict-risk-compact
@@ -36,7 +36,7 @@ node $cli create-decision --run $RUN --title "Choose execution profile" `
 
 ```bash
 RUN=$(node tools/chaos-interaction-runtime/src/cli/chaos-interaction-runtime.ts \
-  begin-command --command chaos:propose --change smoke-change \
+  begin-command --command chaos:run --change smoke-change \
   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).commandRunId))')
 
 node tools/chaos-interaction-runtime/src/cli/chaos-interaction-runtime.ts \

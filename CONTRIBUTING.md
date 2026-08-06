@@ -4,13 +4,12 @@ Thanks for your interest in CHAOS. It's an **experimental, public-alpha** projec
 packaging and process are still evolving — expect some rough edges, and don't be shy about
 pointing them out.
 
-**Contributing to CHAOS is a normal pull-request workflow.** CHAOS is a governance workflow you
-apply to *your own* projects — you do **not** need to run the CHAOS lifecycle
-(`chaos:propose`/`review`/`apply`/…) on your changes to this repository. Open an issue, make your
-change on a branch, and send a PR, like any other open-source project.
+**Contributing to CHAOS is a normal pull-request workflow.** CHAOS is a discipline you apply to
+*your own* projects — you do **not** need to run `chaos:run` on your changes to this repository.
+Open an issue, make your change on a branch, and send a PR, like any other open-source project.
 
-New here? The [5-minute overview](docs/overview.md) explains what CHAOS is, and the
-[installation & onboarding guide](docs/installation.md) gets you a working setup.
+New here? The [README](README.md) explains what CHAOS is and how the core loop works; in a repo
+with CHAOS installed, `chaos:help` explains the workflow in place.
 
 > **Be respectful.** Assume good faith, keep discussion constructive, and focus on the work.
 > This project has a [Code of Conduct](CODE_OF_CONDUCT.md) (Contributor Covenant) — by
@@ -21,8 +20,7 @@ New here? The [5-minute overview](docs/overview.md) explains what CHAOS is, and 
 ## Ways to contribute
 
 - **Report a bug or gap** — open an issue with the **Bug report** template; it prompts for what
-  you did, what you expected, what happened, and your environment (OS, Node version,
-  Claude Code vs. Copilot).
+  you did, what you expected, what happened, and your environment (OS, Node version).
 - **Suggest an idea** — open an issue with the **Change proposal / idea** template, describing the
   problem before the solution.
 - **Improve docs** — docs live in [`docs/`](docs/) and the various `README.md` files; small doc
@@ -33,9 +31,6 @@ New here? The [5-minute overview](docs/overview.md) explains what CHAOS is, and 
 
 ## Development setup
 
-Follow [Path A of the installation guide](docs/installation.md#path-a--evaluate-chaos-in-this-repository).
-In short:
-
 - **Node.js ≥ 22.6** and **npm**, **git**, and **OpenSpec**
   (`npm install -g @fission-ai/openspec@latest`).
 - Build the interaction runtime: `cd tools/chaos-interaction-mcp && npm install && npm run build`.
@@ -43,8 +38,8 @@ In short:
 - **.NET SDK** if you touch the C#/.NET example or specialist.
 
 Run `chaos:doctor` to confirm your environment is ready. Much of CHAOS is command/skill content
-under `.claude/` (and its `.github/` mirror) — if you change a command or skill, exercise it by
-running it (the [demo](docs/demo/README.md) is a good end-to-end harness).
+under `.claude/` — if you change a command or skill, exercise it by running it against the
+[example project](examples/task-tracker/).
 
 ---
 
@@ -73,7 +68,7 @@ A few repo-hygiene rules keep pull requests easy to merge:
   `.chaos/interactions/` are git-ignored on purpose — don't force them in. Never put secrets,
   tokens, or connection strings in config or artifacts.
 - **Keep the tooling sanitized.** No private or project-specific data, and no personal
-  identifiers, in the generic tooling layer (`.claude/`, `.github/`, `tools/`, `extensions/`).
+  identifiers, in the generic tooling layer (`.claude/`, `tools/`, `extensions/`).
 - **Leave `README.md` and `AGENTS.md` to the maintainers.** These are maintained through the
   project's own tooling; if your change needs them updated, mention it in the PR rather than
   editing them directly, to avoid conflicts.
@@ -99,5 +94,6 @@ By contributing, you agree that your contributions are licensed under the projec
 
 ## Where to ask
 
-Open an issue for questions, bugs, or proposals. For context on where the project is headed, see
-the [roadmap](.chaos/roadmap/roadmap.md). Thanks for helping CHAOS grow up.
+Open an issue for questions, bugs, or proposals. For context on where the project has been and
+why it is shaped the way it is, see the measurement record under
+[`.chaos/validation/`](.chaos/validation/). Thanks for helping CHAOS grow up.

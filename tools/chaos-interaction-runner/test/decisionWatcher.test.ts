@@ -11,7 +11,7 @@ function watcher(env: RunnerEnv): DecisionWatcher {
 }
 
 function begin(env: RunnerEnv, changeId = "c1"): string {
-  const r = env.runtimeClient.beginCommand({ sourceCommand: "chaos:apply", changeId });
+  const r = env.runtimeClient.beginCommand({ sourceCommand: "chaos:run", changeId });
   return r.commandRunId!;
 }
 

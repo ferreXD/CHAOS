@@ -68,28 +68,28 @@ The bootstrap report is not optional. It is part of the CHAOS acceptance contrac
 
 Owns repository conventions used by CHAOS commands.
 
-It must include the v0 sections defined in `reference/config-contract.md`:
+It must include the sections defined in `reference/config-contract.md`:
 
 - `version`
 - `project`
 - `paths`
-- `agents`
 - `toolchain`
 - `validation`
+- `specGate`
 - `policies`
 
 It should centralise **where/how** information:
 
-- CHAOS, OpenSpec, ADR, decision-log, report, archaeology, rule, gate, and command paths;
-- Copilot and Claude specialist agent locations;
+- CHAOS, OpenSpec, ADR, and decision-record paths;
+- Claude specialist agent identity (when the repo uses one);
 - required toolchain commands;
 - default build/test/OpenSpec validation commands;
-- protected-file policy for `AGENTS.md` and root `README.md`;
-- confidence and decision-event policy toggles.
+- the spec-gate thresholds `chaos:run` evaluates at the stop;
+- protected-file policy for `AGENTS.md` and root `README.md`.
 
 It must not contain:
 
-- architectural decisions that belong in ADRs, rules, gates, or OpenSpec;
+- architectural decisions that belong in ADRs, `architecture.md`, or OpenSpec;
 - secrets, credentials, tokens, connection strings, or environment-specific private data;
 - hidden auto-approval or force-apply switches;
 - command prompt bodies or giant rule definitions.
@@ -103,12 +103,15 @@ If `.chaos/config.yaml` already exists, preserve existing values by default and 
 
 It must:
 
-- route agents to `.chaos/context.md`, `.chaos/architecture.md`, `.chaos/constitution.md`, `.chaos/bootstrap-report.md`, and folder indexes;
-- state minimum pre-edit behavior;
-- identify mandatory review/gate expectations;
-- note the v0 team collaboration model (per-change layout under `.chaos/changes/<change-id>/`,
-  `chaos:sync --change` for contributors vs maintainer-confirmed `chaos:sync --all`, and mainline
-  sync after merge into `main`), pointing to `.chaos/changes/README.md`;
+- route agents to `.chaos/context.md`, `.chaos/architecture.md`, `.chaos/bootstrap-report.md`,
+  `docs/adr/`, and the decision-record index (`.chaos/decisions/index.md`);
+- state minimum pre-edit behavior (targeted read incl. the crossing sources; ask-hard);
+- state that material change flows through `chaos:run` — one pre-code stop, honest verify,
+  a decision record;
+- carry the confidence doctrine: material findings and verdicts declare knowledge type
+  (`FACT` / `INFERENCE` / `ASSUMPTION` / `UNKNOWN` / `CONFLICT`) and confidence
+  (`HIGH` / `MEDIUM` / `LOW`); no confidence-less verdicts, no unlabeled assumptions, no
+  inference disguised as fact (see `reference/confidence-model.md`);
 - remain short enough to be useful as always-on agent context.
 
 It must not:
@@ -158,27 +161,6 @@ Architecture content must distinguish:
 - inferred posture;
 - unresolved conflicts.
 
-## `.chaos/constitution.md`
-
-Owns behavioral principles:
-
-- human ownership;
-- evidence before design;
-- no silent assumptions;
-- fact/inference/assumption separation;
-- review before execution;
-- ADR/rule compliance;
-- no “agents go brrr” without evidence, gates, and human ownership;
-- confidence and knowledge classification for every material judgement.
-
-The constitution must include a dedicated confidence doctrine requiring all material findings and verdicts to declare:
-
-- knowledge type: `FACT`, `INFERENCE`, `ASSUMPTION`, `UNKNOWN`, or `CONFLICT`;
-- confidence: `HIGH`, `MEDIUM`, or `LOW`;
-- verdict metadata: evidence coverage and assumption load.
-
-Hard rule: no confidence-less verdicts, no unlabeled assumptions, and no inference disguised as fact. See `reference/confidence-model.md`.
-
 ## `.chaos/decisions/index.md`
 
 Owns decision lookup:
@@ -192,54 +174,3 @@ Owns decision lookup:
 - conflicts.
 
 It must not copy whole ADRs.
-
-## `.chaos/rules/index.md`
-
-Owns executable constraints:
-
-- rule ID;
-- title;
-- severity;
-- scope;
-- source decision/doc;
-- rule statement;
-- violation criteria;
-- deferral/override policy.
-
-Rules should be operational, not inspirational.
-
-## `.chaos/commands/index.md`
-
-Owns the public workflow surface.
-
-Each command entry must include:
-
-- command name;
-- implementation status: `implemented`, `defined-only`, `planned`, or `external`;
-- purpose;
-- inputs;
-- context loaded;
-- output contract (change-scoped commands target `.chaos/changes/<change-id>/`; legacy scattered
-  folders are read-only for compatibility);
-- human decision points;
-- forbidden behavior.
-
-It must also document the v0 team collaboration model: the per-change artifact layout, the team
-concurrency policy, and `chaos:sync --change` (contributor-safe) vs `chaos:sync --all`
-(maintainer/repo-owner). Canonical contract: `.chaos/changes/README.md`.
-
-At minimum, `chaos:init` must be marked `implemented`. Commands only described conceptually must be marked `defined-only`.
-
-## `.chaos/gates/index.md`
-
-Owns readiness checks:
-
-- gate name;
-- purpose;
-- required evidence;
-- blocking criteria;
-- deferrable items;
-- owner;
-- output/verdict shape.
-
-Gates must evaluate meaningful readiness, not just file presence.

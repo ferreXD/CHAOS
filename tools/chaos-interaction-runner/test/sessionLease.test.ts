@@ -25,7 +25,7 @@ test("1. register writes a schema-valid lease file", () => {
     const lease = mgr.register({
       commandRunId: "RUN-test-1",
       changeId: "c1",
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       processId: 123,
     });
     assert.ok(fs.existsSync(mgr.leasePath()));
@@ -46,7 +46,7 @@ test("2. heartbeat advances lastHeartbeatAt and leaseExpiresAt", () => {
     const first = mgr.register({
       commandRunId: "RUN-test-1",
       changeId: "c1",
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
     });
     const second = mgr.heartbeat({ state: "running", autoResumeCyclesUsed: 1 });
     assert.equal(second.state, "running");
@@ -67,7 +67,7 @@ test("3. an expired lease is detected (heartbeat-based liveness)", () => {
     const lease = mgr.register({
       commandRunId: "RUN-test-1",
       changeId: "c1",
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
     });
     // A later time is well past leaseExpiresAt.
     const later = "2026-07-07T09:00:10.000Z";
@@ -84,7 +84,7 @@ test("release keeps the file but does not extend the lease", () => {
   const env = makeEnv();
   try {
     const mgr = newManager(env, 300000);
-    mgr.register({ commandRunId: "RUN-test-1", changeId: "c1", sourceCommand: "chaos:apply" });
+    mgr.register({ commandRunId: "RUN-test-1", changeId: "c1", sourceCommand: "chaos:run" });
     const before = mgr.current()!.leaseExpiresAt;
     const released = mgr.release("completed");
     assert.equal(released.state, "completed");
@@ -99,7 +99,7 @@ test("manual stop flag is detected", () => {
   const env = makeEnv();
   try {
     const mgr = newManager(env, 300000);
-    mgr.register({ commandRunId: "RUN-test-1", changeId: "c1", sourceCommand: "chaos:apply" });
+    mgr.register({ commandRunId: "RUN-test-1", changeId: "c1", sourceCommand: "chaos:run" });
     assert.equal(mgr.hasStopFlag(), false);
     writeStopFlag(env, "RUNNER-lease-1");
     assert.equal(mgr.hasStopFlag(), true);

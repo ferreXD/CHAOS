@@ -84,9 +84,9 @@ Modes:
 ## Todo Candidates
 
 Emitted for stale locks, malformed artifacts, missing capsules, expired leases,
-long-pending decisions, and missing command integration. Candidates match
-`.claude/skills/chaos-todo/reference/todo-candidate-contract.md` so `chaos:todo`
-can promote them. Diagnostics never writes durable `.chaos/todo/items/` files.
+long-pending decisions, and missing command integration. A candidate is an advisory
+follow-up suggestion surfaced in the doctor report; nothing consumes candidates
+automatically in the lean core, and diagnostics never writes durable files for them.
 
 ## CLI
 
@@ -97,8 +97,8 @@ node tools/chaos-interaction-diagnostics/src/cli/chaos-interaction-diagnostics.t
 node tools/chaos-interaction-diagnostics/src/cli/chaos-interaction-diagnostics.ts json
 ```
 
-PowerShell uses the same flags. `chaos:doctor` embeds the `--section` output;
-`chaos:status` embeds the `status` output.
+PowerShell uses the same flags. `chaos:doctor` embeds the `--section` output; the
+`status` output is the compact summary block for quick human checks.
 
 ## Configuration
 

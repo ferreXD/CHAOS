@@ -47,7 +47,7 @@ test("19/20. stdio server starts, lists tools, runs a decision flow, serves reso
     const begin = textOf(
       await client.callTool({
         name: "chaos_begin_command",
-        arguments: { sourceCommand: "chaos:propose", changeId: "smoke" },
+        arguments: { sourceCommand: "chaos:run", changeId: "smoke" },
       }),
     );
     assert.equal(begin.status, "READY");

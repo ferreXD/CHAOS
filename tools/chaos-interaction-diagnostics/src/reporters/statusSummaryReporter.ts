@@ -1,4 +1,4 @@
-/** Status reporter: a compact, actionable Interaction Runtime block for chaos:status. */
+/** Status reporter: a compact, actionable Interaction Runtime summary block (CLI `status` verb). */
 
 import type { InteractionRuntimeHealthReport } from "../model/healthReport.ts";
 import type { HealthFinding } from "../model/healthFinding.ts";

@@ -43,7 +43,7 @@ test("1. registry includes all required tools", () => {
 test("2. begin_command returns READY for a new change", () => {
   const t = makeCtx();
   try {
-    const r = t.run(beginCommandTool, { sourceCommand: "chaos:propose", changeId: "c1" });
+    const r = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c1" });
     assert.equal(r.ok, true);
     assert.equal(r.status, "READY");
     assert.equal(r.mustStop, false);
@@ -53,7 +53,7 @@ test("2. begin_command returns READY for a new change", () => {
   }
 });
 
-function begin(t: ReturnType<typeof makeCtx>, changeId = "c1", cmd = "chaos:propose"): string {
+function begin(t: ReturnType<typeof makeCtx>, changeId = "c1", cmd = "chaos:run"): string {
   const r = t.run(beginCommandTool, { sourceCommand: cmd, changeId });
   return r.data["commandRunId"] as string;
 }
@@ -138,10 +138,10 @@ test("11. same-change conflicting command returns CONFLICTING_COMMAND_ACTIVE", (
   try {
     const runId = begin(t);
     t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
-    const apply = t.run(beginCommandTool, { sourceCommand: "chaos:apply", changeId: "c1" });
-    assert.equal(apply.status, "CONFLICTING_COMMAND_ACTIVE");
-    assert.equal(apply.mustStop, true);
-    assert.ok(apply.data["conflictingCommandRunId"]);
+    const conflicting = t.run(beginCommandTool, { sourceCommand: "chaos:init", changeId: "c1" });
+    assert.equal(conflicting.status, "CONFLICTING_COMMAND_ACTIVE");
+    assert.equal(conflicting.mustStop, true);
+    assert.ok(conflicting.data["conflictingCommandRunId"]);
   } finally {
     t.cleanup();
   }
@@ -152,7 +152,7 @@ test("12. different change command is allowed", () => {
   try {
     const runId = begin(t);
     t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
-    const other = t.run(beginCommandTool, { sourceCommand: "chaos:apply", changeId: "c2" });
+    const other = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c2" });
     assert.equal(other.status, "READY");
     assert.equal(other.mustStop, false);
   } finally {

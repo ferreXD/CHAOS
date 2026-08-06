@@ -67,7 +67,7 @@ export function renderDoctorSection(report: InteractionRuntimeHealthReport): str
     lines.push("Todo Candidates:");
     lines.push("");
     lines.push(
-      "> Optional. This section does not create durable todo items — run `chaos:todo` to curate the backlog.",
+      "> Advisory follow-up suggestions. Nothing consumes these automatically; act on them or ignore them.",
     );
     lines.push("");
     lines.push(

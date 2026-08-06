@@ -115,11 +115,13 @@ human can flip it either way. Thresholds live in `.chaos/config.yaml` (`specGate
 
 - Public alpha. The lean core is new (2026-08); the runtime + Decision Center underneath
   it are the most exercised parts of the codebase (abuse-tested, live-validated).
-- The guides under [`docs/`](docs/) (overview, command matrix, installation, demo) still
-  describe the **retired full lifecycle** and are pending rewrite — for the current
-  workflow, `chaos:help` and [`.claude/skills/chaos-run/SKILL.md`](.claude/skills/chaos-run/SKILL.md)
-  are authoritative. The measurement series that produced the lean core is under
-  [`.chaos/validation/`](.chaos/validation/).
+- This README, `chaos:help`, and
+  [`.claude/skills/chaos-run/SKILL.md`](.claude/skills/chaos-run/SKILL.md) are the
+  authoritative description of the workflow. The guides that described the retired full
+  lifecycle were removed with it (they remain in git history at the tag `apparatus-final`).
+- The measurement series that produced the lean core is under
+  [`.chaos/validation/`](.chaos/validation/); dated design history under
+  [`docs/design/`](docs/design/) and [`docs/perf/`](docs/perf/) records how it got here.
 
 ## Contributing
 

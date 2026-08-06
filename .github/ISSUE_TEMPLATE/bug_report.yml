@@ -16,7 +16,7 @@ body:
     attributes:
       label: What happened?
       description: The actual behaviour you observed.
-      placeholder: e.g. chaos:apply wrote outside the change scope without prompting a decision.
+      placeholder: e.g. chaos:run built outside the approved scope without a follow-up decision.
     validations:
       required: true
   - type: textarea
@@ -37,24 +37,12 @@ body:
         3.
     validations:
       required: true
-  - type: dropdown
-    id: surface
-    attributes:
-      label: Which surface?
-      description: Where you hit the bug.
-      options:
-        - Claude Code (.claude/)
-        - GitHub Copilot (.github/) — experimental adapter
-        - Both
-        - Not surface-specific / N/A
-    validations:
-      required: true
   - type: input
     id: command
     attributes:
       label: CHAOS command involved
-      description: If applicable, the command (and mode/flags) you ran.
-      placeholder: e.g. chaos:verify <change-id> --strict
+      description: If applicable, the command (and flags) you ran.
+      placeholder: e.g. chaos:run "add rate limiting to the API"
   - type: textarea
     id: environment
     attributes:
@@ -64,7 +52,7 @@ body:
         - OS:
         - Node.js version:
         - OpenSpec version:
-        - Surface + version (Claude Code / Copilot):
+        - Claude Code version:
     validations:
       required: true
   - type: textarea

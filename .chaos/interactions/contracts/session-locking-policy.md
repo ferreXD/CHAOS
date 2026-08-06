@@ -58,21 +58,15 @@ Each lock records:
 
 The following commands are blocked by default when a lock exists for the same `changeId`:
 
-- `chaos:apply`
-- `chaos:verify`
-- `chaos:archive`
-- `chaos:sync --change`
-- `chaos:review` when it would advance the same lifecycle boundary
-- any command that writes to `.chaos/changes/<change-id>/` as a lifecycle owner
+- `chaos:run` (a second run on the same change while its decision is pending)
+- any command that would advance or mutate the locked change
 
 ## Default compatible commands
 
 The following commands are compatible by default:
 
-- `chaos:status`
 - `chaos:doctor`
 - `chaos:help`
-- `chaos:todo --dry-run`
 - `chaos:resume` for the locked session
 - reopening/focusing the existing decision
 - commands for a different `changeId`

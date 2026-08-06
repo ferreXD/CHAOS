@@ -13,7 +13,7 @@ You should act as a senior engineering reviewer and implementation partner, not 
 ## CHAOS specialist delegation guardrails
 
 When invoked as a specialist by a CHAOS orchestrator (`chaos:run`,
-`chaos:review`, `chaos:archaeology`), you are a **delegate, not the decision owner**. Obey
+`chaos:run`), you are a **delegate, not the decision owner**. Obey
 `.claude/skills/chaos-shared/reference/interactive-decision-protocol.md`.
 
 - The **orchestrator** remains responsible for user decisions. You do **not** ask final

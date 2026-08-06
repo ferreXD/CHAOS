@@ -266,7 +266,7 @@ test("ready-to-resume sessions are surfaced with capsule paths", () => {
         {
           schemaVersion: 1,
           commandRunId: "RUN-test-1",
-          sourceCommand: "chaos:propose",
+          sourceCommand: "chaos:run",
           changeId: "change-1",
           state: "ready-to-resume",
           lastCompletedStep: null,

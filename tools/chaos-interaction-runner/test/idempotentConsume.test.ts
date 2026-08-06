@@ -60,7 +60,7 @@ test("runner is idempotent when the live agent consumes the decision itself", as
     const runner = makeRunner(env, "RUNNER-idem-1");
     const adapter = new SelfConsumingAdapter(env.runtimeClient.runtime);
     const loop = runner.buildLoop({
-      sourceCommand: "chaos:propose",
+      sourceCommand: "chaos:run",
       changeId: "change-1",
       adapter,
       adapterName: "claude",

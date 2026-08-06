@@ -9,7 +9,7 @@ governance behaviour consistent across the workflow.
 
 CHAOS behaves very well with Claude Opus, which tends to *infer* governance intent: it
 asks explicit questions, uses interactive choice UI, invokes OpenSpec during
-`chaos:propose`, and stops for human decisions. Weaker Claude models (e.g. Sonnet) are
+`chaos:run`, and stops for human decisions. Weaker Claude models (e.g. Sonnet) are
 less consistent: they sometimes display a decision in chat and keep going, proceed
 without an explicit choice, or hand-write proposal artifacts instead of invoking
 OpenSpec.
@@ -37,5 +37,4 @@ workflow works reliably with the *weakest supported Claude model*, not only with
 
 Each `chaos-*` command wrapper carries a compact **Non-negotiable execution contract**
 near its top that references these policies. Skills and agents link here for the full
-rules. `chaos:status` audits whether commands declare these contracts; `chaos:sync` can
-reconcile missing hardening references with patch preview.
+rules.

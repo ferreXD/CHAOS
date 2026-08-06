@@ -28,7 +28,7 @@ function makeAdapter(env: Record<string, string> = {}, ackTimeoutMs = 2000) {
 const START = {
   commandRunId: "RUN-adapter-1",
   changeId: "change-adapter",
-  sourceCommand: "chaos:propose",
+  sourceCommand: "chaos:run",
   resumeCapsulePath: null,
 };
 
@@ -136,5 +136,5 @@ test("buildLaunchPrompt tells the agent to re-enter the run id and not self-cons
   assert.ok(prompt.includes("RUN-adapter-1"));
   assert.ok(prompt.includes("chaos_begin_command"));
   assert.match(prompt, /do NOT call chaos_mark_decision_consumed/i);
-  assert.ok(prompt.includes("chaos:propose"));
+  assert.ok(prompt.includes("chaos:run"));
 });

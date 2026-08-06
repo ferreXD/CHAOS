@@ -43,7 +43,7 @@ this hook infers.
 
 1. An explicit `--change <id>` / `--change=<id>` flag.
 2. An OpenSpec/CHAOS change path appearing anywhere in the text:
-   `.chaos/changes/<id>/...` or `openspec/changes/<id>/...`.
+   `openspec/changes/<id>/...`.
 3. The first positional token immediately following the command match
    (e.g. `chaos:run add-task-query-filters` → `add-task-query-filters`).
 4. Otherwise `changeId` is `""` with `LOW` confidence.

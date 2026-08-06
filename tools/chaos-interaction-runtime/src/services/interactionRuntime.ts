@@ -537,7 +537,14 @@ export class InteractionRuntime {
         errors: [],
       };
     }
-    const answeredTwin = twins.find((d) => d.state === "answered");
+    // The answered-twin guard only applies while the runtime still OWES the caller that
+    // answer (session waiting / ready-to-resume). Once the session is back to `running`,
+    // a resume already delivered the answer, and a new same-titled decision is a
+    // legitimate next round (e.g. a runner-driven agent asking again after acting on the
+    // first answer, with the first decision consumed only on its acknowledgement), not a
+    // re-ask of a lost answer.
+    const answeredTwin =
+      session.state === "running" ? undefined : twins.find((d) => d.state === "answered");
     if (answeredTwin) {
       return {
         status: "ANSWERED_DECISION_EXISTS",

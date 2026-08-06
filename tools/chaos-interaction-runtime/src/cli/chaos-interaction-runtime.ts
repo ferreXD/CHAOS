@@ -5,7 +5,7 @@
  * Development/validation only — NOT required for normal CHAOS use.
  *
  * Examples:
- *   node src/cli/chaos-interaction-runtime.ts begin-command --command chaos:propose --change request-context-middleware
+ *   node src/cli/chaos-interaction-runtime.ts begin-command --command chaos:run --change request-context-middleware
  *   node src/cli/chaos-interaction-runtime.ts create-decision --run <runId> --title "Choose execution profile" \
  *        --option full-strict --option strict-risk-compact --recommended strict-risk-compact
  *   node src/cli/chaos-interaction-runtime.ts create-decision --run <runId> --title "Provide the value" \

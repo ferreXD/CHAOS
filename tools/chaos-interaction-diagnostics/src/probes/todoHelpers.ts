@@ -1,10 +1,10 @@
 /**
  * Todo Candidate builders for recurring runtime issues.
  *
- * Candidates align with `.claude/skills/chaos-todo/reference/todo-candidate-contract.md`
- * (so `chaos:todo` can promote them). Diagnostics only emits candidates for
- * *material* issues — routine/expected states do not get candidates (see the
- * contract's "What counts as material" guardrail).
+ * A candidate is an advisory follow-up suggestion surfaced in the doctor report;
+ * nothing consumes candidates automatically in the lean core. Diagnostics only
+ * emits candidates for *material* issues — routine/expected states do not get
+ * candidates.
  */
 
 import type { TodoCandidate } from "../model/todoCandidate.ts";
@@ -116,7 +116,7 @@ export function oldPendingDecisionCandidate(
     type: "decision",
     scope: "repository",
     nextAction: `Decision has been pending ~${Math.round(ageHours)}h. Answer it in the Decision Center or cancel the owning session.`,
-    recommendedCommand: "chaos:status",
+    recommendedCommand: "chaos:doctor",
     closureCriteria: ["Decision answered and consumed, or the owning session cancelled."],
     knowledgeType: "FACT",
     confidence: "HIGH",

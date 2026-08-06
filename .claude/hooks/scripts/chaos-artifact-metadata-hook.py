@@ -50,76 +50,31 @@ DEFAULT_POLICY: Dict[str, Any] = {
 # policies.artifactMetadataManagedFiles in .chaos/config.yaml.
 DEFAULT_MANAGED: Dict[str, List[str]] = {
     "include": [
-        ".chaos/changes/**/*.md",
-        ".chaos/doctor/**/*.md",
-        ".chaos/sync-reports/**/*.md",
-        ".chaos/archaeology/**/*.md",
-        ".chaos/rules/**/*.md",
-        ".chaos/gates/**/*.md",
         ".chaos/decisions/**/*.md",
-        ".chaos/commands/**/*.md",
-        ".chaos/status-report.md",
         ".chaos/bootstrap-report.md",
         ".chaos/architecture.md",
         ".chaos/context.md",
-        ".chaos/constitution.md",
-        ".chaos/README.md",
     ],
-    "optional": ["docs/adr/**/*.md", "docs/decision-log/**/*.md"],
+    "optional": ["docs/adr/**/*.md"],
     "exclude": [
         "README.md",
         "AGENTS.md",
-        ".chaos/assessments/**/*.md",
         ".chaos/validation/**/*.md",
-        ".chaos/todo/**/*.md",
-        ".chaos/roadmap/**/*.md",
         ".chaos/interactions/**/*.md",
     ],
 }
 
-_CHANGE_SCOPED_FILENAME_TYPES = {
-    "proposal-review.md": "proposal-review",
-    "proposal-report.md": "proposal-review",
-    "approval.md": "approval",
-    "apply-report.md": "apply-report",
-    "code-review.md": "code-review",
-    "verification.md": "verification-report",
-    "archive-report.md": "archive-report",
-    "sync-report.md": "change-sync-report",
-    "retro.md": "retro",
-    "lifecycle.md": "lifecycle",
-    "decision-events.md": "decision-events",
-    "waivers.md": "waivers",
-}
-
 _TOP_LEVEL_FILENAME_TYPES = {
-    ".chaos/status-report.md": "status-report",
     ".chaos/bootstrap-report.md": "bootstrap-report",
     ".chaos/architecture.md": "architecture",
     ".chaos/context.md": "context",
-    ".chaos/constitution.md": "constitution",
-    ".chaos/README.md": "workspace-readme",
 }
 
 _SOURCE_COMMAND_BY_TYPE = {
-    "status-report": "chaos:status",
     "bootstrap-report": "chaos:init",
-    "proposal-review": "chaos:review",
-    "approval": "chaos:review",
-    "apply-report": "chaos:apply",
-    "code-review": "chaos:code-review",
-    "verification-report": "chaos:verify",
-    "archive-report": "chaos:archive",
-    "change-sync-report": "chaos:sync",
-    "retro": "chaos:retro",
-    "lifecycle": "chaos:propose",
-    "archaeology-report": "chaos:archaeology",
-    "archaeology-index": "chaos:archaeology",
-    "repository-sync-report": "chaos:sync",
-    "doctor-report": "chaos:doctor",
-    "rule": "chaos:sync",
-    "gate": "chaos:sync",
-    "decision": "chaos:sync",
+    # A decision record is written by the run that shipped the change (or the
+    # resume that finished it); default to the loop's owner.
+    "decision": "chaos:run",
 }
 
 _SECRET_PATTERNS = [
@@ -557,29 +512,10 @@ def min_confidence(*values: str) -> str:
 def infer_artifact(rel_path: str) -> Tuple[str, str, Optional[str]]:
     if rel_path in _TOP_LEVEL_FILENAME_TYPES:
         return _TOP_LEVEL_FILENAME_TYPES[rel_path], "repository", None
-    m = re.match(r"^\.chaos/changes/([^/]+)/(.+)$", rel_path)
-    if m:
-        change_id, filename = m.group(1), m.group(2)
-        artifact_type = _CHANGE_SCOPED_FILENAME_TYPES.get(filename, "change-artifact")
-        return artifact_type, "change", change_id
-    if rel_path.startswith(".chaos/archaeology/"):
-        return ("archaeology-index" if rel_path.endswith("/index.md") else "archaeology-report"), "topic", None
-    if rel_path.startswith(".chaos/sync-reports/"):
-        return "repository-sync-report", "repository", None
-    if rel_path.startswith(".chaos/doctor/"):
-        return "doctor-report", "repository", None
-    if rel_path.startswith(".chaos/rules/"):
-        return "rule", "repository", None
-    if rel_path.startswith(".chaos/gates/"):
-        return "gate", "repository", None
     if rel_path.startswith(".chaos/decisions/"):
         return "decision", "repository", None
-    if rel_path.startswith(".chaos/commands/"):
-        return "command-index", "repository", None
     if rel_path.startswith("docs/adr/"):
         return "adr", "repository", None
-    if rel_path.startswith("docs/decision-log/"):
-        return "decision-log", "repository", None
     return "unknown", "unknown", None
 
 

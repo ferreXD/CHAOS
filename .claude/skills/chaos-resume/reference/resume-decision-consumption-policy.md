@@ -24,18 +24,12 @@ that the resumed command actually incorporated the human's choice.
   `answered`**, do not consume it, and report the blocker.
 - Consuming a decision you did not use is forbidden.
 
-## Decision-event output
+## Decision-record output
 
-When resuming a change-scoped command, append or propose an entry to:
-
-```text
-.chaos/changes/<change-id>/decision-events.md
-```
-
-only if that file exists or is part of the change's artifact contract. Do not
-create broad governance files that the resumed command's own contract would not
-create. If writing the decision event is not safe (file/contract absent), record
-a Todo Candidate or a note in the resume report instead.
+An incorporated answer surfaces in the change's decision record
+(`.chaos/decisions/<date>-<slug>.md`, written at the record step of the resumed
+`chaos:run`): the decision id, the chosen option, and the rationale. Do not create
+governance files the resumed command's own contract would not create.
 
 ## Pending unresolved decisions
 

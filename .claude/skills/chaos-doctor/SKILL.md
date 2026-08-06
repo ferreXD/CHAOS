@@ -79,9 +79,7 @@ Read before executing:
 .chaos/doctor/doctor-report-YYYY-MM-DD.md
 ```
 
-In a future change-scoped run, doctor may also reference
-`.chaos/changes/<change-id>/lifecycle.md`. Doctor does not migrate or mutate existing
-generated artifacts.
+Doctor does not migrate or mutate existing generated artifacts.
 
 ## Verdicts
 

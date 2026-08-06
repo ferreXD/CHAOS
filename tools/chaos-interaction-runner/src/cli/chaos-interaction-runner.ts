@@ -9,7 +9,7 @@
  *
  * Examples:
  *   node src/cli/chaos-interaction-runner.ts run \
- *     --command "chaos:apply request-context-middleware" --change request-context-middleware
+ *     --command "chaos:run request-context-middleware" --change request-context-middleware
  *   node src/cli/chaos-interaction-runner.ts run-mock --scenario pending-decision-then-answer
  *
  * Global flags: see config/runnerConfig.ts (--root, --schema-dir, --agent-command,

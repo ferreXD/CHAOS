@@ -733,7 +733,7 @@ async function runConcurrent(
   // Parent pre-seeds the base run to waiting-for-decision (+ capsule) with a
   // fixed, shared decision id both writers will race on.
   const seedRt = makeRuntime(root, "seed");
-  seedRt.beginCommand({ sourceCommand: "chaos:apply", changeId, commandRunId: runId });
+  seedRt.beginCommand({ sourceCommand: "chaos:run", changeId, commandRunId: runId });
   // Force the shared decision id via a dedicated id factory.
   const seedRt2 = new InteractionRuntime({
     root,

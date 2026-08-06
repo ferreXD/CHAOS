@@ -30,7 +30,7 @@ future task — they are out of scope here.
 - **No command-boundary enforcement.** `activeCommand.readOnly`,
   `.scope`, and `.allowedWriteGlobs` are recorded hints, not gates. No hook
   here blocks a write because it falls outside them.
-- **No sync-authority blocking.** `chaos:sync --all` repo-wide-sync gating
+- **No maintainer-authority blocking.** Repo-wide-write gating
   (`policies.repositoryContext.*` in `.chaos/config.yaml`,
   `repository-context-resolution-policy.md`) is not implemented by these
   hooks.
@@ -47,7 +47,7 @@ future task — they are out of scope here.
 Everything under `.chaos/runtime/` is local, disposable, per-machine/session
 scratch state:
 
-- It is **not** a CHAOS governance artifact (unlike `.chaos/changes/**`,
+- It is **not** a CHAOS governance artifact (unlike `.chaos/decisions/**`,
   `.chaos/decisions/**`, ADRs, etc.) and carries no `chaosMetadata`
   frontmatter — these are JSON/JSONL, not Markdown.
 - It is git-ignored (`.chaos/runtime/` in `.gitignore`) and must never be

@@ -53,7 +53,7 @@ test("validator rejects an artifact that violates the schema", () => {
 test("runtime writes artifacts that validate against the real schemas", () => {
   const { runtime, root, cleanup } = makeRuntime(true);
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick",
@@ -73,7 +73,7 @@ test("runtime writes artifacts that validate against the real schemas", () => {
 test("14. malformed existing JSON is reported safely and the file is preserved", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const sessionFile = `${root}/sessions/${begin.commandRunId}.json`;
     fs.writeFileSync(sessionFile, "{ this is not valid json ", "utf8");
     assert.throws(

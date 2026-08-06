@@ -46,7 +46,7 @@ export const beginCommandTool: McpTool = {
   description:
     "Register or resume a CHAOS command session and determine whether the command may proceed. Returns READY, RESUME_AVAILABLE, BLOCKED_BY_PENDING_DECISION, or CONFLICTING_COMMAND_ACTIVE.",
   inputShape: {
-    sourceCommand: z.string().describe("The CHAOS command, e.g. chaos:propose."),
+    sourceCommand: z.string().describe("The CHAOS command, e.g. chaos:run."),
     changeId: z.string().optional().describe("Change id (strongly recommended for change-scoped commands)."),
     adapter: z.enum(["claude", "copilot", "manual", "unknown"]).optional(),
     requestedMode: z.enum(["light", "standard", "strict", "unknown"]).optional(),

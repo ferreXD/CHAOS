@@ -8,7 +8,7 @@ import { makeRuntime, SAMPLE_OPTIONS } from "./helpers.ts";
 
 /** Drive a run to ready-to-resume (answered decision), returning its run id. */
 function readyRun(runtime: ReturnType<typeof makeRuntime>["runtime"], changeId: string) {
-  const begin = runtime.beginCommand({ sourceCommand: "chaos:apply", changeId });
+  const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId });
   const dec = runtime.createDecision({
     commandRunId: begin.commandRunId!,
     title: "Pick",
@@ -150,6 +150,30 @@ test("after resumeCommand a follow-up decision can be created (running is a vali
     });
     assert.equal(dec.status, "WAITING_FOR_USER_DECISION");
     assert.equal(runtime.getSession(runId)!.state, "waiting-for-decision");
+  } finally {
+    cleanup();
+  }
+});
+
+test("a SAME-TITLED next round is allowed once the session is running again", () => {
+  // Runner-flow regression (2026-08-06): the runner consumes an answered decision only on
+  // the agent's acknowledgement, which lands AFTER resumeCommand + adapter resume. A live
+  // agent may therefore create its next same-titled decision while the previous round is
+  // still `answered`. That is a new round, not a re-ask — the answered-twin guard applies
+  // only while the runtime still owes the caller the answer (before the resume flip).
+  const { runtime, cleanup } = makeRuntime();
+  try {
+    const runId = readyRun(runtime, "c1"); // decision "Pick" is answered, session ready-to-resume
+    runtime.resumeCommand(runId); // answer delivered; session running; "Pick" still answered
+    const next = runtime.createDecision({
+      commandRunId: runId,
+      title: "Pick", // identical title to the still-answered first round
+      context: "round 2",
+      options: SAMPLE_OPTIONS,
+      nextStep: "continue",
+    });
+    assert.equal(next.status, "WAITING_FOR_USER_DECISION");
+    assert.notEqual(next.decisionId, undefined);
   } finally {
     cleanup();
   }

@@ -9,7 +9,7 @@ import { answerDecisionTool } from "../src/tools/answerDecision.ts";
 import { getDecisionResponseTool } from "../src/tools/getDecisionResponse.ts";
 
 function begin(t: ReturnType<typeof makeCtx>): string {
-  return t.run(beginCommandTool, { sourceCommand: "chaos:propose", changeId: "c1" }).data[
+  return t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c1" }).data[
     "commandRunId"
   ] as string;
 }

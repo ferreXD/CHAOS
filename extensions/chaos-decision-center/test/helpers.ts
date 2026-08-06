@@ -18,7 +18,7 @@ export function decisionFixture(overrides: Partial<Decision> = {}): Decision {
     decisionId: "DEC-test-1",
     commandRunId: "RUN-test-1",
     changeId: "change-1",
-    sourceCommand: "chaos:propose",
+    sourceCommand: "chaos:run",
     interactionType: "single-choice-decision",
     state: "waiting",
     title: "Choose execution profile",
@@ -36,7 +36,7 @@ export function decisionFixture(overrides: Partial<Decision> = {}): Decision {
     unlocksOn: {},
     createdAt: "2026-07-06T17:30:00.000Z",
     expiresAt: null,
-    createdBy: "chaos:propose",
+    createdBy: "chaos:run",
     metadata: {},
     ...overrides,
   };
@@ -46,7 +46,7 @@ export function sessionFixture(overrides: Partial<CommandSession> = {}): Command
   return {
     schemaVersion: 1,
     commandRunId: "RUN-test-1",
-    sourceCommand: "chaos:propose",
+    sourceCommand: "chaos:run",
     changeId: "change-1",
     adapter: "claude",
     state: "ready-to-resume",
@@ -113,7 +113,7 @@ export function seedPendingDecision(
   runtime: InteractionRuntime,
   opts: { changeId?: string; requiresRationale?: boolean } = {},
 ): { commandRunId: string; decisionId: string } {
-  const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: opts.changeId ?? "change-1" });
+  const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: opts.changeId ?? "change-1" });
   const dec = runtime.createDecision({
     commandRunId: begin.commandRunId!,
     title: "Choose execution profile",

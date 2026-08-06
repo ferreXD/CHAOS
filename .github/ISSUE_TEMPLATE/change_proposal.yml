@@ -7,12 +7,11 @@ body:
     attributes:
       value: |
         Use this to propose a change or improvement to the **CHAOS tooling itself**. This is a
-        normal GitHub issue for discussion — **not** a CHAOS lifecycle proposal (you don't run
-        chaos:propose on this repo; see CONTRIBUTING.md).
+        normal GitHub issue for discussion — you don't run the CHAOS workflow on this repo
+        (see CONTRIBUTING.md).
 
-        Please **describe the problem before the solution**, search existing issues and the
-        roadmap (.chaos/roadmap/roadmap.md) for duplicates, and keep the report sanitized —
-        no secrets or private/personal data.
+        Please **describe the problem before the solution**, search existing issues for
+        duplicates, and keep the report sanitized — no secrets or private/personal data.
   - type: textarea
     id: problem
     attributes:
@@ -38,22 +37,12 @@ body:
       label: Which area?
       options:
         - Command / skill behaviour
-        - GitHub Copilot adapter
         - Documentation
         - Interaction runtime / Decision Center
         - Hooks
         - Other / not sure
     validations:
       required: true
-  - type: dropdown
-    id: surface
-    attributes:
-      label: Which surface?
-      options:
-        - Claude Code (.claude/)
-        - GitHub Copilot (.github/)
-        - Both
-        - Not surface-specific / N/A
   - type: textarea
     id: context
     attributes:
@@ -64,7 +53,7 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I searched existing issues and the roadmap for duplicates.
+        - label: I searched existing issues for duplicates.
           required: true
         - label: This proposal contains no secrets, tokens, or private/personal data.
           required: true

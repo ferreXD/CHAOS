@@ -7,7 +7,7 @@ import { makeRuntime, SAMPLE_OPTIONS } from "./helpers.ts";
 
 /** Drive a run to ready-to-resume (which writes a capsule). */
 function readyRun(runtime: ReturnType<typeof makeRuntime>["runtime"], changeId: string) {
-  const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId });
+  const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId });
   const dec = runtime.createDecision({
     commandRunId: begin.commandRunId!,
     title: "Pick",
@@ -26,7 +26,7 @@ test("1. listCapsules returns capsule summaries", () => {
     const summaries = runtime.listCapsules();
     assert.equal(summaries.length, 1);
     assert.equal(summaries[0]!.commandRunId, runId);
-    assert.equal(summaries[0]!.sourceCommand, "chaos:propose");
+    assert.equal(summaries[0]!.sourceCommand, "chaos:run");
     assert.ok(summaries[0]!.capsulePath.includes("capsules/"));
     // Summary is compact — no full contextCapsule body.
     assert.equal((summaries[0] as any).contextCapsule, undefined);
@@ -43,7 +43,7 @@ test("2. listCapsules filters by changeId (and readyToResumeOnly)", () => {
     assert.equal(runtime.listCapsules({ changeId: "c1" }).length, 1);
     assert.equal(runtime.listCapsules({ changeId: "c1" })[0]!.changeId, "c1");
     assert.equal(runtime.listCapsules({ readyToResumeOnly: true }).length, 2);
-    assert.equal(runtime.listCapsules({ sourceCommand: "chaos:propose" }).length, 2);
+    assert.equal(runtime.listCapsules({ sourceCommand: "chaos:run" }).length, 2);
     assert.equal(runtime.listCapsules({ changeId: "nope" }).length, 0);
   } finally {
     cleanup();

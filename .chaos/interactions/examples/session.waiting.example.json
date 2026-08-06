@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "commandRunId": "RUN-2026-07-18-chaos-propose-add-execution-profiles-9b1e2f",
-  "sourceCommand": "chaos:propose",
+  "sourceCommand": "chaos:run",
   "changeId": "add-execution-profiles",
   "adapter": "claude",
   "state": "waiting-for-decision",

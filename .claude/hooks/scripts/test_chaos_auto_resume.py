@@ -55,7 +55,7 @@ def make_repo(tmp, *, enabled=True, in_session=True, active_change="change-1"):
         "      enabled: true\n"
     )
     _write(os.path.join(tmp, ".chaos", "config.yaml"), cfg)
-    ac = {"command": "chaos:propose"}
+    ac = {"command": "chaos:run"}
     if active_change is not None:
         ac["changeId"] = active_change
     _write_json(os.path.join(tmp, ".chaos", "runtime", "active-command.json"), ac)
@@ -67,7 +67,7 @@ def seed_decision(tmp, *, decision_id="DEC-1", change_id="change-1", state="wait
     ddir = os.path.join(idir, "decisions", decision_id)
     _write_json(os.path.join(ddir, "decision.json"), {
         "schemaVersion": 1, "decisionId": decision_id, "commandRunId": run_id,
-        "changeId": change_id, "sourceCommand": "chaos:propose", "state": state,
+        "changeId": change_id, "sourceCommand": "chaos:run", "state": state,
         "title": "T", "context": "c",
         "options": [{"id": "proceed", "label": "Proceed"}, {"id": "stop", "label": "Stop"}],
     })
@@ -186,7 +186,7 @@ class ClassifyAndReason(unittest.TestCase):
         self.assertEqual(hook.classify_outcome("waiting", None), "pending")
 
     def test_reason_contains_key_fields(self):
-        pending = {"decisionId": "DEC-1", "changeId": "change-1", "sourceCommand": "chaos:propose",
+        pending = {"decisionId": "DEC-1", "changeId": "change-1", "sourceCommand": "chaos:run",
                    "commandRunId": "RUN-1", "options": [{"id": "proceed", "label": "Proceed now"}]}
         reason = hook.build_resume_reason(pending, {"selectedOptionId": "proceed", "rationale": "because"})
         self.assertIn("DEC-1", reason)
