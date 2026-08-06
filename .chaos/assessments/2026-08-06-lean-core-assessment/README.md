@@ -38,6 +38,7 @@ discipline or a beautifully documented private experiment.
 | 06 | [critical-risks.md](06-critical-risks.md) | What kills it? |
 | 07 | [what-it-can-become.md](07-what-it-can-become.md) | The three futures and the recommended bet |
 | 08 | [scorecard.md](08-scorecard.md) | Scores, then and now |
+| 09 | [reason-to-live-and-adoption.md](09-reason-to-live-and-adoption.md) | Addendum: does it deserve to exist, and will anyone come? |
 
 ## What changed since the July assessment
 
