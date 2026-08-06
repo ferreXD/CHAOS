@@ -40,13 +40,11 @@
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 240
+      ]
     },
     "nextStep": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 240
+      "minLength": 1
     },
     "answeredDecisionIds": {
       "type": "array",
@@ -72,56 +70,48 @@
       "properties": {
         "intent": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 1000
+          "minLength": 1
         },
         "approvedScope": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         },
         "selectedPath": {
           "type": [
             "string",
             "null"
-          ],
-          "maxLength": 240
+          ]
         },
         "constraints": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         },
         "assumptions": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         },
         "openRisks": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         },
         "confidenceCaps": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         },
         "forbiddenActions": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 500
+            "type": "string"
           }
         }
       },

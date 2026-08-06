@@ -23,9 +23,13 @@ mechanisms, and everything here serves them:
 3. **The record.** A small, durable note of what was decided and shipped — the asset that
    lets a future stop catch a crossing.
 
-**Budget discipline:** the whole loop's machine overhead on a small change is single-digit
-minutes. The stop is one decision the human can read in ≤2 minutes. If you find yourself
-generating pages, you are rebuilding the falsified apparatus — stop.
+**Budget discipline — spend minutes, not words.** The whole loop's machine overhead on a
+small change is single-digit minutes; that is the budget worth defending. **Nothing you write
+here has a length ceiling** — not the stop, not the spec, not the record — and the runtime
+enforces no character limit on any of them (operator decision, 2026-08-06). Write what the
+change actually requires: the failure mode to avoid is *ceremony*, work that adds no
+information, not length. A long stop that a human needs is correct; a short one that hides a
+crossing is not.
 
 ## The loop
 
@@ -92,8 +96,8 @@ approved work do not.
 
 ### 6. Record
 
-Write `.chaos/decisions/<YYYY-MM-DD>-<slug>.md` (target 25–40 lines, hard ceiling one
-page):
+Write `.chaos/decisions/<YYYY-MM-DD>-<slug>.md`. **No length limit** — carry every field
+below in full, and add what a future stop would need to catch a crossing against this change:
 
 ```markdown
 # <slug> — <one-line intent>
@@ -126,4 +130,5 @@ memory. Capsule `nextStep` values for this loop: `spec` | `build` | `verify` | `
 - One decision at a time; a recommendation is not a decision; STOP means stop.
 - The stop is small or it is broken.
 - Never tick what you did not verify; never guess what you did not derive.
-- The record is one page or it is apparatus.
+- No artifact here has a size limit. Write what the change needs; never trim a fact,
+  a crossing, or a verification limit to hit a length.

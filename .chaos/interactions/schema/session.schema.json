@@ -80,15 +80,13 @@
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 240
+      ]
     },
     "nextStep": {
       "type": [
         "string",
         "null"
-      ],
-      "maxLength": 240
+      ]
     },
     "lockIds": {
       "type": "array",

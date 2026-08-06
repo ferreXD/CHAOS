@@ -24,7 +24,6 @@
         "decision-expired",
         "decision-consumed",
         "capsule-created",
-        "capsule-pruned",
         "lock-acquired",
         "lock-released",
         "command-completed",
@@ -79,8 +78,7 @@
     },
     "message": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 2000
+      "minLength": 1
     },
     "data": {
       "type": "object",
