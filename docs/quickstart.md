@@ -59,9 +59,9 @@ It reports your ladder level and the one command that reaches the next.
 
 ## L2 — the Decision Center panel (~3 minutes)
 
-Install **CHAOS Decision Center** from the VS Code Marketplace or
-[OpenVSX](https://open-vsx.org/) (publisher `ferreXD`) — or grab the `.vsix` from a
-[release](https://github.com/ferreXD/CHAOS/releases) for air-gapped machines.
+Install **CHAOS Decision Center** from the VS Code Marketplace (publisher `ferreXD`) —
+or grab the `.vsix` from a [release](https://github.com/ferreXD/CHAOS/releases) for
+air-gapped machines and non-Marketplace editors.
 
 When a run stops, the panel notifies you, shows the decision with its options and
 recommendation, and writes your validated answer back to the runtime — one click,

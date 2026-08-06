@@ -68,7 +68,7 @@ the plan. That confirmation is the catch mechanism; it is cheap and it stays.
 The stop message in chat must tell the human how to answer: print the decision id and — if
 the VS Code Decision Center is not installed — say that answering in chat works (the reply
 is recorded through the runtime) and that the Decision Center extension provides the
-one-click panel (`chaos-decision-center` on the VS Code Marketplace / OpenVSX).
+one-click panel (`chaos-decision-center` on the VS Code Marketplace).
 
 ### 3. Spec gate (OpenSpec)
 

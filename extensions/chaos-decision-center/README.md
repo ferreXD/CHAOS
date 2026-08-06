@@ -9,7 +9,7 @@ write a **validated** response to the file-backed interaction runtime.
 
 ## Install
 
-- **VS Code Marketplace / OpenVSX**: search for `CHAOS Decision Center`
+- **VS Code Marketplace**: search for `CHAOS Decision Center`
   (publisher `ferreXD`), or
 - **`.vsix`**: download from a [CHAOS release](https://github.com/ferreXD/CHAOS/releases)
   and install via `Extensions: Install from VSIX...` (works air-gapped).

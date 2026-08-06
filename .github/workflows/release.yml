@@ -2,9 +2,9 @@
 # builds all three artifacts, publishes wherever a token is configured, and
 # attaches the rest to a GitHub Release. Publish steps are skipped (not failed)
 # when their token secret is absent, so the workflow is usable before the
-# npm/Marketplace/OpenVSX accounts exist.
+# npm/Marketplace accounts exist.
 #
-# Secrets (all optional): NPM_TOKEN, VSCE_PAT, OVSX_PAT.
+# Secrets (all optional): NPM_TOKEN, VSCE_PAT.
 name: Release
 
 on:
@@ -68,13 +68,6 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         if: env.VSCE_PAT != ''
         run: npx vsce publish --no-dependencies -p "$VSCE_PAT"
-
-      - name: Publish to OpenVSX
-        working-directory: extensions/chaos-decision-center
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        if: env.OVSX_PAT != ''
-        run: npx ovsx publish --no-dependencies -p "$OVSX_PAT"
 
       # --- Artifact A ships via the git repo itself (plugin marketplace). ---
       - name: GitHub Release with artifacts
