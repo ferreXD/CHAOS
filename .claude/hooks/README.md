@@ -65,7 +65,7 @@ local, best-effort answer to five questions during a session:
 **Core principle: hooks should make CHAOS observable before they become
 enforcement-heavy.** This capability only *records* state. It does not
 guard protected files, does not enforce command-boundary or scope rules,
-does not gate `chaos:sync --all` authority, and does not stamp provenance
+does not gate maintainer-only writes, and does not stamp provenance
 metadata — see "What this does not do" below and
 `reference/hook-runtime-policy.md` for the full scope statement.
 
@@ -126,7 +126,7 @@ a narrow set of critical runtime errors each script defines (e.g. an
 unreadable/corrupt `.chaos/runtime/*.json` file) — never for ordinary
 findings like "no command detected" or "expected artifact missing."
 Protected-file write guards, command-boundary enforcement, and
-`chaos:sync --all` authority gating remain unimplemented specification
+maintainer-authority gating remain unimplemented specification
 only (`.claude/skills/chaos-shared/reference/hooks-repository-context-policy.md`)
 — a possible future capability built **on top of** this observability
 data, not part of this delivery.
@@ -147,7 +147,7 @@ never writes `chaosMetadata` frontmatter itself.
   `.chaos/config.yaml`, ...).
 - Command-boundary enforcement (blocking a write because it falls outside
   `activeCommand.allowedWriteGlobs`).
-- Sync-authority blocking (`chaos:sync --all` gating).
+- Maintainer-authority blocking (gating repo-wide writes).
 - Automatic provenance metadata stamping (that's capability 2, wired
   separately).
 - MCP/provider-CLI repository-context resolution (`chaos-session-context.py`
@@ -205,7 +205,7 @@ chaosMetadata:
   artifactType: verification-report
   artifactScope: change
   changeId: add-task-query-filters
-  sourceCommand: chaos:verify
+  sourceCommand: chaos:run
   lastWrittenAt: 2026-07-01T10:15:00+02:00
   lastWrittenBy: vscode-user
   lastAuditedAt: 2026-07-01T10:15:00+02:00

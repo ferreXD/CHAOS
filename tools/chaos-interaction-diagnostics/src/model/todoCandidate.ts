@@ -1,10 +1,9 @@
 /**
  * Todo Candidate model.
  *
- * Aligned with the repo's authoritative contract
- * `.claude/skills/chaos-todo/reference/todo-candidate-contract.md` so an emitted
- * candidate is actually promotable by `chaos:todo`. Diagnostics only EMITS
- * candidates; it never writes durable `.chaos/todo/items/` files.
+ * A todo candidate is an advisory follow-up suggestion emitted into the doctor
+ * report. Nothing consumes candidates automatically in the lean core; diagnostics
+ * only EMITS them and never writes durable files for them.
  */
 
 export type TodoPriority = "BLOCKER" | "HIGH" | "MEDIUM" | "LOW";

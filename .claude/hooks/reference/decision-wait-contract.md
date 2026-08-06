@@ -51,7 +51,7 @@ best-effort text scanning:
 ```python
 record_decision_wait(
     repo_root,
-    command="chaos:sync",
+    command="chaos:run",
     change_id="",
     decision_title="Repo-wide sync scope",
     options_count=3,

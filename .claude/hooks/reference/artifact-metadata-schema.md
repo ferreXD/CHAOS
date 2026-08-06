@@ -8,10 +8,10 @@ YAML frontmatter, keyed `chaosMetadata`, as the first block of a CHAOS-owned Mar
 ---
 chaosMetadata:
   schemaVersion: 1
-  artifactType: status-report
+  artifactType: decision
   artifactScope: repository
   changeId: null
-  sourceCommand: chaos:status
+  sourceCommand: chaos:run
   lastWrittenAt: 2026-07-01T09:42:00+02:00
   lastWrittenBy: vscode-user
   lastAuditedAt: 2026-07-01T09:42:00+02:00
@@ -29,17 +29,10 @@ chaosMetadata:
 ---
 ```
 
-Change-scoped artifacts additionally carry `artifactScope: change` and a non-null `changeId`:
-
-```yaml
-chaosMetadata:
-  schemaVersion: 1
-  artifactType: verification-report
-  artifactScope: change
-  changeId: add-task-query-filters
-  sourceCommand: chaos:verify
-  ...
-```
+Every lean-core artifact is repository-scoped (`artifactScope: repository`, `changeId: null`);
+the decision record's change identity lives in its filename slug and body, not in the
+frontmatter. `artifactScope: change` / non-null `changeId` remain valid schema values for
+compatibility with artifacts written before the 2026-08 strip (tag `apparatus-final`).
 
 The hook script also writes an internal `metadata.bodyHash` field (`sha256:<64 hex chars>`),
 used only to detect material body changes between runs — see
@@ -71,27 +64,10 @@ Inferred from path by the hook script (`infer_artifact()` in
 
 | Path pattern | artifactType | artifactScope | changeId |
 |---|---|---|---|
-| `.chaos/status-report.md` | `status-report` | `repository` | `null` |
 | `.chaos/bootstrap-report.md` | `bootstrap-report` | `repository` | `null` |
-| `.chaos/architecture.md` / `context.md` / `constitution.md` / `README.md` | `architecture` / `context` / `constitution` / `workspace-readme` | `repository` | `null` |
-| `.chaos/changes/<id>/proposal-review.md` | `proposal-review` | `change` | `<id>` |
-| `.chaos/changes/<id>/approval.md` | `approval` | `change` | `<id>` |
-| `.chaos/changes/<id>/apply-report.md` | `apply-report` | `change` | `<id>` |
-| `.chaos/changes/<id>/code-review.md` | `code-review` | `change` | `<id>` |
-| `.chaos/changes/<id>/verification.md` | `verification-report` | `change` | `<id>` |
-| `.chaos/changes/<id>/archive-report.md` | `archive-report` | `change` | `<id>` |
-| `.chaos/changes/<id>/sync-report.md` | `change-sync-report` | `change` | `<id>` |
-| `.chaos/changes/<id>/retro.md` | `retro` | `change` | `<id>` |
-| `.chaos/changes/<id>/lifecycle.md` | `lifecycle` | `change` | `<id>` |
-| `.chaos/archaeology/index.md` | `archaeology-index` | `topic` | `null` |
-| `.chaos/archaeology/*.md` (other) | `archaeology-report` | `topic` | `null` |
-| `.chaos/sync-reports/*.md` | `repository-sync-report` | `repository` | `null` |
-| `.chaos/doctor/*.md` | `doctor-report` | `repository` | `null` |
-| `.chaos/rules/*.md` | `rule` | `repository` | `null` |
-| `.chaos/gates/*.md` | `gate` | `repository` | `null` |
+| `.chaos/architecture.md` / `.chaos/context.md` | `architecture` / `context` | `repository` | `null` |
 | `.chaos/decisions/*.md` | `decision` | `repository` | `null` |
 | `docs/adr/*.md` (only if managed) | `adr` | `repository` | `null` |
-| `docs/decision-log/*.md` (only if managed) | `decision-log` | `repository` | `null` |
 | anything else | `unknown` | `unknown` | `null` |
 
 `sourceCommand` resolves from `.chaos/runtime/active-command.json` when present (`HIGH`

@@ -101,7 +101,7 @@ A session in `ready-to-resume` still holds the lock until resumed and completed/
 
 Runtime implementations should track `expiresAt` for sessions and decisions.
 
-Expiration should not delete data. It should transition state to `expired`, write audit events, and let `chaos:doctor`/`chaos:status` surface cleanup options.
+Expiration should not delete data. It should transition state to `expired`, write audit events, and let `chaos:doctor` surface cleanup options.
 
 ## Recovery
 

@@ -15,7 +15,7 @@ Mandatory for every model (especially weaker ones such as Sonnet). Full rules:
 - Attempt to use native interactive selection UI when the Claude Code runtime exposes it. If no explicit UI affordance is available, use the numbered decision block fallback. The fallback is compliant only if the command stops after presenting the options.
 - A recommendation is not a decision; a displayed plan is not approval.
 - `chaos:init` is the one command that *generates* `.chaos/config.yaml`; if config exists, preserve it and ask before semantic changes.
-- Seed config with the hardening policies so later commands inherit them: `policies.changeArtifacts` (change-scoped layout), `policies.artifactNaming` (date-prefixed filenames, display-only sequential IDs), and `policies.sync` (role boundaries + maintainer confirmation).
+- Seed config per `reference/config-contract.md`: `specGate` (when a `chaos:run` change owes an OpenSpec change) and `policies.protectedFiles` (no silent edits of `AGENTS.md` / root `README.md`).
 - Label assumptions/conflicts with knowledge type + confidence; record decisions in `.chaos/bootstrap-report.md`.
 
 ### Sonnet-safe execution checklist
@@ -24,7 +24,7 @@ Mandatory for every model (especially weaker ones such as Sonnet). Full rules:
 - [ ] Mode (`default|--auto|--guided`) recorded in the bootstrap report?
 - [ ] High-impact decisions asked one at a time, stopping after each?
 - [ ] `.chaos/config.yaml` generated/preserved with hardening policy sections?
-- [ ] Confidence/knowledge classification doctrine present in `.chaos/constitution.md`?
+- [ ] Confidence/knowledge classification doctrine present in `AGENTS.md`?
 - [ ] Bootstrap report written with questions, answers, and scope decisions?
 
 Supported modes:
@@ -44,19 +44,15 @@ Default mode is guided-confirmation:
 5. Include assumptions, confidence, conflicts, open questions, source inventory, and config inference.
 6. Always generate `.chaos/config.yaml` and `.chaos/bootstrap-report.md`.
 
-Required output:
+Required output (the lean workspace — nothing else):
 
 ```text
 AGENTS.md
 .chaos/config.yaml
 .chaos/bootstrap-report.md
-.chaos/constitution.md
 .chaos/context.md
 .chaos/architecture.md
 .chaos/decisions/index.md
-.chaos/rules/index.md
-.chaos/commands/index.md
-.chaos/gates/index.md
 ```
 
 Optional output:
@@ -71,7 +67,7 @@ Prefer using the `chaos-bootstrap-architect` agent/persona when available.
 
 ## Confidence doctrine
 
-Ensure `.chaos/constitution.md` contains the CHAOS confidence and knowledge classification doctrine:
+Ensure `AGENTS.md` carries the CHAOS confidence and knowledge classification doctrine:
 
 - material findings must be labelled `FACT`, `INFERENCE`, `ASSUMPTION`, `UNKNOWN`, or `CONFLICT`;
 - material findings and final verdicts must include `HIGH`, `MEDIUM`, or `LOW` confidence;

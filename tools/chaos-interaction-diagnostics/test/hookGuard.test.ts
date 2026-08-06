@@ -11,7 +11,7 @@ test("17. records continued-after-must-stop and writes it to the existing stream
     const { runId } = seedPendingDecision(env, "c1");
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkContinuedAfterMustStop({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       commandRunId: runId,
       changeId: "c1",
       continued: true,
@@ -39,7 +39,7 @@ test("18. records write-while-decision-pending for production writes", () => {
     seedPendingDecision(env, "c1");
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkWriteWhileDecisionPending({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       changeId: "c1",
       touchedFiles: ["src/Domain/Foo.cs", ".chaos/interactions/whatever.json"],
     });
@@ -59,7 +59,7 @@ test("no write violation when there is no pending decision", () => {
     seedReadyToResume(env, "c1"); // answered — no longer pending
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkWriteWhileDecisionPending({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       changeId: "c1",
       touchedFiles: ["src/Foo.cs"],
     });
@@ -75,7 +75,7 @@ test("19. advisory mode never blocks, even on a BLOCKER", () => {
     const { runId } = seedPendingDecision(env, "c1");
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkContinuedAfterMustStop({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       commandRunId: runId,
       changeId: "c1",
       continued: true,
@@ -94,7 +94,7 @@ test("20. strict mode blocks a BLOCKER when configured", () => {
     const { runId } = seedPendingDecision(env, "c1");
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkContinuedAfterMustStop({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       commandRunId: runId,
       changeId: "c1",
       continued: true,
@@ -112,7 +112,7 @@ test("off mode does not write or block", () => {
     const { runId } = seedPendingDecision(env, "c1");
     const guard = new RuntimeContractGuard(env.config);
     const v = guard.checkContinuedAfterMustStop({
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       commandRunId: runId,
       changeId: "c1",
       continued: true,

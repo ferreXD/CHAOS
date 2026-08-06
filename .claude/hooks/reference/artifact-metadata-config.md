@@ -19,30 +19,16 @@ policies:
 
   artifactMetadataManagedFiles:
     include:
-      - ".chaos/changes/**/*.md"
-      - ".chaos/doctor/**/*.md"
-      - ".chaos/sync-reports/**/*.md"
-      - ".chaos/archaeology/**/*.md"
-      - ".chaos/rules/**/*.md"
-      - ".chaos/gates/**/*.md"
       - ".chaos/decisions/**/*.md"
-      - ".chaos/commands/**/*.md"
-      - ".chaos/status-report.md"
       - ".chaos/bootstrap-report.md"
       - ".chaos/architecture.md"
       - ".chaos/context.md"
-      - ".chaos/constitution.md"
-      - ".chaos/README.md"
     optional:
       - "docs/adr/**/*.md"
-      - "docs/decision-log/**/*.md"
     exclude:
       - "README.md"
       - "AGENTS.md"
-      - ".chaos/assessments/**/*.md"
       - ".chaos/validation/**/*.md"
-      - ".chaos/todo/**/*.md"
-      - ".chaos/roadmap/**/*.md"
       - ".chaos/interactions/**/*.md"
 ```
 
@@ -50,16 +36,15 @@ If a repository's `config.yaml` already has a similar section, merge into it —
 duplicate `policies.artifactMetadata*` keys.
 
 > **Why `include` is a specific allow-list, not `.chaos/**/*.md`.** The hook can only infer a
-> meaningful `artifactType` for **command-generated** CHAOS lifecycle/governance artifacts (see
-> `infer_artifact()` in `scripts/chaos-artifact-metadata-hook.py`). A broad `.chaos/**/*.md`
-> pattern also sweeps **hand-authored** Markdown under `.chaos/` — assessments, validation
-> evidence, the todo backlog, the roadmap, interaction-runtime READMEs — and on the first
-> `--stamp` sweep it back-fills every one of them with `artifactType: unknown` frontmatter,
-> producing a large, surprising repo-wide diff. The `include` list above enumerates only the
-> paths whose type the hook actually recognizes; the `exclude` list additionally hard-blocks the
-> known hand-authored trees so a future re-broadening of `include` cannot silently re-capture
-> them (`exclude` always wins). Repositories that keep some of those trees as genuinely managed
-> artifacts can move the corresponding pattern into `include`.
+> meaningful `artifactType` for the lean-core artifact set (see `infer_artifact()` in
+> `scripts/chaos-artifact-metadata-hook.py`): decision records, `architecture.md`,
+> `context.md`, `bootstrap-report.md`, and (optionally) ADRs. A broad `.chaos/**/*.md`
+> pattern also sweeps **hand-authored** Markdown under `.chaos/` — validation evidence,
+> interaction-runtime READMEs — and on the first `--stamp` sweep it back-fills every one of
+> them with `artifactType: unknown` frontmatter, producing a large, surprising repo-wide diff.
+> The `include` list above enumerates only the paths whose type the hook actually recognizes;
+> the `exclude` list additionally hard-blocks the known hand-authored trees so a future
+> re-broadening of `include` cannot silently re-capture them (`exclude` always wins).
 
 ## `include` / `optional` / `exclude` semantics
 
@@ -67,15 +52,15 @@ duplicate `policies.artifactMetadata*` keys.
   never stamped, per acceptance criterion 11 of the originating task — even if a pattern in
   `include` would otherwise match them.
 - **`include`** patterns are the active managed set: files the hook validates/stamps.
-- **`optional`** patterns (by default `docs/adr/**/*.md`, `docs/decision-log/**/*.md`) are
+- **`optional`** patterns (by default `docs/adr/**/*.md`) are
   *recognized but inactive*. They are never validated or stamped unless a repository
   explicitly moves the pattern (or an equivalent) into `include`. This is how "only if marked
   or configured as CHAOS-managed" is implemented — there is no per-file frontmatter marker;
   the config's `include` list **is** the marker. The `Stop` summary lists optional-but-inactive
   file counts purely as an informational footer.
 - Patterns use `**` glob semantics (matched via Python's `glob.glob(..., recursive=True)`, so
-  `.chaos/**/*.md` matches both `.chaos/status-report.md` directly and
-  `.chaos/changes/<id>/lifecycle.md`).
+  `.chaos/**/*.md` matches both `.chaos/architecture.md` directly and
+  `.chaos/decisions/<date>-<slug>.md`).
 
 ## Policy flags
 

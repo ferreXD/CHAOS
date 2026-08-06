@@ -9,7 +9,7 @@ test("1. beginCommand creates a running session", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
     const res = runtime.beginCommand({
-      sourceCommand: "chaos:propose",
+      sourceCommand: "chaos:run",
       changeId: "request-context-middleware",
       adapter: "claude",
       requestedMode: "strict",
@@ -30,7 +30,7 @@ test("2. createDecision writes decision.json and active.json", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
     const begin = runtime.beginCommand({
-      sourceCommand: "chaos:propose",
+      sourceCommand: "chaos:run",
       changeId: "request-context-middleware",
     });
     const dec = runtime.createDecision({
@@ -53,7 +53,7 @@ test("2. createDecision writes decision.json and active.json", () => {
 test("3. createDecision returns mustStop=true and WAITING_FOR_USER_DECISION", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick one",
@@ -72,7 +72,7 @@ test("3. createDecision returns mustStop=true and WAITING_FOR_USER_DECISION", ()
 test("4. answerDecision writes response.json and marks decision answered", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick one",
@@ -100,7 +100,7 @@ test("4. answerDecision writes response.json and marks decision answered", () =>
 test("5. answerDecision rejects an option that is not declared", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick one",
@@ -126,7 +126,7 @@ test("5. answerDecision rejects an option that is not declared", () => {
 test("6. required rationale is enforced", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick one",
@@ -159,7 +159,7 @@ test("6. required rationale is enforced", () => {
 test("createDecision rejects duplicate option ids and unknown recommendedOptionId", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     assert.throws(
       () =>
         runtime.createDecision({
@@ -192,7 +192,7 @@ test("createDecision rejects duplicate option ids and unknown recommendedOptionI
 test("createDecision is idempotent for the same unresolved purpose", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const a = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Choose execution profile",
@@ -215,7 +215,7 @@ test("createDecision is idempotent for the same unresolved purpose", () => {
 test("11. completeCommand releases the change lock", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick",
@@ -243,7 +243,7 @@ test("11. completeCommand releases the change lock", () => {
 test("12. cancelCommand releases lock and preserves decision artifacts", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick",
@@ -267,7 +267,7 @@ test("12. cancelCommand releases lock and preserves decision artifacts", () => {
 test("13. invalid state transition fails safely", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     runtime.cancelCommand(begin.commandRunId!);
     // cancelled -> completed is not an allowed transition.
     assert.throws(
@@ -295,7 +295,7 @@ test("13. invalid state transition fails safely", () => {
 test("getDecisionResponse reports NO_RESPONSE_YET then ANSWERED then CONSUMED", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick",
@@ -319,7 +319,7 @@ test("getDecisionResponse reports NO_RESPONSE_YET then ANSWERED then CONSUMED", 
 test("answerDecision supports multi-choice (selectedOptionIds)", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick several",
@@ -345,7 +345,7 @@ test("answerDecision supports multi-choice (selectedOptionIds)", () => {
 test("answerDecision multi-choice rejects empty selection and invalid ids", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Pick several",
@@ -363,7 +363,7 @@ test("answerDecision multi-choice rejects empty selection and invalid ids", () =
 test("answerDecision supports freeform-input (freeformValue)", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Provide the connection string",
@@ -389,7 +389,7 @@ test("answerDecision supports freeform-input (freeformValue)", () => {
 test("answerDecision freeform-input rejects an empty value", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Provide value",
@@ -406,7 +406,7 @@ test("answerDecision freeform-input rejects an empty value", () => {
 test("answerDecision handles confirmation as a single-choice answer", () => {
   const { runtime, root, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:sync", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Proceed with repo-wide sync?",
@@ -429,7 +429,7 @@ test("answerDecision handles confirmation as a single-choice answer", () => {
 test("createDecision allows a freeform-input decision with no options (placeholder supplied)", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const dec = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "Provide the connection string",
@@ -451,7 +451,7 @@ test("createDecision allows a freeform-input decision with no options (placehold
 test("createDecision still rejects empty options for non-freeform types", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     assert.throws(() =>
       runtime.createDecision({
         commandRunId: begin.commandRunId!,

@@ -10,7 +10,7 @@ import { findResumeCandidatesTool } from "../src/tools/findResumeCandidates.ts";
 
 /** Drive a change to ready-to-resume through the MCP tools. */
 function ready(t: ReturnType<typeof makeCtx>, changeId: string): string {
-  const runId = t.run(beginCommandTool, { sourceCommand: "chaos:propose", changeId }).data[
+  const runId = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId }).data[
     "commandRunId"
   ] as string;
   const dec = t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`chaos:init` and `chaos:status` must verify whether the repository has the minimum external tools needed for CHAOS + OpenSpec operation.
+`chaos:init` (and `chaos:doctor`, as the ongoing health check) must verify whether the repository has the minimum external tools needed for CHAOS + OpenSpec operation.
 
 The preflight exists to avoid producing a governance workspace that claims OpenSpec-driven workflows are available when the required CLI/runtime is missing.
 
@@ -15,7 +15,7 @@ Check tools one by one in this order:
 | Git | source/repo context, source manifests, change tracking | `git --version` | any working Git | Do not auto-install by default. Prompt with OS/package-manager-specific guidance if missing. |
 | Node.js | OpenSpec CLI runtime | `node --version` | `>= 20.19.0` | Do not auto-install by default. Prompt. May install only after explicit user approval and detected package manager support. |
 | npm | OpenSpec CLI install/update | `npm --version` | any working npm compatible with the detected Node.js | Do not auto-install separately unless package manager support is clear and user approves. |
-| OpenSpec CLI | spec motor for `chaos:propose`, `chaos:apply`, `chaos:archive`, validation/status | `openspec --version` | installed and callable | May auto-install with `npm install -g @fission-ai/openspec@latest` only after Node/npm pass and the user explicitly approves. |
+| OpenSpec CLI | spec engine invoked by `chaos:run` when the spec gate owes a change | `openspec --version` | installed and callable | May auto-install with `npm install -g @fission-ai/openspec@latest` only after Node/npm pass and the user explicitly approves. |
 
 ## Optional tools
 
@@ -51,7 +51,7 @@ After the spec-engine CLI check passes, `chaos:init` ensures the project exists:
 4. Record the outcome (created / already-present / deferred / skipped) in `.chaos/bootstrap-report.md`.
 
 This closes the biggest first-run gap: a fresh clone (or a freshly hand-copied tooling install)
-that has the CLI but no project, so the first `chaos:propose` has nothing to wrap. `chaos:doctor`'s
+that has the CLI but no project, so the first spec-gated `chaos:run` has nothing to wrap. `chaos:doctor`'s
 `CD-RT-07` is only the **safety net** that flags the gap when `chaos:init` was skipped.
 
 ## Preflight modes
@@ -82,7 +82,7 @@ Allowed choices:
 
 - Run preflight as an explicit first section.
 - Ask tool remediation questions one by one.
-- Record answers in `.chaos/bootstrap-report.md` for `chaos:init` or `.chaos/status-report.md` for `chaos:status`.
+- Record answers in `.chaos/bootstrap-report.md`.
 
 ### `--install-missing-tools`
 
@@ -108,14 +108,10 @@ Even with this flag:
 
 Also record any installation/remediation questions in `Questions asked and user answers`.
 
-### For `chaos:status`
+### For `chaos:doctor`
 
-`.chaos/status-report.md` must include:
-
-- toolchain preflight in Status Summary;
-- check results for required tools;
-- remediation prompts for missing/invalid tools;
-- machine-readable summary fields for toolchain readiness.
+The doctor report must include the toolchain check results for required tools and
+remediation prompts for missing/invalid ones.
 
 ## Safety rules
 
@@ -124,5 +120,5 @@ Also record any installation/remediation questions in `Questions asked and user 
 - Never invent installation commands for unknown operating systems.
 - Prefer official installation guidance or tool-reported instructions.
 - If the command cannot inspect the local environment, mark tool status as `UNKNOWN`, not `PASS`.
-- Missing OpenSpec does not necessarily block `chaos:init`, but it blocks OpenSpec-dependent commands from being marked ready.
-- Missing OpenSpec should make `chaos:status` report `NEEDS_ATTENTION` unless the project explicitly does not use OpenSpec.
+- Missing OpenSpec does not necessarily block `chaos:init`, but it blocks the spec-gated path of `chaos:run` from being marked ready.
+- Missing OpenSpec should make `chaos:doctor` report `NEEDS_ATTENTION` unless the project explicitly does not use OpenSpec.

@@ -118,7 +118,7 @@ export function nowPlusHours(hours: number): Date {
 
 /** Seed a pending decision; returns { runId, decisionId }. */
 export function seedPendingDecision(env: DiagEnv, changeId = "c1") {
-  const begin = env.runtime.beginCommand({ sourceCommand: "chaos:apply", changeId });
+  const begin = env.runtime.beginCommand({ sourceCommand: "chaos:run", changeId });
   const dec = env.runtime.createDecision({
     commandRunId: begin.commandRunId!,
     title: "Choose",

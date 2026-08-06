@@ -12,6 +12,7 @@ import { getDecisionResponseTool } from "../src/tools/getDecisionResponse.ts";
 import { answerDecisionTool } from "../src/tools/answerDecision.ts";
 import { markDecisionConsumedTool } from "../src/tools/markDecisionConsumed.ts";
 import { createResumeCapsuleTool } from "../src/tools/createResumeCapsule.ts";
+import { resumeCommandTool } from "../src/tools/resumeCommand.ts";
 import { getResumeCapsuleTool } from "../src/tools/getResumeCapsule.ts";
 import { completeCommandTool } from "../src/tools/completeCommand.ts";
 import { cancelCommandTool } from "../src/tools/cancelCommand.ts";
@@ -27,6 +28,7 @@ const REQUIRED_TOOLS = [
   "chaos_create_resume_capsule",
   "chaos_get_resume_capsule",
   "chaos_find_resume_candidates",
+  "chaos_resume_command",
   "chaos_complete_command",
   "chaos_cancel_command",
   "chaos_list_locks",
@@ -41,7 +43,7 @@ test("1. registry includes all required tools", () => {
 test("2. begin_command returns READY for a new change", () => {
   const t = makeCtx();
   try {
-    const r = t.run(beginCommandTool, { sourceCommand: "chaos:propose", changeId: "c1" });
+    const r = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c1" });
     assert.equal(r.ok, true);
     assert.equal(r.status, "READY");
     assert.equal(r.mustStop, false);
@@ -51,7 +53,7 @@ test("2. begin_command returns READY for a new change", () => {
   }
 });
 
-function begin(t: ReturnType<typeof makeCtx>, changeId = "c1", cmd = "chaos:propose"): string {
+function begin(t: ReturnType<typeof makeCtx>, changeId = "c1", cmd = "chaos:run"): string {
   const r = t.run(beginCommandTool, { sourceCommand: cmd, changeId });
   return r.data["commandRunId"] as string;
 }
@@ -136,10 +138,10 @@ test("11. same-change conflicting command returns CONFLICTING_COMMAND_ACTIVE", (
   try {
     const runId = begin(t);
     t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
-    const apply = t.run(beginCommandTool, { sourceCommand: "chaos:apply", changeId: "c1" });
-    assert.equal(apply.status, "CONFLICTING_COMMAND_ACTIVE");
-    assert.equal(apply.mustStop, true);
-    assert.ok(apply.data["conflictingCommandRunId"]);
+    const conflicting = t.run(beginCommandTool, { sourceCommand: "chaos:init", changeId: "c1" });
+    assert.equal(conflicting.status, "CONFLICTING_COMMAND_ACTIVE");
+    assert.equal(conflicting.mustStop, true);
+    assert.ok(conflicting.data["conflictingCommandRunId"]);
   } finally {
     t.cleanup();
   }
@@ -150,7 +152,7 @@ test("12. different change command is allowed", () => {
   try {
     const runId = begin(t);
     t.run(createDecisionTool, { commandRunId: runId, title: "Pick", context: "c", options: OPTIONS });
-    const other = t.run(beginCommandTool, { sourceCommand: "chaos:apply", changeId: "c2" });
+    const other = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c2" });
     assert.equal(other.status, "READY");
     assert.equal(other.mustStop, false);
   } finally {
@@ -350,6 +352,74 @@ test("create_decision rejects an unknown interactionType", () => {
     });
     assert.equal(r.ok, false);
     assert.equal(r.status, "VALIDATION_ERROR");
+  } finally {
+    t.cleanup();
+  }
+});
+
+// --- B3 regression (2026-08-05): resumed run's second stop -------------------
+
+test("resume_command flips ready-to-resume back to running, enabling the next stop", () => {
+  const t = makeCtx();
+  try {
+    const runId = begin(t, "c-resume", "chaos:run");
+    const first = t.run(createDecisionTool, {
+      commandRunId: runId,
+      title: "First stop",
+      context: "c",
+      options: OPTIONS,
+    });
+    t.run(answerDecisionTool, {
+      decisionId: first.data["decisionId"],
+      selectedOptionId: OPTIONS[0]!.id,
+      selectedBy: "u",
+    });
+    // Without the flip, the second create_decision used to fail
+    // INVALID_STATE_TRANSITION (and, worse, persist the decision anyway).
+    const resumed = t.run(resumeCommandTool, { commandRunId: runId });
+    assert.equal(resumed.ok, true);
+    assert.equal(resumed.status, "RESUMED");
+    assert.equal(resumed.mustStop, false);
+    assert.equal(resumed.data["sessionState"], "running");
+    const second = t.run(createDecisionTool, {
+      commandRunId: runId,
+      title: "Second stop",
+      context: "c",
+      options: OPTIONS,
+    });
+    assert.equal(second.ok, true);
+    assert.equal(second.status, "WAITING_FOR_USER_DECISION");
+  } finally {
+    t.cleanup();
+  }
+});
+
+test("create_decision retry after the twin was answered returns the answer path, not a duplicate", () => {
+  const t = makeCtx();
+  try {
+    const runId = begin(t, "c-twin", "chaos:run");
+    const first = t.run(createDecisionTool, {
+      commandRunId: runId,
+      title: "Same question",
+      context: "c",
+      options: OPTIONS,
+    });
+    t.run(answerDecisionTool, {
+      decisionId: first.data["decisionId"],
+      selectedOptionId: OPTIONS[0]!.id,
+      selectedBy: "u",
+    });
+    const retry = t.run(createDecisionTool, {
+      commandRunId: runId,
+      title: "Same question",
+      context: "c",
+      options: OPTIONS,
+    });
+    assert.equal(retry.ok, true);
+    assert.equal(retry.status, "ANSWERED_DECISION_EXISTS");
+    assert.equal(retry.mustStop, false);
+    assert.equal(retry.data["decisionId"], first.data["decisionId"]);
+    assert.match(retry.message, /do not re-ask/i);
   } finally {
     t.cleanup();
   }

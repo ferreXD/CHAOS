@@ -25,7 +25,7 @@ test("4. mock reaches a decision wait and writes a waiting lease", async () => {
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await stepToWait(loop);
 
@@ -43,7 +43,7 @@ test("5. runner waits for the response, then completes once answered", async () 
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await stepToWait(loop);
     assert.equal(loop.isDone(), false); // still waiting for the human
@@ -61,7 +61,7 @@ test("6. an answered decision auto-resumes the live session and consumes it", as
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     const result = await drive(loop, { onWait: () => void answerActive(env, "proceed") });
 
@@ -80,7 +80,7 @@ test("7. the auto-resume cycle limit stops the runner for manual resume", async 
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     const result = await drive(loop, { onWait: () => void answerActive(env, "proceed") });
 
@@ -100,7 +100,7 @@ test("8. an invalid response stops the runner and leaves it resumable", async ()
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     const result = await drive(loop, {
       onWait: () => {
@@ -127,7 +127,7 @@ test("9. agent process death leaves the session ready for manual resume", async 
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await stepToWait(loop); // waiting for a decision, adapter alive
     adapter.kill(); // the agent process dies
@@ -148,7 +148,7 @@ test("10. a manual stop flag stops the runner safely and resumably", async () =>
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await stepToWait(loop);
     writeStopFlag(env, runner.runnerId);
@@ -165,7 +165,7 @@ test("11. a lock on a different change does not block an unrelated runner", asyn
   const env = makeEnv();
   try {
     // Pre-lock change "A" with a pending decision owned by another run.
-    const other = env.runtimeClient.beginCommand({ sourceCommand: "chaos:apply", changeId: "A" });
+    const other = env.runtimeClient.beginCommand({ sourceCommand: "chaos:run", changeId: "A" });
     env.runtimeClient.runtime.createDecision({
       commandRunId: other.commandRunId!,
       title: "other",
@@ -175,7 +175,7 @@ test("11. a lock on a different change does not block an unrelated runner", asyn
 
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "B", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "B", adapter, adapterName: "claude" });
 
     const result = await drive(loop, { onWait: () => void answerActiveForChange(env, "B", "proceed") });
     assert.equal(result.outcome, "COMPLETED");
@@ -187,7 +187,7 @@ test("11. a lock on a different change does not block an unrelated runner", asyn
 test("12. a same-change lock conflict blocks the unsafe runner (adapter never starts)", async () => {
   const env = makeEnv();
   try {
-    const owner = env.runtimeClient.beginCommand({ sourceCommand: "chaos:apply", changeId: "locked" });
+    const owner = env.runtimeClient.beginCommand({ sourceCommand: "chaos:run", changeId: "locked" });
     env.runtimeClient.runtime.createDecision({
       commandRunId: owner.commandRunId!,
       title: "owner",
@@ -198,7 +198,7 @@ test("12. a same-change lock conflict blocks the unsafe runner (adapter never st
     const runner = makeRunner(env);
     // A different, incompatible command over the same locked change.
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:verify", changeId: "locked", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:init", changeId: "locked", adapter, adapterName: "claude" });
 
     const result = await drive(loop);
     assert.notEqual(result.outcome, "COMPLETED");
@@ -214,7 +214,7 @@ test("13. runner audit records the full lifecycle", async () => {
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await drive(loop, { onWait: () => void answerActive(env, "proceed") });
 
@@ -240,7 +240,7 @@ test("14. runner does not consume a decision without an acknowledgement", async 
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }], { supportsAck: false });
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     const result = await drive(loop, { onWait: () => void answerActive(env, "proceed") });
 
@@ -259,7 +259,7 @@ test("15. the resume message references the capsule path, not large bodies", asy
   try {
     const runner = makeRunner(env);
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }]);
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     await drive(loop, { onWait: () => void answerActive(env, "proceed") });
 
@@ -278,7 +278,7 @@ test("adapter-cannot-resume: process adapter without resume support falls back",
     const runner = makeRunner(env);
     // A mock that cannot be resumed (models the generic process adapter default).
     const adapter = mockAdapter(env, [DECIDE, { type: "complete" }], { supportsResume: false });
-    const loop = runner.buildLoop({ sourceCommand: "chaos:apply", changeId: "c1", adapter, adapterName: "claude" });
+    const loop = runner.buildLoop({ sourceCommand: "chaos:run", changeId: "c1", adapter, adapterName: "claude" });
 
     const result = await drive(loop, { onWait: () => void answerActive(env, "proceed") });
     assert.equal(result.outcome, "READY_FOR_MANUAL_RESUME");

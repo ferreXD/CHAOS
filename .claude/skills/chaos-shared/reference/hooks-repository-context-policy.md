@@ -24,7 +24,7 @@ go through the resolver/adapters. Hooks remain read-only and least-privilege by 
 - **PostToolUse** — may record touched files (feeding `workingTree.changedFiles`) for audit
   trails and report enrichment.
 - **Stop** — may validate that expected report artifacts were produced (e.g. a
-  change-scoped report under `.chaos/changes/<change-id>/`, or a doctor report under
+  decision record under `.chaos/decisions/`, or a doctor report under
   `.chaos/doctor/`).
 
 ## Constraints

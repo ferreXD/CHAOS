@@ -23,10 +23,9 @@ intent. All critical behaviours must be explicit, gated, and auditable.
    checklists, not implied intent. Each command carries a compact, mechanical checklist
    the model can follow step by step.
 
-3. **OpenSpec must be invoked, not replaced.** OpenSpec-backed commands (especially
-   `chaos:propose`) must invoke OpenSpec instead of manually replacing it, unless degraded
-   mode is explicitly approved by the user and recorded. See
-   `chaos-propose/reference/openspec-integration-contract.md`.
+3. **OpenSpec must be invoked, not replaced.** When the spec gate says a `chaos:run`
+   change owes an OpenSpec change, invoke OpenSpec instead of manually replacing it,
+   unless degraded mode is explicitly approved by the user and recorded.
 
 4. **Material decisions require explicit user confirmation.** A material decision is one
    that changes scope, risk, governance, source-of-truth artifacts, protected files, or
@@ -54,15 +53,13 @@ intent. All critical behaviours must be explicit, gated, and auditable.
 11. **No silent inferred decisions.** Inferred decisions must not be silently applied. If
     a decision is material, surface it via the interactive decision protocol and stop.
 
-## Mode inference robustness
+## Spec-gate robustness
 
-When a command infers `light | standard | strict` mode:
+When `chaos:run` evaluates the spec gate:
 
-- Show the inferred mode and the reasons.
-- Ask only when the inferred mode materially changes risk, or when strict would block.
-- Allow a downgrade only with explicit rationale, and record the rationale.
-- Do not silently downgrade strict to standard/light.
-- Do not silently upgrade to strict and then block without explaining why.
+- Show the size estimate and the gate result (owed / optional) at the stop.
+- Never silently skip an owed OpenSpec change; the human can flip the gate either way at
+  the stop, and the flip is recorded in the decision record.
 
 ## Config awareness robustness
 
@@ -71,31 +68,24 @@ Every command must:
 - Read `.chaos/config.yaml` if present, before discovering sources or planning writes.
 - Use configured paths before defaults.
 - Report config status when relevant.
-- Not edit config unless the command contract explicitly allows it (`chaos:init`,
-  `chaos:sync`, and confirmed `chaos:status` remediation only).
-- Route config drift remediation to `chaos:status` or `chaos:sync` as appropriate.
+- Not edit config unless the command contract explicitly allows it (`chaos:init` only).
+- Route config drift remediation to `chaos:init` (re-run over the existing workspace) and
+  surface it via `chaos:doctor`.
 
-If config is missing:
+If config is missing: infer defaults, warn, and recommend `chaos:init` repair; when the
+missing config affects safety, ask whether to continue with inferred paths and stop after
+asking.
 
-- `--light`: infer defaults and warn.
-- `--standard`: infer defaults, warn, and recommend `chaos:status` / `chaos:init` repair.
-- `--strict`: ask whether to continue with inferred paths or stop when config affects
-  safety. Stop after asking.
-
-## What "hardened" means (audited by chaos:status)
+## What "hardened" means
 
 A command is considered hardened when it declares, near the top of its wrapper:
 
 - a reference to this model robustness policy;
 - a reference to the interactive decision protocol;
-- (for `chaos:propose`) the hard OpenSpec invocation gate;
-- the change-scoped output layout for change-scoped commands;
-- the sync role boundaries (for `chaos:sync`);
+- (for `chaos:run`) the spec gate and the mandatory pre-code stop;
+- the decision-record output location (`.chaos/decisions/`);
 - date-prefixed physical artifact naming;
 - the stop-after-decision requirement.
-
-`chaos:status` reports missing items as workflow drift. `chaos:sync` can reconcile them
-with patch preview and confirmation.
 
 ## Related
 

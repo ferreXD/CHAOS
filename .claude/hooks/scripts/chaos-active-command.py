@@ -77,7 +77,7 @@ _CHAOS_TOKEN_RE = re.compile(r"\bchaos:([a-zA-Z][a-zA-Z-]*)\b")
 _SLASH_TOKEN_RE = re.compile(r"/chaos-([a-zA-Z][a-zA-Z-]*)\b")
 _MODE_RE = re.compile(r"--(light|standard|strict)\b", re.IGNORECASE)
 _CHANGE_FLAG_RE = re.compile(r"--change[= ]([A-Za-z0-9._-]+)")
-_CHANGE_PATH_RE = re.compile(r"(?:\.chaos/changes|openspec/changes)/([A-Za-z0-9._-]+)")
+_CHANGE_PATH_RE = re.compile(r"openspec/changes/([A-Za-z0-9._-]+)")
 
 
 def _extract_prompt_text(payload: Dict[str, Any]) -> str:

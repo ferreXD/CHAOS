@@ -5,7 +5,7 @@
  * Development/validation only — NOT required for normal CHAOS use.
  *
  * Examples:
- *   node src/cli/chaos-interaction-runtime.ts begin-command --command chaos:propose --change request-context-middleware
+ *   node src/cli/chaos-interaction-runtime.ts begin-command --command chaos:run --change request-context-middleware
  *   node src/cli/chaos-interaction-runtime.ts create-decision --run <runId> --title "Choose execution profile" \
  *        --option full-strict --option strict-risk-compact --recommended strict-risk-compact
  *   node src/cli/chaos-interaction-runtime.ts create-decision --run <runId> --title "Provide the value" \
@@ -90,8 +90,8 @@ function main(): number {
     process.stdout.write(
       "Usage: chaos-interaction-runtime <command> [flags]\n" +
         "Commands: begin-command, create-decision, answer-decision, get-active-decision,\n" +
-        "          get-response, mark-consumed, complete-command, cancel-command,\n" +
-        "          list-locks, create-capsule\n",
+        "          get-response, mark-consumed, resume-command, complete-command,\n" +
+        "          cancel-command, list-locks, create-capsule\n",
     );
     return command ? 0 : 1;
   }
@@ -164,6 +164,10 @@ function main(): number {
     }
     case "mark-consumed": {
       print(runtime.markDecisionConsumed(req(one(args, "decision"), "--decision")));
+      return 0;
+    }
+    case "resume-command": {
+      print(runtime.resumeCommand(req(one(args, "run"), "--run")));
       return 0;
     }
     case "complete-command": {

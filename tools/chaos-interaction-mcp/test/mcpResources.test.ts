@@ -12,7 +12,7 @@ import { decisionResource } from "../src/resources/decisionResource.ts";
 import { capsuleResource } from "../src/resources/capsuleResource.ts";
 
 function seed(t: ReturnType<typeof makeCtx>) {
-  const runId = t.run(beginCommandTool, { sourceCommand: "chaos:propose", changeId: "c1" }).data[
+  const runId = t.run(beginCommandTool, { sourceCommand: "chaos:run", changeId: "c1" }).data[
     "commandRunId"
   ] as string;
   const decisionId = t.run(createDecisionTool, {

@@ -63,7 +63,7 @@ function runSolo(rt: InteractionRuntime, cfg: WorkerConfig): void {
 
   if (hotAt === "begin") say("HOT");
   say("STEP begin");
-  rt.beginCommand({ sourceCommand: "chaos:apply", changeId: cfg.changeId, commandRunId: cfg.runId });
+  rt.beginCommand({ sourceCommand: "chaos:run", changeId: cfg.changeId, commandRunId: cfg.runId });
   say("DONE begin");
 
   if (hotAt === "decision") say("HOT");

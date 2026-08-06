@@ -39,14 +39,15 @@ test("19/20. stdio server starts, lists tools, runs a decision flow, serves reso
     ]) {
       assert.ok(names.includes(required), `missing tool ${required}`);
     }
-    assert.equal(names.length, 13);
+    assert.equal(names.length, 14);
     assert.ok(names.includes("chaos_find_resume_candidates"));
+    assert.ok(names.includes("chaos_resume_command"));
 
     // begin -> create-decision (mustStop) -> answer -> response ANSWERED.
     const begin = textOf(
       await client.callTool({
         name: "chaos_begin_command",
-        arguments: { sourceCommand: "chaos:propose", changeId: "smoke" },
+        arguments: { sourceCommand: "chaos:run", changeId: "smoke" },
       }),
     );
     assert.equal(begin.status, "READY");

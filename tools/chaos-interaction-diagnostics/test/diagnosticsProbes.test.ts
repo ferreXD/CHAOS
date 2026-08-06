@@ -106,7 +106,7 @@ test("7. aged lock is detected as stale", () => {
 test("8. completed session with a lingering lock is detected", () => {
   const env = makeEnv();
   try {
-    const begin = env.runtime.beginCommand({ sourceCommand: "chaos:apply", changeId: "c1" });
+    const begin = env.runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     env.runtime.completeCommand(begin.commandRunId!);
     // Manually re-introduce an active lock owned by the completed session.
     const locksPath = env.runtime.paths.locks();
@@ -121,7 +121,7 @@ test("8. completed session with a lingering lock is detected", () => {
               lockId: "LOCK-lingering",
               changeId: "c1",
               lockedByCommandRunId: begin.commandRunId,
-              lockedByCommand: "chaos:apply",
+              lockedByCommand: "chaos:run",
               reason: "waiting-for-user-decision",
               state: "active",
               blockingDecisionIds: [],
@@ -183,7 +183,7 @@ test("11. expired runner lease is detected", () => {
       runnerId: "RUNNER-dead",
       commandRunId: runId,
       changeId: "c1",
-      sourceCommand: "chaos:apply",
+      sourceCommand: "chaos:run",
       processId: 999,
       state: "running",
       startedAt: "2026-07-07T09:00:00.000Z",

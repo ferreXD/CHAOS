@@ -110,11 +110,11 @@ behind one seam (`src/runner/streamJson.ts`).
 ```bash
 # Live auto-resume via a headless Claude Code session (requires the autoResume flag):
 node src/cli/chaos-interaction-runner.ts run --session-adapter claude-code \
-  --command "chaos:propose request-context-middleware" --change request-context-middleware
+  --command "chaos:run request-context-middleware" --change request-context-middleware
 
 # Run a configured generic agent command under runner control:
 node src/cli/chaos-interaction-runner.ts run \
-  --command "chaos:apply request-context-middleware" --change request-context-middleware
+  --command "chaos:run request-context-middleware" --change request-context-middleware
 
 # Self-contained mock demo (auto-answers decisions like the Decision Center would):
 node src/cli/chaos-interaction-runner.ts run-mock --scenario pending-decision-then-answer

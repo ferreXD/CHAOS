@@ -94,7 +94,7 @@ repositoryContext:
   `owner`/`maintainer` (see `repository-context-resolution-policy.md`).
 - **reviewRequest.providerType** — `pull-request` for GitHub/Azure DevOps PRs; `changeset`
   reserved for other changeset models; `unknown` when none is resolvable.
-- **authority** — the posture that gates repo-wide operations (notably `chaos:sync --all`).
+- **authority** — the posture that gates repo-wide maintainer-only operations.
   `repoWideSyncAllowed` is `unknown` whenever provider authority cannot be proven.
 - **resolution.fallbackLevel** — the *highest* source actually used: `mcp` > `cli` > `git` >
   `manual` > `none`. `missingCapabilities` lists provider capabilities a command wanted but

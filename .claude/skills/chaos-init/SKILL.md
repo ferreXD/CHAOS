@@ -148,9 +148,8 @@ declare non-secret intent only (`mcp-security-policy.md`).
 
 If config values are inferred, defaulted, or provided by the user, record that provenance in `.chaos/bootstrap-report.md`.
 
-## Todo backlog defaults
+## Spec-gate defaults
 
-`chaos:init` seeds `.chaos/config.yaml` with the `chaos:todo` path/policy defaults
-(`paths.todo`/`todoItems`/`todoViews`, `policies.todo.*`) from `reference/config-contract.md` so
-`chaos:todo` works out of the box. `chaos:init` does not create `.chaos/todo/` itself — that
-workspace is created lazily by the first `chaos:todo` run.
+`chaos:init` seeds `.chaos/config.yaml` with the `specGate` defaults from
+`reference/config-contract.md` (files 5 / loc 250 / `crossingsAlwaysOwe: true`) so the first
+`chaos:run` can evaluate the gate without asking.

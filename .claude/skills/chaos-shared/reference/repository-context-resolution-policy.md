@@ -76,7 +76,7 @@ These populate `repository`, `branch`, `user` (identity only), and `workingTree`
 
 ## Authority & repo-wide sync gating
 
-`authority.repoWideSyncAllowed` gates `chaos:sync --all` and other repository-wide writes.
+`authority.repoWideSyncAllowed` gates repository-wide maintainer-only writes.
 Posture maps to mode as follows:
 
 - **strict** — repo-wide sync **blocks** if provider context is unavailable and authority

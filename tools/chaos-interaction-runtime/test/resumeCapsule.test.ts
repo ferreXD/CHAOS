@@ -9,7 +9,7 @@ test("10. a resume capsule is created when all blocking decisions are answered",
   const { runtime, root, cleanup } = makeRuntime();
   try {
     const begin = runtime.beginCommand({
-      sourceCommand: "chaos:propose",
+      sourceCommand: "chaos:run",
       changeId: "request-context-middleware",
       adapter: "claude",
       requestedMode: "strict",
@@ -50,7 +50,7 @@ test("10. a resume capsule is created when all blocking decisions are answered",
 test("createResumeCapsule is idempotent and preserves createdAt while updating updatedAt", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const first = runtime.createResumeCapsule(begin.commandRunId!, {
       intent: "Prepare compact strict-risk proposal.",
       nextStep: "continue",
@@ -74,7 +74,7 @@ test("createResumeCapsule is idempotent and preserves createdAt while updating u
 test("multiple pending decisions keep the session waiting until all are answered", () => {
   const { runtime, cleanup } = makeRuntime();
   try {
-    const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "c1" });
+    const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "c1" });
     const d1 = runtime.createDecision({
       commandRunId: begin.commandRunId!,
       title: "First",

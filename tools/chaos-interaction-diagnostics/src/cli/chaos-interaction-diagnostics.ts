@@ -2,7 +2,7 @@
 /**
  * CLI for the CHAOS Interaction Diagnostics package (Iteration 7).
  *
- * Read-only. Usable by `chaos:doctor` and `chaos:status`.
+ * Read-only. Usable by `chaos:doctor`.
  *
  *   doctor   Markdown "Interaction Runtime" doctor report/section.
  *   status   Compact Interaction Runtime status block.

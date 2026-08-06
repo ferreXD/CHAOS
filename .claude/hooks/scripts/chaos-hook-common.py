@@ -63,21 +63,13 @@ DECISION_WAIT_PATTERNS = [
     re.compile(r"^\s*STOP\s*$", re.MULTILINE),
 ]
 
+# The lean-core command surface (matches .claude/hooks/scripts/chaos-active-command.py).
 CHAOS_COMMANDS = (
     "chaos:init",
     "chaos:help",
-    "chaos:status",
     "chaos:doctor",
-    "chaos:archaeology",
-    "chaos:archeology",
-    "chaos:propose",
-    "chaos:review",
-    "chaos:apply",
-    "chaos:code-review",
-    "chaos:verify",
-    "chaos:archive",
-    "chaos:sync",
-    "chaos:retro",
+    "chaos:run",
+    "chaos:resume",
 )
 
 

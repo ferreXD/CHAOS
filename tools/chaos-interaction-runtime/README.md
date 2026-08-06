@@ -99,7 +99,7 @@ Development/validation only — **not** required for normal CHAOS use.
 ```bash
 # Zero-build (runs the TypeScript source directly):
 node src/cli/chaos-interaction-runtime.ts begin-command \
-  --command chaos:propose --change request-context-middleware
+  --command chaos:run --change request-context-middleware
 
 node src/cli/chaos-interaction-runtime.ts create-decision \
   --run <runId> --title "Choose execution profile" \
@@ -138,7 +138,7 @@ Global flags: `--root <dir>` (default `.chaos/interactions`),
 import { InteractionRuntime } from "@chaos/interaction-runtime";
 
 const runtime = new InteractionRuntime({ root: ".chaos/interactions" });
-const begin = runtime.beginCommand({ sourceCommand: "chaos:propose", changeId: "my-change" });
+const begin = runtime.beginCommand({ sourceCommand: "chaos:run", changeId: "my-change" });
 const dec = runtime.createDecision({
   commandRunId: begin.commandRunId!,
   title: "Choose execution profile",
@@ -194,7 +194,7 @@ Implemented per [`session-locking-policy.md`](../../.chaos/interactions/contract
 - Locks are scoped to `changeId`. A pending material decision acquires the lock.
 - Conflicting commands over the same change → `CONFLICTING_COMMAND_ACTIVE`.
 - Same command re-invoked over the same change → `BLOCKED_BY_PENDING_DECISION` (focus existing).
-- Compatible commands (`chaos:status`, `chaos:doctor`, `chaos:help`, `chaos:resume`, `chaos:todo --dry-run`) and different changes → allowed.
+- Compatible commands (`chaos:doctor`, `chaos:help`, `chaos:resume`) and different changes → allowed.
 - Locks are **not** released merely because a decision was answered; they release on complete/cancel.
 
 ## Schema validation
