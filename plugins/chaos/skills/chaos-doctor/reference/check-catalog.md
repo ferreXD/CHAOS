@@ -14,6 +14,7 @@ Read-only; honour `mcp-security-policy.md` (least privilege, no secrets, redact)
 | CD-RT-05 | Configured test command resolvable (`validation.test`) | WARN |
 | CD-RT-06 | Node `>= 20.19.0`, npm present (OpenSpec compatibility) | WARN |
 | CD-RT-07 | Spec-engine **project** initialized — `toolchain.<specEngine>.projectMarker` dir (default `openspec/`) exists | WARN **safety-net**: `chaos:init` scaffolds this automatically (it runs `toolchain.<specEngine>.initCommand`), so this only fires when init was skipped — e.g. tooling copied by hand into a repo. Remediation: run `chaos:init`, or the engine's `initCommand` (`openspec init`) directly. FAIL → NOT_READY only if an OpenSpec-dependent write flow (e.g. the `chaos:run` spec gate) runs against a repo with no project. Distinct from CD-RT-03 (CLI presence): a fresh clone has the CLI but no project. |
+| CD-RT-08 | Machinery version drift — `machineryVersion` in `.chaos/config.yaml` matches the installed machinery (plugin: `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` version; checkout: `node scripts/set-version.mjs --check`) | WARN on mismatch (remediation: re-run `chaos:init` to migrate the workspace); UNKNOWN when the field or the machinery version cannot be resolved (pre-0.2.0 workspaces) |
 
 ## Repository / provider context (`CD-REPO-*`)
 

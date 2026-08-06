@@ -1,0 +1,88 @@
+# Release: one command from a tag. `git tag vX.Y.Z && git push origin vX.Y.Z`
+# builds all three artifacts, publishes wherever a token is configured, and
+# attaches the rest to a GitHub Release. Publish steps are skipped (not failed)
+# when their token secret is absent, so the workflow is usable before the
+# npm/Marketplace/OpenVSX accounts exist.
+#
+# Secrets (all optional): NPM_TOKEN, VSCE_PAT, OVSX_PAT.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Tag matches the stamped lockstep version
+        run: |
+          VERSION="$(node scripts/set-version.mjs --check)"
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match stamped version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Plugin in sync with .claude/
+        run: node scripts/build-plugin.mjs --check
+
+      # --- Artifact B: npm package ---
+      - name: Build + verify MCP package
+        working-directory: tools/chaos-interaction-mcp
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run bundle
+          npm run smoke:bundle
+          npm pack
+
+      - name: Publish to npm
+        working-directory: tools/chaos-interaction-mcp
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: env.NODE_AUTH_TOKEN != ''
+        run: npm publish
+
+      # --- Artifact C: VS Code extension ---
+      - name: Build + verify extension
+        working-directory: extensions/chaos-decision-center
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run package
+
+      - name: Publish to VS Code Marketplace
+        working-directory: extensions/chaos-decision-center
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: env.VSCE_PAT != ''
+        run: npx vsce publish --no-dependencies -p "$VSCE_PAT"
+
+      - name: Publish to OpenVSX
+        working-directory: extensions/chaos-decision-center
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        if: env.OVSX_PAT != ''
+        run: npx ovsx publish --no-dependencies -p "$OVSX_PAT"
+
+      # --- Artifact A ships via the git repo itself (plugin marketplace). ---
+      - name: GitHub Release with artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "CHAOS $GITHUB_REF_NAME" \
+            --generate-notes \
+            tools/chaos-interaction-mcp/*.tgz \
+            extensions/chaos-decision-center/*.vsix

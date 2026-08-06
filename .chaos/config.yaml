@@ -1,5 +1,10 @@
 version: 0.1
 
+# Lockstep version of the CHAOS machinery (plugin / npm MCP package / Decision Center)
+# this workspace was initialized or last migrated against. chaos:doctor warns when the
+# installed machinery version drifts from this; re-running chaos:init is the migration.
+machineryVersion: "0.2.0"
+
 # Repository-conventions file for the lean CHAOS core (2026-08, tag `apparatus-final` holds
 # the retired full-lifecycle era). Conventions only: where things live, which tools exist,
 # and the non-secret policy switches the hooks/diagnostics read. Never a second source of

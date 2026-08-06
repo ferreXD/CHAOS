@@ -1,6 +1,6 @@
-# Real CI (EA-S3): runs tests + typecheck for the five Node packages and
-# `dotnet test` for the C# task-tracker example, so a broken package turns CI red.
-# Claude/Copilot surface parity is enforced separately by parity-check.yml.
+# CI: tests + typecheck for the five Node packages across the three OSes,
+# `dotnet test` for the C# task-tracker example, and the distribution checks
+# (plugin sync, version lockstep, cold-start bundle smoke).
 name: CI
 
 on:
@@ -18,14 +18,15 @@ concurrency:
 
 jobs:
   node:
-    name: node (${{ matrix.package }})
-    runs-on: ubuntu-latest
+    name: node (${{ matrix.package }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # The five CHAOS Interaction Runtime packages. Each is self-contained:
-        # `npm ci` in its own directory is enough (consumers import the runtime's
-        # TypeScript source directly, which a full checkout provides).
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # The five CHAOS packages. Each is self-contained: `npm ci` in its own
+        # directory is enough (consumers import the runtime's TypeScript source
+        # directly, which a full checkout provides).
         package:
           - tools/chaos-interaction-runtime
           - tools/chaos-interaction-mcp
@@ -50,6 +51,37 @@ jobs:
       - name: Test
         working-directory: ${{ matrix.package }}
         run: npm test
+
+  distribution:
+    # The install-ladder reality check: generated plugin in sync with .claude/,
+    # one version everywhere, and the published-shape bundle boots cold on every
+    # OS (this is what `npx -y @ferrexd/chaos-interaction-mcp` will run).
+    name: distribution (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tools/chaos-interaction-mcp/package-lock.json
+      - name: Plugin in sync with .claude/
+        run: node scripts/build-plugin.mjs --check
+      - name: Version lockstep
+        run: node scripts/set-version.mjs --check
+      - name: Install (MCP package)
+        working-directory: tools/chaos-interaction-mcp
+        run: npm ci
+      - name: Bundle
+        working-directory: tools/chaos-interaction-mcp
+        run: npm run bundle
+      - name: Cold-start bundle smoke
+        working-directory: tools/chaos-interaction-mcp
+        run: npm run smoke:bundle
 
   dotnet:
     name: dotnet (task-tracker)

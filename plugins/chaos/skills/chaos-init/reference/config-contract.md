@@ -36,6 +36,12 @@ evidence, user answers, or conservative defaults, but inference status must be r
 ```yaml
 version: 0.1
 
+# Lockstep version of the CHAOS machinery (plugin / npm package / extension) this
+# workspace was initialized or last migrated against. Write the version of the machinery
+# performing the init (the plugin's .claude-plugin/plugin.json version, or the repository
+# checkout's `node scripts/set-version.mjs --check`). chaos:doctor warns on drift.
+machineryVersion: "0.2.0"
+
 project:
   name: "<repository-or-project-name>"
   type: "dotnet"                       # or node, python, ...
