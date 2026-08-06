@@ -1,13 +1,24 @@
-# CHAOS Decision Center — Iteration 3
+# CHAOS Decision Center
 
-A persistent VS Code webview that lets a human inspect pending CHAOS decisions,
-choose an answer, and write a **validated** response to the file-backed
-interaction runtime.
+A persistent VS Code webview that lets a human inspect pending
+[CHAOS](https://github.com/ferreXD/CHAOS) decisions, choose an answer, and
+write a **validated** response to the file-backed interaction runtime.
 
 > The chat thread is not the source of truth. The interaction runtime is the
 > source of truth. **The Decision Center is the human-facing UI for that runtime.**
 
-## Relationship to Iterations 1 & 2
+## Install
+
+- **VS Code Marketplace / OpenVSX**: search for `CHAOS Decision Center`
+  (publisher `ferreXD`), or
+- **`.vsix`**: download from a [CHAOS release](https://github.com/ferreXD/CHAOS/releases)
+  and install via `Extensions: Install from VSIX...` (works air-gapped).
+
+The extension is optional — CHAOS commands work without it (decisions are then
+answered in chat or via the runtime tools); the panel adds one-click answering,
+notifications, and history.
+
+## Architecture
 
 | Layer | Package | Audience |
 |---|---|---|
@@ -16,7 +27,7 @@ interaction runtime.
 | Decision Center (this) | `extensions/chaos-decision-center` | **Human-facing** |
 
 The Decision Center reads and writes the **same** `.chaos/interactions/` state as
-the MCP server. It uses the Iteration 1 runtime package directly (imported from
+the MCP server. It uses the runtime package directly (imported from
 source and compiled into the extension), so:
 
 - It does **not** require the MCP server to be running.
@@ -101,9 +112,9 @@ chaos:resume --change <changeId>
 chaos:resume --latest
 ```
 
-As of **Iteration 4** `chaos:resume` is implemented (Claude-native command at
-`.claude/commands/chaos-resume.md`). Copy an instruction from this panel and run
-it in Claude to continue the paused command from its resume capsule.
+Copy an instruction from this panel and run it in Claude (`/chaos:resume` with
+the installed plugin, `/chaos-resume` in a repository checkout) to continue the
+paused command from its resume capsule.
 
 **The Decision Center does not run the resumed command itself** — it surfaces the
 copyable instruction and the runtime state; `chaos:resume` performs the semantic
@@ -112,7 +123,7 @@ command's contract. The panel still shows the manual fallback
 (*“ask Claude to resume from capsule: `<capsule path>`”*) for environments where
 the command is unavailable.
 
-**Live auto-resume (Iteration 5).** If the command was launched through the
+**Live auto-resume (optional runner).** If the command was launched through the
 `tools/chaos-interaction-runner` live runner *and that runner is still alive*,
 answering a decision here may **auto-resume** the same live session — no manual
 `chaos:resume` needed. This only applies to runner-controlled sessions: if no
@@ -148,15 +159,8 @@ Full VS Code integration is validated manually — see
 ## Known limitations
 
 - Per-decision cancel is not offered; only **session-level** cancel (the
-  Iteration 1 runtime has `cancelCommand`, not a per-decision cancel). See the
-  PATCH-SUMMARY follow-up.
-- Capsule enumeration is an extension-side read-only adapter (Iteration 1 has no
+  runtime has `cancelCommand`, not a per-decision cancel).
+- Capsule enumeration is an extension-side read-only adapter (the runtime has no
   capsule-list API).
 - Automated tests cover the pure logic and the runtime client; the webview and
   vscode wiring are covered by the manual smoke test.
-
-## Next iteration
-
-**Iteration 4 — `chaos:resume` + resume capsules.** The resume instructions this
-panel already surfaces become an executable command; **Iteration 5** adds the
-live auto-resume runner.

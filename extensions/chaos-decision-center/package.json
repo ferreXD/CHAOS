@@ -2,10 +2,19 @@
   "name": "chaos-decision-center",
   "displayName": "CHAOS Decision Center",
   "description": "Human-facing VS Code UI for the CHAOS Interaction Runtime: inspect pending decisions and write validated responses to the file-backed runtime.",
-  "version": "0.1.0",
-  "private": true,
-  "publisher": "chaos",
+  "version": "0.2.0",
+  "publisher": "ferreXD",
   "license": "MIT",
+  "homepage": "https://github.com/ferreXD/CHAOS#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ferreXD/CHAOS.git",
+    "directory": "extensions/chaos-decision-center"
+  },
+  "bugs": {
+    "url": "https://github.com/ferreXD/CHAOS/issues"
+  },
+  "keywords": ["chaos", "decision-record", "governance", "agent", "claude"],
   "engines": {
     "vscode": "^1.90.0",
     "node": ">=22.6.0"
@@ -16,7 +25,11 @@
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --no-dependencies",
+    "publish:openvsx": "ovsx publish --no-dependencies"
   },
   "contributes": {
     "commands": [
@@ -86,6 +99,8 @@
   "devDependencies": {
     "@types/node": "^22.20.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "ovsx": "^0.10.0",
     "typescript": "^5.7.2"
   }
 }

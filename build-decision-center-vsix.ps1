@@ -1,1 +1,0 @@
-cd extensions\chaos-decision-center; npm ci; npm run build; npx @vscode/vsce package --allow-missing-repository --no-dependencies --baseContentUrl https://local.invalid --baseImagesUrl https://local.invalid
