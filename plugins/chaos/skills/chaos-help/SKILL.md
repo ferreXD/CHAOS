@@ -1,3 +1,8 @@
+---
+name: chaos-help
+description: "Explain the CHAOS lean core in-repo: the chaos:run loop (one pre-code stop, build, verify, decision record), chaos:resume, chaos:init, chaos:doctor, the size-gated OpenSpec rule, and where the moving parts live. Read-only; answers in chat."
+---
+
 # CHAOS Help Skill
 
 Use this skill when the user invokes `chaos:help` or asks how to use the CHAOS workflow in

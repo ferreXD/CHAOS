@@ -1,3 +1,7 @@
+---
+description: Diagnose local runtime, tooling, hooks, MCP, and repository/provider readiness — read-only
+---
+
 # /chaos-doctor
 
 Run the CHAOS Doctor — the local runtime / tooling / repository readiness diagnostic.

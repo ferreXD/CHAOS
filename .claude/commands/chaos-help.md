@@ -1,3 +1,7 @@
+---
+description: Explain the CHAOS lean core workflow — read-only, answers in chat, writes no files
+---
+
 # chaos:help
 
 Use the `chaos-help` skill to explain the CHAOS lean core: the `chaos:run` loop (one

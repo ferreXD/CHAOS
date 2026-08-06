@@ -73,6 +73,12 @@ jobs:
         run: node scripts/build-plugin.mjs --check
       - name: Version lockstep
         run: node scripts/set-version.mjs --check
+      - name: Plugin + marketplace validate (strict)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin validate plugins/chaos --strict
+          claude plugin validate . --strict
       - name: Install (MCP package)
         working-directory: tools/chaos-interaction-mcp
         run: npm ci

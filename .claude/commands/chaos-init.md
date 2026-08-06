@@ -1,3 +1,7 @@
+---
+description: One-time bootstrap — AGENTS.md plus the .chaos workspace (architecture, decisions, config)
+---
+
 # /chaos-init
 
 Run the CHAOS init workflow for this repository.
