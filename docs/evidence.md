@@ -5,23 +5,29 @@
 > real client codebase at ~1.1× the cost of not asking.**
 
 That sentence is the claim. This page is the receipts, with the caveats in the same
-table as the numbers. The full raw record — pre-registered predictions, per-run
-transcripts analysis, and the verdicts that killed most of this project's own product —
-lives under [`.chaos/validation/`](../.chaos/validation/), entry point
-[`VERDICT.md`](../.chaos/validation/2026-08-hostile-terrain/VERDICT.md).
+table as the numbers.
+
+> **One limit, stated up front.** The measurements below were taken against a private
+> production codebase. The raw record for those runs — prompts, per-run transcript
+> analysis, expected-convention sheets — is **not published**, because it would describe a
+> third party's system, and that is not mine to publish. What you get here is the numbers,
+> the method, and the caveats. Everything from the earlier public-demo series *is* in the
+> repository under [`.chaos/validation/`](../.chaos/validation/). Weigh this page
+> accordingly: on the private runs, you are trusting a summary rather than checking an
+> artifact — which is exactly why the challenge at the bottom exists.
 
 ## The headline numbers (lean core, real terrain)
 
-Three tasks on a 7-year production client codebase, each run twice from the same
+Three tasks on a large, long-lived production codebase, each run twice from the same
 baseline: plain Claude Code vs `chaos:run`. Wall-clock machine time, measured from
 session transcripts with [`tools/chaos-stopwatch`](../tools/chaos-stopwatch/)
 (human thinking/waiting time excluded from both arms).
 
 | Task | Plain | CHAOS | Multiplier | Premium | Caveat |
 |---|---:|---:|---:|---:|---|
-| B1 — duplicate scan handling | 16.4 min | 18.9 min | **1.15×** | +2.5 min | on-clause (same model, same effort) |
-| B2 — completion guard | 7.5 min | 23.1 min | **3.08×** | +15.6 min | **off-clause: governed arm accidentally ran at a higher reasoning effort — upper bound, not comparable** |
-| B3 — sorting kick-out | 17.8 min | 18.7 min | **1.05×** | +0.9 min | on-clause; spec gate self-selected optional |
+| Task 1 | 16.4 min | 18.9 min | **1.15×** | +2.5 min | on-clause (same model, same effort) |
+| Task 2 | 7.5 min | 23.1 min | **3.08×** | +15.6 min | **off-clause: governed arm accidentally ran at a higher reasoning effort — upper bound, not comparable** |
+| Task 3 | 17.8 min | 18.7 min | **1.05×** | +0.9 min | on-clause; spec gate self-selected optional |
 
 On the two clean rows the entire premium is, to the minute, the pre-code stop itself;
 the post-approval build phase was *shorter* than plain's whole run, and the governed

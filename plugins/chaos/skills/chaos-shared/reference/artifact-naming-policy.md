@@ -11,7 +11,7 @@ not sequential IDs.
 ```text
 docs/adr/2026-06-26-module-packaging-strategy.md
 docs/decision-log/2026-06-26-test-assertion-library.md
-.chaos/decisions/2026-08-06-picking-duplicate-scan.md
+.chaos/decisions/2026-08-06-rate-limit-public-endpoints.md
 docs/adr/2026-08-06-adr-completion-payload-guard.md
 ```
 

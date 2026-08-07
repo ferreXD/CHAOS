@@ -60,7 +60,7 @@ lean-core series with three evaluated rows and a review. `docs/design/` + `docs/
 
 Working tree clean; no live reference to any retired command or artifact path outside the
 dated archives; the three benchmark workspaces carry byte-identical machinery
-(`93b149eda`/`0c4c4a3`/`5862a31`). Known deliberate debt: the the client arena arena's
+(`93b149eda`/`0c4c4a3`/`5862a31`). Known deliberate debt: the client arena's
 `AGENTS.md` and decisions index remain apparatus-shaped for series comparability — the
 correction is owed before any new benchmark series. Known undone: `docs/` has no user
 guides at all since the purge; README + `chaos:help` are the only onboarding surface.

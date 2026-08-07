@@ -11,8 +11,7 @@ the current repository. Answer directly in chat — no agent, no report file.
 ## What CHAOS is (lean core, since 2026-08)
 
 CHAOS is a thin discipline around AI-driven changes, built on the three mechanisms the
-2026 validation program showed carry the value
-(`.chaos/validation/2026-08-hostile-terrain/VERDICT.md`):
+2026 validation program showed carry the value (summary and caveats: `docs/evidence.md`):
 
 1. **One pre-code stop** — every open question, doubt, assumption, and
    architecture/contract crossing folded into a single human decision, answered through
@@ -55,5 +54,4 @@ decision, prefers the Decision Center, and never silently bypasses one.
 
 The heavier lifecycle (propose/review/apply/verify/archive/sync/retro, classification
 machinery, phase records) was measured 2026-06→08 and retired: see the tag
-`apparatus-final` and `.chaos/validation/2026-08-hostile-terrain/VERDICT.md` for the full
-record and verdict.
+`apparatus-final` for the code, and `docs/evidence.md` for the numbers that retired it.

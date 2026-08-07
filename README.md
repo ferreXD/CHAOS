@@ -6,13 +6,12 @@ CHAOS is a **thin discipline** for AI-assisted changes: agents do the mechanical
 and every change passes through **one forced pre-code stop** where a human answers the
 open questions, honest verification, and a **decision record**. Nothing more.
 
-It got thin the honest way. A two-month measurement program (T-series on friendly
-terrain, then a hostile-terrain program on a real 7-year client codebase) falsified the
-heavier apparatus this repo used to carry — full lifecycle commands, classification
-machinery, per-phase artifacts — and endorsed exactly three mechanisms. The full record
-and verdict live in
-[`.chaos/validation/2026-08-hostile-terrain/VERDICT.md`](.chaos/validation/2026-08-hostile-terrain/VERDICT.md);
-the retired apparatus is one checkout away at the git tag `apparatus-final`.
+It got thin the honest way. A two-month measurement program — first on a purpose-built
+demo, then against real work on a large, long-lived production codebase — falsified the
+heavier apparatus this repo used to carry (full lifecycle commands, classification
+machinery, per-phase artifacts) and endorsed exactly three mechanisms. The numbers and
+their caveats are in [docs/evidence.md](docs/evidence.md); the retired apparatus is one
+checkout away at the git tag `apparatus-final`.
 
 > **Status: experimental / public alpha.** Opinionated, evolving, not production-proven.
 

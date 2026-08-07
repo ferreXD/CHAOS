@@ -12,9 +12,9 @@ Use this skill when the user invokes:
 /chaos:run "<change intent>"     (installed plugin)
 ```
 
-This is the distilled loop the 2026 validation program endorsed
-(`.chaos/validation/2026-08-hostile-terrain/VERDICT.md`). Its value lives in exactly three
-mechanisms, and everything here serves them:
+This is the distilled loop the 2026 validation program endorsed (numbers and caveats:
+`docs/evidence.md`). Its value lives in exactly three mechanisms, and everything here
+serves them:
 
 1. **The stop.** One forced pre-code decision, answered by the human who owns the intent.
    Every measured catch of the program (T4 graphemes, B3 label fallback, B2 posture

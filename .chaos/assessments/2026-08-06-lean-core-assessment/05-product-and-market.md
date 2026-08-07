@@ -42,7 +42,7 @@ generic stop itself.
 
 - **Now (honest):** solo/small-team maintainers running Claude Code on codebases whose
   architecture decisions outlive sessions, who will pay ~1.1× and one decision per change
-  for control and a written trail. The the client arena profile — a years-old client codebase
+  for control and a written trail. The client-arena profile — a years-old client codebase
   with recorded postures — is exactly the sweet spot the data comes from.
 - **Not for:** prototypers (the README already says so, correctly); teams needing
   multi-user review flows (no story); non-Claude shops (hard dependency); anyone allergic
