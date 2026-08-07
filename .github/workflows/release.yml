@@ -35,6 +35,24 @@ jobs:
       - name: Plugin in sync with .claude/
         run: node scripts/build-plugin.mjs --check
 
+      # A tag can be pushed more than once — a history rewrite moves every tag,
+      # and GitHub replays the workflow. The build and verification below are
+      # still worth running, but publishing is not: npm rejects a version that
+      # already exists, and the release already has its assets. Detect that case
+      # once and skip only the publish steps, so a re-pushed tag stays green.
+      - name: Already released?
+        id: released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "Release $GITHUB_REF_NAME already exists — this is a re-pushed tag."
+            echo "Building and verifying anyway; publish steps will be skipped."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # --- Artifact B: npm package ---
       - name: Build + verify MCP package
         working-directory: tools/chaos-interaction-mcp
@@ -50,7 +68,7 @@ jobs:
         working-directory: tools/chaos-interaction-mcp
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        if: env.NODE_AUTH_TOKEN != ''
+        if: env.NODE_AUTH_TOKEN != '' && steps.released.outputs.already != 'true'
         run: npm publish
 
       # --- Artifact C: VS Code extension ---
@@ -66,11 +84,12 @@ jobs:
         working-directory: extensions/chaos-decision-center
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        if: env.VSCE_PAT != ''
+        if: env.VSCE_PAT != '' && steps.released.outputs.already != 'true'
         run: npx vsce publish --no-dependencies -p "$VSCE_PAT"
 
       # --- Artifact A ships via the git repo itself (plugin marketplace). ---
       - name: GitHub Release with artifacts
+        if: steps.released.outputs.already != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
