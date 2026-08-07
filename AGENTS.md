@@ -1,53 +1,96 @@
 # AGENTS.md — Task Tracker API
 
-Agent-facing entrypoint. This repository is the demo subject for **CHAOS**: humans answer
-the material decisions, agents do the work, and every change leaves a record. Read this
-before editing anything.
+Instructions for any AI agent working in this repository. Read this before your first edit.
 
-## The subject
+This repository is governed by **CHAOS** — Controlled Human-led Agent-Orchestrated SDLC.
+The machinery is not vendored here; it installs as a Claude Code plugin. What lives in this
+repo is the app, the postures it must respect, and the record of what was decided.
 
-The **Task Tracker API** (.NET / ASP.NET Core Minimal API, `net8.0`) under
-`src/TaskTracker.Api/`, with tests in `tests/TaskTracker.Tests/`. That is the whole
-codebase — the CHAOS machinery is not vendored here; it arrives as a Claude Code plugin.
+## What this repository is
 
-## Start here
+A small, runnable ASP.NET Core Minimal API (`net8.0`) tracking tasks in an in-memory store.
+It is a real, buildable subject for governed change — not a toy to be rewritten freely.
+`dotnet test TaskTracker.sln --nologo` is the baseline, and it is expected to stay green.
 
-| Read | For |
+## Where the truth lives
+
+| Read this | For |
 |---|---|
-| [`.chaos/context.md`](.chaos/context.md) | project reality, domain, flows, constraints |
-| [`.chaos/architecture.md`](.chaos/architecture.md) | technical posture, boundaries, testing |
-| [`.chaos/decisions/index.md`](.chaos/decisions/index.md) | what was decided, and why |
-| [`docs/adr/`](docs/adr/) | accepted postures a change may not silently cross |
+| [`.chaos/context.md`](.chaos/context.md) | project reality: domain, actors, constraints, what is in and out of scope |
+| [`.chaos/architecture.md`](.chaos/architecture.md) | owner-confirmed technical posture and non-goals |
+| [`docs/adr/`](docs/adr/) | accepted architecture decisions, with their consequences and accepted risks |
+| [`.chaos/decisions/index.md`](.chaos/decisions/index.md) | one line per recorded change decision, newest first |
+| [`.chaos/bootstrap-report.md`](.chaos/bootstrap-report.md) | how this workspace was generated, and what is still assumed or unknown |
+| [`.chaos/config.yaml`](.chaos/config.yaml) | repository conventions: paths, toolchain, validation commands, protected files |
 
-## Minimum pre-edit behavior
+**`.chaos/architecture.md` and `docs/adr/` are the crossing sources.** Contradicting either
+one is not a coding decision — it is a decision that must be surfaced to a human before code
+is written, and the crossed record must be amended in the same change.
 
-1. **Stop before code.** Every non-trivial change goes through `chaos:run`: read the
-   terrain, fold every open question, doubt, and crossing into **one** decision, and wait
-   for the human. Never settle a material decision in chat on your own.
-2. **Respect the recorded postures.** `.chaos/architecture.md` and `docs/adr/` say what
-   must be true. Contradicting one is a *crossing*: surface it at the stop with real
-   alternatives, and if the human approves it, amend the crossed record in the same change.
-3. **Keep the baseline green.** `dotnet build TaskTracker.sln` and
-   `dotnet test TaskTracker.sln` must pass. Paste real results — never tick what you did
-   not run; record what you could not verify as a limit with its reason.
-4. **Keep the domain→HTTP boundary.** Domain types stay in `Domain/`; HTTP shapes stay in
-   `Contracts/`; endpoints translate between them.
-5. **Leave the record.** One page per change under `.chaos/decisions/`, plus a line in
-   its index. That record is the asset — it is what lets a future stop catch a change that
-   contradicts this one.
+## Before you edit anything
 
-## Conventions worth knowing before you propose anything
+1. **Read the terrain, targeted.** The files the change actually touches, plus the crossing
+   sources above and the decision index. Not the whole repository; not nothing.
+2. **Check whether the repository already decided it.** If a recorded decision or ADR answers
+   an open question, follow it and cite it — do not re-ask a question the repo has answered,
+   and do not quietly ship a different answer.
+3. **Ask hard.** Surface uncertainty at the stop rather than resolving it silently. A question
+   you cannot settle from the codebase — a semantic choice, a trade-off, an authority gap — is
+   the human's, and guessing it is the failure this repository exists to make visible.
 
-- `TaskState` is the task status type's name (not `TaskStatus`, which collides with the
-  BCL type). Keep it.
-- Filter values are parsed **case-insensitively**, and an unrecognized value is a
-  **400** — never a silent ignore, never an empty list. This was a recorded human
-  decision; see [`.chaos/decisions/index.md`](.chaos/decisions/index.md).
-- Spec gate: an estimated ≥5 files or ≥250 LOC, or any crossing, owes an OpenSpec change
-  under `openspec/changes/<id>/`. Smaller work is optional and the human can flip it at
-  the stop.
+## How material change flows
+
+Material change goes through **`chaos:run`**, which is one loop:
+
+- **Stop once, before code.** Every open question and every crossing folded into a single
+  decision, with the plan, the size estimate, and the spec-gate result. One stop — not a
+  drip of confirmations, and not zero.
+- **Build** exactly what was approved. Scope drift that changes capability earns a new
+  decision; helper work finishing the approved change does not.
+- **Verify honestly.** Run the real `dotnet build` / `dotnet test` and paste the real output.
+  Anything you could not verify is recorded as a **limit with a reason**, never as a pass.
+- **Record.** Write `.chaos/decisions/<date>-<slug>.md` and add a line to the index: verbatim
+  intent, estimate versus actuals, questions asked and answered, what was *not* asked and
+  why, what shipped, real check results, deviations.
+
+`chaos:resume` continues an interrupted run from its capsule and the answered decision —
+never from chat memory. `chaos:doctor` checks local readiness. `chaos:init` is one-time.
+
+The **spec gate** (thresholds in `.chaos/config.yaml`) decides when a change owes an OpenSpec
+change under [`openspec/`](openspec/): at or above 5 files or 250 LOC, or on any architecture
+or contract crossing regardless of size.
 
 ## Protected files
 
-`AGENTS.md` and root `README.md` are protected: propose a patch with a preview and get
-explicit confirmation; never edit them silently.
+`AGENTS.md` and root `README.md` are protected: propose a patch and get explicit confirmation.
+Never edit them silently.
+
+Never commit credentials. `Auth:SigningKey`, `Auth:Issuer`, and `Auth:Audience` are supplied
+from outside the repository, and the app is designed to refuse to start without them — keep it
+that way.
+
+## Confidence and knowledge classification doctrine
+
+Every judgement, recommendation, verification, or review finding must separate what is known
+from what is inferred. Label every material finding as exactly one of:
+
+- **`FACT`** — directly supported by inspected evidence, tool output, or explicit human confirmation.
+- **`INFERENCE`** — reasoned from available evidence, but not directly proven.
+- **`ASSUMPTION`** — accepted temporarily because evidence is incomplete.
+- **`UNKNOWN`** — material information is missing or could not be inspected.
+- **`CONFLICT`** — two or more sources disagree or imply incompatible positions.
+
+Every material finding and every final verdict carries a confidence level — **`HIGH`**,
+**`MEDIUM`**, or **`LOW`** — and every final verdict additionally carries `evidence_coverage`
+(`COMPLETE` / `PARTIAL` / `WEAK`) and `assumption_load` (`LOW` / `MEDIUM` / `HIGH`).
+
+Hard rules, no exceptions:
+
+- No confidence-less verdicts.
+- No unlabeled assumptions.
+- No inference disguised as fact.
+- No silent resolution of conflicts.
+- Missing evidence must reduce confidence or block the relevant gate.
+- A low-confidence positive verdict is conditional, not clean approval.
+
+"The tests pass" is a claim about output you actually ran. If you did not run it, say so.

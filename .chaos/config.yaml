@@ -1,12 +1,17 @@
 version: 0.1
 
-# Lockstep version of the CHAOS machinery this workspace was initialized/migrated against.
-# The machinery itself is NOT vendored here — it is installed as a Claude Code plugin.
+# Lockstep version of the CHAOS machinery this workspace was initialized against.
+# Read from the installed plugin's .claude-plugin/plugin.json. The machinery is NOT
+# vendored in this repository — it installs as a Claude Code plugin. chaos:doctor warns
+# when this drifts from the installed version.
 machineryVersion: "0.2.0"
 
-# Repository conventions for the Task Tracker demo. Conventions only: where things live,
-# which tools exist, and the non-secret policy switches. Never a second source of
-# architectural truth (that lives in .chaos/architecture.md and docs/adr/).
+# Repository conventions for the Task Tracker demo API.
+#
+# Conventions only: where things live, which tools must exist, which commands validate the
+# repository, and the non-secret policy switches. This file is deliberately NOT a second
+# source of architectural truth — postures live in .chaos/architecture.md and docs/adr/,
+# and what actually happened lives in .chaos/decisions/.
 
 project:
   name: "TaskTracker"
@@ -18,7 +23,7 @@ paths:
   chaos: .chaos
   openspec: openspec
   adrs: docs/adr
-  # One decision record per chaos:run change (plus index.md).
+  # One decision record per chaos:run change, plus index.md.
   decisions: .chaos/decisions
 
 toolchain:
@@ -27,15 +32,23 @@ toolchain:
     command: git --version
 
   dotnet:
+    # The solution targets net8.0 (src/TaskTracker.Api, tests/TaskTracker.Tests) and CI
+    # pins 8.0.x. A newer SDK builds it fine; older than 8.0 does not.
     required: true
     minimumVersion: "8.0.0"
     command: dotnet --version
 
   node:
-    # Only needed for the CHAOS interaction runtime, which the plugin launches via npx.
-    required: false
+    # Required twice over: it is the OpenSpec CLI runtime, and the CHAOS plugin launches
+    # the interaction runtime through npx. Without it the pre-code stop degrades to
+    # chat-interactive — the stop still happens and the record is still written.
+    required: true
     minimumVersion: "20.19.0"
     command: node --version
+
+  npm:
+    required: true
+    command: npm --version
 
   openspec:
     required: true
@@ -45,8 +58,10 @@ toolchain:
     initCommand: openspec init
 
 validation:
+  # Both commands are taken from .github/workflows/ci.yml, so a local verify runs exactly
+  # what CI runs.
   build:
-    defaultCommand: dotnet build TaskTracker.sln
+    defaultCommand: dotnet build TaskTracker.sln --nologo
     allowPrompt: true
 
   test:
@@ -57,14 +72,17 @@ validation:
     validateCommand: openspec validate
     strictFlag: --strict
 
-# When chaos:run owes an OpenSpec change (evaluated and shown at the pre-code stop).
+# When chaos:run owes an OpenSpec change. Evaluated and shown at the pre-code stop, so the
+# human sees the gate result before approving rather than discovering it afterwards.
 specGate:
-  files: 5
-  loc: 250
-  crossingsAlwaysOwe: true
+  files: 5                 # estimated files touched >= this -> spec owed
+  loc: 250                 # estimated LOC >= this -> spec owed
+  crossingsAlwaysOwe: true # any architecture/contract crossing -> spec owed, regardless of size
 
 policies:
   protectedFiles:
+    # Neither file may be edited silently. Commands may propose a patch; a semantic change
+    # requires explicit human confirmation.
     agentsMd:
       path: AGENTS.md
       requirePatchPreview: true
@@ -77,14 +95,17 @@ policies:
 
   interactionRuntime:
     commands:
-      # true → chaos:run creates its folded pre-code decision through the runtime and
-      # hands off to the Decision Center / chaos:resume. Requires the MCP server, which
-      # the CHAOS plugin launches via npx. Without it the stop runs chat-interactive and
-      # the decision record is still written.
+      # true -> chaos:run creates its folded pre-code decision through the runtime and it
+      # appears in the Decision Center. Requires the MCP server, which the CHAOS plugin
+      # launches via npx. If it is unavailable the stop falls back to chat-interactive;
+      # it is never silently skipped.
       enabled: true
       decisionBatching: batch-independent
       fallbackWhenDisabled: chat-interactive
     autoResume:
+      # Conservative init defaults: after answering in the Decision Center you continue
+      # with /chaos:resume. Set inSessionResume: true to have the answered decision
+      # continue the same chat session automatically.
       enabled: true
       adapter: none
       inSessionResume: true
