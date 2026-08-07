@@ -95,8 +95,11 @@ For this command:
 
 - sourceCommand: `chaos:init`
 - Initialize interaction-runtime config defaults in `.chaos/config.yaml`
-  (`policies.interactionRuntime`) and the `.chaos/interactions/` structure when they are
-  missing and within init scope.
+  (`policies.interactionRuntime`).
+- **Do not create `.chaos/interactions/`.** Runtime state is owned by the interaction
+  runtime, not by init: the MCP server materialises the root and seeds its schemas when a
+  command first calls `chaos_begin_command`. Init writes documents; the runtime writes
+  runtime state.
 - **Do not create pending decisions** during init.
 - Mention Decision Center / MCP / live runner / diagnostics availability in the
   bootstrap report when relevant. Perform no runtime mutations beyond initialization.

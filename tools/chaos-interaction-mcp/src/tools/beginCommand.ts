@@ -54,6 +54,11 @@ export const beginCommandTool: McpTool = {
     metadata: z.record(z.unknown()).optional(),
   },
   handler(ctx, args) {
+    // First command in a fresh repository: create the interactions root and seed
+    // schemas before any mutation. chaos:init writes documents, not runtime state,
+    // so without this the very first governed run fails on a missing store.
+    ctx.ensureWorkspace?.();
+
     const result = ctx.runtime.beginCommand({
       sourceCommand: requireString(args, "sourceCommand"),
       changeId: optionalString(args, "changeId") ?? null,

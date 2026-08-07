@@ -15,6 +15,7 @@
  */
 
 import * as fs from "node:fs";
+import * as path from "node:path";
 
 export interface LockOptions {
   /** Max time to wait to acquire before throwing (ms). */
@@ -62,6 +63,10 @@ function readHolder(lockPath: string): LockRecord | null {
  * until the lock is free, a stale holder is broken, or the timeout elapses.
  */
 export function withFileLock<T>(lockPath: string, fn: () => T, opts: LockOptions = {}): T {
+  // The store root may not exist yet on the very first mutation in a repository
+  // (chaos:init may not have created it). Creating it here is safe: this lock is
+  // only taken by an explicit CHAOS command, never by merely starting the server.
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const timeoutMs = opts.timeoutMs ?? 5000;
   const staleMs = opts.staleMs ?? 15_000;
   const nowMs = () => Number(process.hrtime.bigint() / 1_000_000n);

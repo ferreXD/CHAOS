@@ -14,7 +14,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { resolveConfig } from "../config.ts";
 import { createLogger } from "../logger.ts";
 import { createRuntime } from "../runtimeFactory.ts";
-import { autoSeedSchemas, seedSchemas } from "../schemaSeed.ts";
+import { autoSeedSchemas, ensureWorkspace, seedSchemas } from "../schemaSeed.ts";
 import { createMcpServer, SERVER_NAME, SERVER_VERSION } from "../server.ts";
 
 async function main(): Promise<void> {
@@ -57,7 +57,17 @@ async function main(): Promise<void> {
   }
 
   const runtime = createRuntime(config);
-  const server = createMcpServer(runtime, logger);
+  const server = createMcpServer(runtime, logger, {
+    ensureWorkspace: () => {
+      const seeded = ensureWorkspace(config.root, config.schemaDir);
+      if (seeded.written.length > 0) {
+        logger.info("Materialised the interaction workspace", {
+          root: config.root,
+          schemasWritten: seeded.written.length,
+        });
+      }
+    },
+  });
   const transport = new StdioServerTransport();
 
   await server.connect(transport);

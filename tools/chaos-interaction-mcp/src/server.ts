@@ -42,13 +42,17 @@ function coerceParam(value: string | string[] | undefined): string {
   return value ?? "";
 }
 
-export function createMcpServer(runtime: InteractionRuntime, logger: Logger): McpServer {
+export function createMcpServer(
+  runtime: InteractionRuntime,
+  logger: Logger,
+  options: { ensureWorkspace?: () => void } = {},
+): McpServer {
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { capabilities: { tools: {}, resources: {} } },
   );
 
-  const ctx: HandlerContext = { runtime, logger };
+  const ctx: HandlerContext = { runtime, logger, ensureWorkspace: options.ensureWorkspace };
   const resourceCtx: ResourceContext = { runtime };
 
   for (const tool of ALL_TOOLS) {

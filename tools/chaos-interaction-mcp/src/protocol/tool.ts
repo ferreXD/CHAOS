@@ -9,6 +9,12 @@ import { toErrorResult } from "./errors.ts";
 export interface HandlerContext {
   runtime: InteractionRuntime;
   logger: Logger;
+  /**
+   * Materialise the workspace (interactions root + schemas) if it does not exist
+   * yet. Called only by tools that START a command, never on server startup: a
+   * repository that never ran a CHAOS command is left untouched.
+   */
+  ensureWorkspace?: () => void;
 }
 
 export type ToolInputShape = Record<string, z.ZodTypeAny>;

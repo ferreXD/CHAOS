@@ -36,6 +36,21 @@ export function seedSchemas(schemaDir: string, options: { force?: boolean } = {}
 }
 
 /**
+ * Materialise the workspace for a command that is starting: create the
+ * interactions root if it does not exist and seed any missing schemas.
+ *
+ * This is the counterpart to `autoSeedSchemas`. Startup must not create
+ * anything (the server may be running in a repository that never adopted
+ * CHAOS), but by the time a command explicitly begins, the workspace is wanted
+ * — and on a fresh repository nothing else will have created it, because
+ * `chaos:init` writes documents, not runtime state.
+ */
+export function ensureWorkspace(root: string, schemaDir: string): SeedResult {
+  fs.mkdirSync(root, { recursive: true });
+  return seedSchemas(schemaDir);
+}
+
+/**
  * Startup auto-seed: only acts when the interactions root already exists (a
  * CHAOS workspace is in use) but the schema directory is missing or empty.
  * A repository where CHAOS was never initialized is left untouched.

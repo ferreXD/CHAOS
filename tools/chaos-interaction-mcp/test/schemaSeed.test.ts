@@ -15,7 +15,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { EMBEDDED_SCHEMAS } from "../src/embeddedSchemas.generated.ts";
-import { autoSeedSchemas, seedSchemas } from "../src/schemaSeed.ts";
+import { autoSeedSchemas, ensureWorkspace, seedSchemas } from "../src/schemaSeed.ts";
 import { REAL_SCHEMA_DIR } from "./helpers.ts";
 
 function tempDir(prefix: string): string {
@@ -65,6 +65,24 @@ test("seedSchemas never overwrites existing files unless forced", () => {
     JSON.parse(fs.readFileSync(target, "utf8")),
     EMBEDDED_SCHEMAS["decision.schema.json"],
   );
+});
+
+test("ensureWorkspace materialises a virgin repo (the first-governed-run path)", () => {
+  // chaos:init writes documents, not runtime state, so on a fresh repository the
+  // interactions root does not exist when the first command begins. Before this,
+  // chaos_begin_command died on ENOENT taking the store lock.
+  const base = tempDir("chaos-ensure-");
+  const root = path.join(base, ".chaos", "interactions");
+  const schemaDir = path.join(root, "schema");
+
+  const result = ensureWorkspace(root, schemaDir);
+  assert.equal(fs.existsSync(root), true);
+  assert.equal(result.written.length, Object.keys(EMBEDDED_SCHEMAS).length);
+
+  // Idempotent: a second command in the same repo writes nothing new.
+  const again = ensureWorkspace(root, schemaDir);
+  assert.equal(again.written.length, 0);
+  assert.equal(again.skipped.length, Object.keys(EMBEDDED_SCHEMAS).length);
 });
 
 test("autoSeedSchemas leaves untouched repos alone, seeds existing workspaces", () => {
