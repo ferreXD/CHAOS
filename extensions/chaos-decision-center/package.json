@@ -2,7 +2,7 @@
   "name": "chaos-decision-center",
   "displayName": "CHAOS Decision Center",
   "description": "Human-facing VS Code UI for the CHAOS Interaction Runtime: inspect pending decisions and write validated responses to the file-backed runtime.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "ferreXD",
   "license": "MIT",
   "homepage": "https://github.com/ferreXD/CHAOS#readme",
@@ -14,14 +14,24 @@
   "bugs": {
     "url": "https://github.com/ferreXD/CHAOS/issues"
   },
-  "keywords": ["chaos", "decision-record", "governance", "agent", "claude"],
+  "keywords": [
+    "chaos",
+    "decision-record",
+    "governance",
+    "agent",
+    "claude"
+  ],
   "engines": {
     "vscode": "^1.90.0",
     "node": ">=22.6.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./dist/extensions/chaos-decision-center/src/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -32,11 +42,31 @@
   },
   "contributes": {
     "commands": [
-      { "command": "chaosDecisionCenter.open", "title": "Open Decision Center", "category": "CHAOS" },
-      { "command": "chaosDecisionCenter.refresh", "title": "Refresh Decision Center", "category": "CHAOS" },
-      { "command": "chaosDecisionCenter.answerDecision", "title": "Answer Active Decision", "category": "CHAOS" },
-      { "command": "chaosDecisionCenter.cancelDecision", "title": "Cancel Command Session for Decision", "category": "CHAOS" },
-      { "command": "chaosDecisionCenter.copyResumeInstruction", "title": "Copy Resume Instruction", "category": "CHAOS" }
+      {
+        "command": "chaosDecisionCenter.open",
+        "title": "Open Decision Center",
+        "category": "CHAOS"
+      },
+      {
+        "command": "chaosDecisionCenter.refresh",
+        "title": "Refresh Decision Center",
+        "category": "CHAOS"
+      },
+      {
+        "command": "chaosDecisionCenter.answerDecision",
+        "title": "Answer Active Decision",
+        "category": "CHAOS"
+      },
+      {
+        "command": "chaosDecisionCenter.cancelDecision",
+        "title": "Cancel Command Session for Decision",
+        "category": "CHAOS"
+      },
+      {
+        "command": "chaosDecisionCenter.copyResumeInstruction",
+        "title": "Copy Resume Instruction",
+        "category": "CHAOS"
+      }
     ],
     "configuration": {
       "title": "CHAOS Decision Center",
@@ -68,7 +98,11 @@
         },
         "chaosDecisionCenter.afterSubmit": {
           "type": "string",
-          "enum": ["switchToDashboard", "keepDecisionOpen", "closePanel"],
+          "enum": [
+            "switchToDashboard",
+            "keepDecisionOpen",
+            "closePanel"
+          ],
           "default": "switchToDashboard",
           "description": "What the panel does after a decision is answered."
         },

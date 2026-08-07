@@ -18,7 +18,7 @@ import { STATIC_RESOURCES, TEMPLATE_RESOURCES } from "./resources/registry.ts";
 import type { ResourceContext, ResourceReadResult } from "./resources/types.ts";
 
 export const SERVER_NAME = "chaos-interaction";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.2.1";
 export const SERVER_DESCRIPTION =
   "Local MCP server exposing CHAOS Interaction Runtime decision/session tools.";
 

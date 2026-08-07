@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Marketplace for the CHAOS plugin: one forced pre-code stop, durable decisions, and a decision record future stops check against.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
@@ -14,7 +14,12 @@
       "source": "./plugins/chaos",
       "description": "One forced pre-code stop with durable decision state, honest verification, and a small decision record. Commands: /chaos:init, /chaos:run, /chaos:resume, /chaos:doctor, /chaos:help.",
       "category": "workflow",
-      "keywords": ["governance", "decision-record", "workflow", "agent-discipline"]
+      "keywords": [
+        "governance",
+        "decision-record",
+        "workflow",
+        "agent-discipline"
+      ]
     }
   ]
 }

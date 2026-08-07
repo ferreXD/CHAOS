@@ -1,7 +1,7 @@
 {
   "name": "chaos",
   "displayName": "CHAOS",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "One forced pre-code stop with durable decision state, honest verification, and a decision record future stops check against.",
   "author": {
     "name": "Pablo Ferreira",
