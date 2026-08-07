@@ -4,7 +4,7 @@ version: 0.1
 # Read from the installed plugin's .claude-plugin/plugin.json. The machinery is NOT
 # vendored in this repository — it installs as a Claude Code plugin. chaos:doctor warns
 # when this drifts from the installed version.
-machineryVersion: "0.2.0"
+machineryVersion: "0.2.1"
 
 # Repository conventions for the Task Tracker demo API.
 #

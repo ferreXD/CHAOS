@@ -29,15 +29,16 @@ verification, and a decision record.
 3. **Run a governed change:**
 
    ```text
-   /chaos:run "add an optional ?status= filter to GET /tasks"
+   /chaos:run "let ?status= accept a comma-separated list of values"
    ```
 
-   The agent reads the terrain, then **stops** with every open question and crossing folded
-   into a single decision. You answer (in the VS Code Decision Center, or in chat), it
-   builds, verifies honestly, and writes a record to `.chaos/decisions/`.
+   That request contradicts something this repository already decided. The agent reads the
+   terrain, then **stops** — and a correct stop names the contradiction and points at the
+   record instead of quietly implementing it. You decide (in the VS Code Decision Center, or
+   in chat); it builds, verifies honestly, and writes its own record to `.chaos/decisions/`.
 
-The [guided walkthrough](docs/demo/README.md) narrates that loop end to end, including the
-decision that makes it worth doing.
+The [guided walkthrough](docs/demo/README.md) starts from the record a real run already left
+here, then gives you two changes — one the record must *answer*, one it must *resist*.
 
 ## What's in here
 
@@ -52,12 +53,15 @@ decision that makes it worth doing.
 
 ## Why the decisions matter more than the code
 
-The change in the walkthrough is about a dozen lines of LINQ. The point is the
-**decision**: *what should happen when a client sends an invalid filter value?* — surfaced
-before code was written, answered by a human, recorded in
-[`.chaos/decisions/`](.chaos/decisions/index.md), and available to catch a future change
-that contradicts it. That trail is what CHAOS is for; the API is just something real to
-have opinions about.
+The `?status=` filters here are about a dozen lines of LINQ. The interesting part is the
+paper trail they sit on: *what should happen when a client sends an invalid filter value?*
+was decided by a human in **July**, written down, and then — in a real run in **August** —
+found and followed by an agent that was never told it existed. It appears in that run's
+record under *"not asked, because the repository already answered it"*.
+
+That is the whole claim: a decision you make once keeps being enforced after you have
+forgotten it. Read the trail in [`.chaos/decisions/`](.chaos/decisions/index.md); the API is
+just something real to have opinions about.
 
 ## Requirements
 

@@ -12,6 +12,7 @@ This index does **not** duplicate the records. Read the source for detail.
 | 2026-08-07 | `GET /tasks` filters: `?status=`/`?priority=` combine with **AND**, exactly one value each, blank → **400** | **accepted** | [add-task-query-filters](2026-08-07-add-task-query-filters.md) | verified |
 | 2026-08-07 | CHAOS workspace bootstrap (cold-start regeneration) | **accepted** | [bootstrap report](../bootstrap-report.md) | verified |
 | 2026-08-01 | API authentication, transport, and edge hardening | **accepted** | [ADR — API authentication posture](../../docs/adr/2026-08-01-api-authentication-posture.md) | verified |
+| 2026-07-19 | An unrecognized `status`/`priority` filter value returns **400**; values parse case-insensitively | **accepted** | [task filter validation](2026-07-19-task-filter-validation.md) | verified — restored 2026-08-07 |
 
 ## 2026-08-01 — API authentication posture
 
@@ -72,25 +73,26 @@ rather than a visible failure.
 **Open questions.** The contract for a repeated parameter (`?status=A&status=B`) is unspecified
 (FU-2), and `specGate.loc` does not define whether it counts raw lines or non-comment code (FU-1).
 
-## A referenced record that is not in this workspace
+## 2026-07-19 — invalid filter values return 400
 
-`[FACT / HIGH]` [`docs/demo/README.md`](../../docs/demo/README.md) links to
-`.chaos/decisions/2026-07-19-task-filter-validation.md` — a decision that an unrecognized
-`status`/`priority` filter value returns **400** (unknown names *and* numeric out-of-range),
-and that filter values parse case-insensitively.
+**Source status:** `Accepted` — [task filter validation](2026-07-19-task-filter-validation.md).
 
-**That file is not present in this workspace.** It exists in git `HEAD` but was deleted from
-the working tree, and the cold-start regeneration chosen on 2026-08-07 did not recreate it.
-The walkthrough's central beat — a stop *citing* that record instead of re-asking what an
-invalid filter value should do — cannot fire while it is absent.
+**Selected posture.** An unrecognized `status`/`priority` filter value returns **400 Bad
+Request** — unknown names (`?status=banana`) *and* numeric out-of-range (`?status=99`) — and
+filter values parse **case-insensitively**. Not a silent ignore, which returns unexpectedly
+broad results, and not an empty list, which is indistinguishable from a filter that legitimately
+matched nothing.
 
-Restore it, and the rest of the previous workspace, with:
+**Provenance, stated plainly.** This record predates the lean core: it was produced by the
+retired multi-command lifecycle, so its "provenance trail" names commands (`chaos:propose`,
+`chaos:sync`, …) that no longer exist. The decision it carries is unaffected.
 
-```bash
-git checkout -- .chaos/decisions/2026-07-19-task-filter-validation.md
-```
-
-Tracked as **OQ-004** in [`context.md`](../context.md) and in the bootstrap report.
+**Restored 2026-08-07** (closing **OQ-004** / **FU-4**). The file had been dropped from the
+working tree by that day's cold-start `chaos:init`; the 2026-08-07 filter change ran while it was
+absent, following the summary in this index and
+[recording that dependency openly](2026-08-07-add-task-query-filters.md#confidence). With the
+original restored, that record's one assumption of consequence can now be checked directly — and
+the two agree.
 
 ## Reading these
 
